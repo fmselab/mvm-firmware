@@ -1,0 +1,46 @@
+
+# firmware objects
+
+MVM_FW_ROOT := ./MVMFirmwareCore
+MVM_FW_INCLUDES := -I $(MVM_FW_ROOT) -I ./src
+MVM_FIRMWARE_OBJECTS = Alarms.o \
+                       CircularBuffer.o \
+                       ConfigManager.o \
+                       DebugIface.o \
+                       driver_5525DSO.o \
+                       driver_ADS1115.o \
+                       driver_OxygenSensor.o \
+                       driver_SFM3019.o \
+                       driver_Supervisor.o \
+                       driver_VenturiFlowMeter.o \
+                       fw_board_ni_v4.o \
+                       fw_board_razzeto_v3.o \
+                       HAL.o \
+                       hw_ard_esp32.o \
+                       hw.o \
+                       MVMCore.o \
+                       MVM_StateMachine.o \
+                       PressureLoop.o \
+                       TidalVolume.o
+
+%.o: $(MVM_FW_ROOT)/%.cpp ;\
+   $(CXX) -c $< $(MVM_FW_INCLUDES)
+
+# test objects
+
+TEST_ROOT := ./test
+TEST_INCLUDES := -I $(MVM_FW_ROOT) -I ./src
+
+TEST_OBJECTS =  test1.o 
+
+%.o: $(TEST_ROOT)/%.cpp ;\
+   $(CXX) -c $< $(TEST_INCLUDES)
+
+
+# link together
+
+
+
+all: $(MVM_FIRMWARE_OBJECTS) $(TEST_OBJECTS);
+
+clean: ; /bin/rm *.o;
