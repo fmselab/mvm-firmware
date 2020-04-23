@@ -39,8 +39,12 @@ TEST_OBJECTS =  test1.o
 
 # link together
 
+TARGET =	runtests.exe
+
+$(TARGET):	$(MVM_FIRMWARE_OBJECTS) $(TEST_OBJECTS)
+	$(CXX) -o $(TARGET) $(TEST_OBJECTS) $(LIBS)
 
 
-all: $(MVM_FIRMWARE_OBJECTS) $(TEST_OBJECTS);
+all: $(TARGET);
 
 clean: ; /bin/rm *.o;
