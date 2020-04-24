@@ -1,0 +1,6 @@
+[submodule "MVMFirmwareUnitTests/rapidjson"]
+	path = MVMFirmwareUnitTests/rapidjson
+	url = https://github.com/Tencent/rapidjson
+[submodule "MVMFirmwareUnitTests/exprtk"]
+	path = MVMFirmwareUnitTests/exprtk
+	url = https://github.com/ArashPartow/exprtk

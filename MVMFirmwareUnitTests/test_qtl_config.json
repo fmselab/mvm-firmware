@@ -1,0 +1,27 @@
+{
+ "qtl_timelines" : [
+  { "depth": 100, "name": "PS1snip1",
+    "start": 0, "end": 200,
+    "expr": "6*sin(t/10.)", "repeat": true,
+    "repeat_start": -200, "repeat_end": 1800
+  },
+  { "depth": 100, "name": "PS1snip2",
+    "start": 0, "end": 20,
+    "values": [1, 5, 10, 15, 20, 25, 30, 35, 40, 45,
+               50, 55, 60, 65, 70, 75, 80, 85, 90, 95],"repeat": true,
+    "repeat_start": 0, "repeat_end": 1600
+  },
+  { "depth": 100, "name": "PS1delay",
+    "start": 0, "end": 1200,
+    "expr": "PS1(t-200)"
+  },
+  { "depth": 100, "name": "PS1",
+    "start": -2000, 
+    "compose": [ "PS1snip1", "PS1snip2" ], "repeat": true
+  },
+  { "depth": 110, "name": "PS1",
+    "start": 300, "end": 400, 
+    "value": 0
+  }
+ ]
+}
