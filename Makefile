@@ -26,6 +26,18 @@ MVM_FIRMWARE_OBJECTS = Alarms.o \
 %.o: $(MVM_FW_ROOT)/%.cpp ;\
    $(CXX) -c $< $(MVM_FW_INCLUDES)
 
+# wrapper objects (not part of the firmware)
+WRAPPER_ROOT := ./src
+WRAPPER_INCLUDES := -I $(MVM_FW_ROOT) -I ./src
+WRAPPER_OBJECTS = WString.o 
+
+%.o: $(WRAPPER_ROOT)/%.cpp ;\
+   $(CXX) -c $< $(WRAPPER_INCLUDES)
+
+%.o: $(WRAPPER_ROOT)/%.c ;\
+   $(CXX) -c $< $(WRAPPER_INCLUDES)
+
+
 # test objects
 
 TEST_ROOT := ./test
@@ -41,8 +53,8 @@ TEST_OBJECTS =  test1.o
 
 TARGET =	runtests.exe
 
-$(TARGET):	$(MVM_FIRMWARE_OBJECTS) $(TEST_OBJECTS)
-	$(CXX) -o $(TARGET) $(TEST_OBJECTS) $(LIBS)
+$(TARGET):	$(MVM_FIRMWARE_OBJECTS) $(WRAPPER_OBJECTS) $(TEST_OBJECTS) 
+	$(CXX) -o $(TARGET) $(MVM_FIRMWARE_OBJECTS)  $(TEST_OBJECTS) $(LIBS)
 
 
 all: $(TARGET);
