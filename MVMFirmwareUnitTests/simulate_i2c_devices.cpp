@@ -1,102 +1,65 @@
 //
-// File: simulated_i2c_device.h
+// File: simulate_i2c_devices.cpp
 //
 // Author: Francesco Prelz (Francesco.Prelz@mi.infn.it)
 //
 // Revision history:
-// 23-Apr-2020 Initial version.
+// 24-Apr-2020 Initial version.
 //
 // Description:
-// Base class to describe simulated I2C devices
+// Knowledge to populate and implement the MVM I2C device zoo.
 //
 
-#ifndef _I2C_DEVICE_SIMUL_H
-#define _I2C_DEVICE_SIMUL_H
+#include "mvm_fw_unit_test_config.h"
+#include "simulated_i2c_device.h"
 
-#include <functional>
-#include <string>
-#include <map>
-#include <stdint.h> // <cstdint> is C++11.
+#include <stdint.h>
 
-const int I2C_DEVICE_SIMUL_NO_CMD=-2;
-const int I2C_DEVICE_SIMUL_UNKNOWN_CMD=-3;
-const std::string I2C_DEVICE_module_name("I2C SIMULATION");
-
-#include "DebugIface.h"
-
-struct simulated_i2c_device_address
-{
-  simulated_i2c_device_address() {}
-  simulated_i2c_device_address(uint8_t i_address, i_muxport): address(i_address), muxport(i_muxport) {}
-  uint8_t address;
-  int8_t muxport; //-1 indicates ANY
-};
-
-class simulated_i2c_device
+class
+simulate_i2c_devices
 {
   public:
-    typedef std::function<int (uint8_t* a1, int a2, uint8_t* a3)> simulated_i2c_cmd_handler_t;
-    typedef std::map<uint8_t, simulated_i2c_cmd_handler_t> simulated_i2c_cmd_handler_container_t;
+    simulate_i2c_devices(): m_conf(FW_TEST_main_config) { m_init(); }
+    simulate_i2c_devices(mvm_fw_unit_test_config &conf): m_conf(conf) { m_init();}
+    ~simulate_i2c_devices();
 
-    simulated_i2c_device(const std::string &name, DebugIfaceClass &dbg): m_name(name), m_dbg(dbg);
-    simulated_i2c_device(const char *name, DebugIfaceClass &dbg): m_name(name), m_dbg(dbg);
-    virtual ~simulated_i2c_device() {}
-
-    int exchange_message(uint8_t* wbuffer, int wlength, uint8_t *rbuffer, bool stop)
+    int
+    exchange_message(uint8_t address, int8_t muxport,
+          uint8_t* wbuffer, int wlength, uint8_t *rbuffer, bool stop)
      {
-      if (wlength < 1)
+      simulated_i2c_device_address addr(address, muxport);
+      simulated_i2c_devices_t::iterator dit;
+      dit = m_devs.find(addr);
+      if (dit != m_devs.end())
        {
-        std::ostringstream err;
-        err << I2C_DEVICE_module_name << ": Missing command for device'";
-            << m_name << "'."
-        m_dbg.DbgPrint(DBG_CODE, DBG_INFO, err.str().c_str());
-        return I2C_DEVICE_SIMUL_NO_CMD;
+        return dit->second.exchange_message(wbuffer, wlength, rbuffer, stop);
        }
-      uint8_t cmd = wbuffer[0]&0x7f;
-      return handle_command(cmd, wbuffer+1, rbuffer);
-     }
-    void add_command_handler(uint8_t cmd, simulated_i2c_cmd_handler_t &hnd)
-     {
-      simulated_i2c_cmd_handler_container_t::iterator cmdp;
-      cmdp = m_cmd_handlers.find(cmd);
-      if (cmdp != m_cmd_handlers.end())
-       {
-        cmdp->second = hnd;
-       }
-      else
-       {
-        m_cmd_handlers.insert(std::make_pair(cmd, hnd));
-       }
-     }
-    virtual int handle_command(uint8_t cmd, uint8_t *wbuffer, uint8_t *rbuffer)
-     {
-      simulated_i2c_cmd_handler_container_t::iterator cmdp;
-      cmdp = m_cmd_handlers.find(cmd);
-      if (cmdp != m_cmd_handlers.end())
-       {
-        return cmdp->second(cmd);
-       }
-      else
-       {
-        std::ostringstream err;
-        err << I2C_DEVICE_module_name << ": No handler in device '"
-            << m_name << "' for command"
-            << std::hex << std::showbase << cmd << ".";
-        m_dbg.DbgPrint(DBG_CODE, DBG_INFO, err.str().c_str());
-        return I2C_DEVICE_SIMUL_UNKNOWN_CMD;
-       }
+      else return I2C_DEVICE_SIMUL_NOT_FOUND;
      }
 
-  const std::string &get_name() const { return m_name; }
-
-  protected:
-    DebugIfaceClass &m_dbg;
-    simulated_i2c_cmd_handler_container_t m_cmd_handlers; 
+    bool
+    add_device(uint8_t address, int8_t muxport,
+               simulated_i2c_device &dev)
+     {
+      simulated_i2c_device_address addr(address, muxport);
+      simulated_i2c_devices_t::const_iterator dit;
+      dit = m_devs.find(addr);
+      if (dit == m_devs.end())
+       {
+        m_devs.insert(std::make_pair(addr, dev));
+        return true;
+       }
+      return false;
+     }
 
   private:
-    std::string m_name;
+    void m_init();
+    mvm_fw_unit_test_config &m_conf;
+    simulated_i2c_devices_t m_devs;
 };
 
-typedef std::map<simulated_i2c_device_address, simulated_i2c_device> simulated_i2c_devices_t;
-
-#endif /* defined _I2C_DEVICE_SIMUL_H */
+void
+simulate_i2c_devices::m_init()
+{
+  // XXX still to do.
+}

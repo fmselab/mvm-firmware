@@ -580,8 +580,8 @@ quantity_timelines<TNUM>::initialize(const rapidjson::Document &d)
       if (dbl == m_blobs.end())
        {
         qtl_blob_map_t newmap;
-        newmap.insert(std::pair<std::string, qtl_config_blob<TNUM> >(newblob.get_name(), newblob));
-        m_blobs.insert(std::pair <int, qtl_blob_map_t>(depth, newmap));
+        newmap.insert(std::make_pair(newblob.get_name(), newblob));
+        m_blobs.insert(std::make_pair(depth, newmap));
         ++m_count;
        }
       else
@@ -589,7 +589,7 @@ quantity_timelines<TNUM>::initialize(const rapidjson::Document &d)
         typename qtl_blob_map_t::iterator dit = dbl->second.find(newblob.get_name());
         if (dit == dbl->second.end())
          {
-          dbl->second.insert(std::pair<std::string, qtl_config_blob<TNUM> >(newblob.get_name(),newblob));
+          dbl->second.insert(std::make_pair(newblob.get_name(),newblob));
           ++m_count;
          }
         else

@@ -40,6 +40,7 @@ MVM_FIRMWARE_OBJECTS = HAL.o \
                        stdlib_noniso.o WString.o
 
 MWM_FW_TEST_OBJECTS =  simulated_fw_board_v4.o \
+                       simulate_i2c_devices.o \
                        mvm_fw_unit_test_config.o \
                        mvm_fw_unit_test_run.o
 
@@ -57,4 +58,4 @@ mvm_fw_unit_test_run: $(MWM_FW_TEST_OBJECTS) $(MVM_FIRMWARE_OBJECTS); \
 %.o: $(MVM_FW_ROOT)/%.cpp ;\
    $(COMPILE.C) -c $< $(MVM_FW_INCLUDES)
 
-clean: ; /bin/rm *.o $(MVM_FW_TEST_EXECUTABLES);
+clean: ; /bin/rm -f *.o $(MVM_FW_TEST_EXECUTABLES);

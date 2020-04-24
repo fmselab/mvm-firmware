@@ -1,4 +1,6 @@
 {
+ "SerialTTY": "/tmp/ptty",
+ "LogFile": "/tmp/mvm_fw_ut.log",
  "qtl_timelines" : [
   { "depth": 100, "name": "PS1snip1",
     "start": 0, "end": 200,

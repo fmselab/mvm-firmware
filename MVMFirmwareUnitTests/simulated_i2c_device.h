@@ -14,10 +14,12 @@
 #define _I2C_DEVICE_SIMUL_H
 
 #include <functional>
+#include <sstream>
 #include <string>
 #include <map>
 #include <stdint.h> // <cstdint> is C++11.
 
+const int I2C_DEVICE_SIMUL_NOT_FOUND=-1;
 const int I2C_DEVICE_SIMUL_NO_CMD=-2;
 const int I2C_DEVICE_SIMUL_UNKNOWN_CMD=-3;
 const std::string I2C_DEVICE_module_name("I2C SIMULATION");
@@ -30,6 +32,12 @@ struct simulated_i2c_device_address
   simulated_i2c_device_address(uint8_t i_address, int8_t i_muxport): address(i_address), muxport(i_muxport) {}
   uint8_t address;
   int8_t muxport; //-1 indicates ANY
+  bool operator< (const simulated_i2c_device_address &other) const
+   {
+    if (muxport < other.muxport) return true;
+    if (address < other.address) return true;
+    return false;
+   }
 };
 
 class simulated_i2c_device
