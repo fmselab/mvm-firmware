@@ -4,6 +4,9 @@
 
 #include "WString.h"
 
+// Empty stubs:
+#include "Wire.h" 
+
 unsigned long millis();
 void delay(uint32_t);
 

@@ -17,8 +17,17 @@
 
 #include <ctime> // nanosleep
 
-#include "simulated_fw_board.h" // Our HW abstraction
+#include "generic_definitions.h"
+#undef  HARDWARE_TARGET_PLATFORM_V3
+#undef  HARDWARE_TARGET_PLATFORM_V4
+
+#include "simulated_fw_board_v4.h" // Our HW abstraction
 #include "MVMCore.h"
+
+// The following can go away when all leftover references disappear from
+// the firmware code.
+extern WireImpl Wire;
+WireImpl Wire;
 
 std::fstream IOS_ttys;
 extern SerialImpl Serial;
