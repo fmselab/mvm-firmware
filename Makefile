@@ -1,5 +1,5 @@
-
-# firmware objects
+#
+# firmware objects and wrapper
 
 MVM_FW_ROOT := ./MVMFirmwareCore
 MVM_FW_INCLUDES := -I $(MVM_FW_ROOT) -I ./src
@@ -27,8 +27,8 @@ MVM_FIRMWARE_OBJECTS = Alarms.o \
    $(CXX) -c $< $(MVM_FW_INCLUDES)
 
 # wrapper objects (not part of the firmware)
-WRAPPER_ROOT := ./src
-WRAPPER_INCLUDES := -I $(MVM_FW_ROOT) -I ./src
+WRAPPER_ROOT := ./MVMFirmwareUnitTests
+WRAPPER_INCLUDES := -I $(MVM_FW_ROOT) -I $(WRAPPER_ROOT)
 WRAPPER_OBJECTS = WString.o 
 
 %.o: $(WRAPPER_ROOT)/%.cpp ;\
