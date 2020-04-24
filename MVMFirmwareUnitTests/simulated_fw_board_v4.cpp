@@ -11,6 +11,7 @@
 //
 
 #include <ctime>
+#include <sstream>
 
 #include "simulated_fw_board_v4.h"
 
