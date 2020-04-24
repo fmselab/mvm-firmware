@@ -11,6 +11,7 @@
 //
 
 #include <ctime>
+#include <sstream>
 
 #include "mvm_fw_unit_test_config.h"
 #include "DebugIface.h"
