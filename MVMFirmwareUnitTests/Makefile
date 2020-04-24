@@ -40,6 +40,7 @@ MVM_FIRMWARE_OBJECTS = HAL.o \
                        stdlib_noniso.o WString.o
 
 MWM_FW_TEST_OBJECTS =  simulated_fw_board_v4.o \
+                       mvm_fw_unit_test_config.o \
                        mvm_fw_unit_test_run.o
 
 MVM_FW_TEST_EXECUTABLES = mvm_fw_unit_test_run

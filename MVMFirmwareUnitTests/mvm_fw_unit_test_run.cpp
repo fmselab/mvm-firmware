@@ -24,6 +24,9 @@
 #include "simulated_fw_board_v4.h" // Our HW abstraction
 #include "MVMCore.h"
 
+#include "mvm_fw_unit_test_config.h"
+mvm_fw_unit_test_config FW_TEST_main_config;
+
 // The following can go away when all leftover references disappear from
 // the firmware code.
 extern WireImpl Wire;
@@ -32,43 +35,6 @@ WireImpl Wire;
 std::fstream IOS_ttys;
 extern SerialImpl Serial;
 SerialImpl Serial(IOS_ttys);
-
-// Real quick - ugh. This should eventually move to some config module
-typedef rapidjson::Document mvm_fw_test_config_t;
-static bool get_config_string(const mvm_fw_test_config_t &conf,
-                              const std::string &name,
-                              std::string &value)
-{
-  const char *cname=name.c_str();
-  if (conf.HasMember(cname))
-   {
-    const rapidjson::Value& v(conf[cname]);
-    if (!v.IsString()) return false;
-    value = v.GetString();
-    return true;
-   }
-  return false;
-}
-
-#include <cerrno>
-#include <cstring> // strerror()
-
-class system_error
-{
-  public:
-    // We do this in the C way to keep to C++98 standard.
-    system_error(): m_errs(::strerror(errno)) {}
-    ~system_error() {}
-    const std::string &get_err() const { return m_errs; }
-
-  private:
-    std::string m_errs;
-};
-
-std::ostream &operator<< (std::ostream &os, const system_error &serr)
-{
-  return (os << serr.get_err());
-}
 
 int 
 main (int argc, char *argv[]) 
@@ -82,38 +48,17 @@ main (int argc, char *argv[])
    }
   const char *json_conf = argv[1];
 
-  mvm_fw_test_config_t main_config;
-
+  if (!FW_TEST_main_config.load_config(json_conf))
    {
-    std::ifstream ifs(json_conf);
-    if (!ifs.good())
-     {
-      std::cerr << argv[0] << ": Error reading from configuration file " 
-                << json_conf 
-                << ": " << system_error()
-                << "." << std::endl;
-      return 2;
-     }
-
-    rapidjson::IStreamWrapper isw(ifs);
-    rapidjson::ParseResult pres = main_config.ParseStream(isw);
-    if (!pres)
-     {
-      std::cerr << argv[0] << ": Error parsing configuration file " 
-                << json_conf << ": "
-                << rapidjson::GetParseError_En(pres.Code())
-                << "." << std::endl;
-      return 3;
-     }
+    std::cerr << argv[0] << ":" 
+              <<  FW_TEST_main_config.get_error_string()
+              << std::endl;
+    return 2;
    }
-
-  // These should be eventually move elsewhere, too.
-  const std::string MVM_FM_confattr_LogFile("LogFile");
-  const std::string MVM_FM_confattr_SerialTTY("SerialTTY");
 
   std::string log_file;
   std::ofstream logf;
-  if (get_config_string(main_config, MVM_FM_confattr_LogFile, log_file))
+  if (FW_TEST_main_config.get_string(MVM_FM_confattr_LogFile, log_file))
    {
     logf.open(log_file, std::ofstream::out | std::ofstream::app);
     if (!logf.good())
@@ -132,7 +77,7 @@ main (int argc, char *argv[])
    }
 
   std::string serial_tty; 
-  if (!get_config_string(main_config, MVM_FM_confattr_SerialTTY, serial_tty))
+  if (!FW_TEST_main_config.get_string(MVM_FM_confattr_SerialTTY, serial_tty))
    {
     std::cerr << argv[0] << ": Error. Could not find any  " 
               << MVM_FM_confattr_SerialTTY

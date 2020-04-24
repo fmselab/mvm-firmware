@@ -27,7 +27,7 @@ const std::string I2C_DEVICE_module_name("I2C SIMULATION");
 struct simulated_i2c_device_address
 {
   simulated_i2c_device_address() {}
-  simulated_i2c_device_address(uint8_t i_address, int8_t i_muxport): address(i_address), muxport(i_muxport) {}
+  simulated_i2c_device_address(uint8_t i_address, i_muxport): address(i_address), muxport(i_muxport) {}
   uint8_t address;
   int8_t muxport; //-1 indicates ANY
 };
@@ -38,8 +38,8 @@ class simulated_i2c_device
     typedef std::function<int (uint8_t* a1, int a2, uint8_t* a3)> simulated_i2c_cmd_handler_t;
     typedef std::map<uint8_t, simulated_i2c_cmd_handler_t> simulated_i2c_cmd_handler_container_t;
 
-    simulated_i2c_device(const std::string &name, DebugIfaceClass &dbg); 
-    simulated_i2c_device(const char *name, DebugIfaceClass &dbg);
+    simulated_i2c_device(const std::string &name, DebugIfaceClass &dbg): m_name(name), m_dbg(dbg);
+    simulated_i2c_device(const char *name, DebugIfaceClass &dbg): m_name(name), m_dbg(dbg);
     virtual ~simulated_i2c_device() {}
 
     int exchange_message(uint8_t* wbuffer, int wlength, uint8_t *rbuffer, bool stop)
@@ -47,13 +47,13 @@ class simulated_i2c_device
       if (wlength < 1)
        {
         std::ostringstream err;
-        err << I2C_DEVICE_module_name << ": Missing command for device '"
-            << m_name << "'.";
+        err << I2C_DEVICE_module_name << ": Missing command for device'";
+            << m_name << "'."
         m_dbg.DbgPrint(DBG_CODE, DBG_INFO, err.str().c_str());
         return I2C_DEVICE_SIMUL_NO_CMD;
        }
       uint8_t cmd = wbuffer[0]&0x7f;
-      return handle_command(cmd, wbuffer+1, wlength-1, rbuffer);
+      return handle_command(cmd, wbuffer+1, rbuffer);
      }
     void add_command_handler(uint8_t cmd, simulated_i2c_cmd_handler_t &hnd)
      {
@@ -68,14 +68,13 @@ class simulated_i2c_device
         m_cmd_handlers.insert(std::make_pair(cmd, hnd));
        }
      }
-    virtual int handle_command(uint8_t cmd, uint8_t *wbuffer,
-                               int wlength, uint8_t *rbuffer)
+    virtual int handle_command(uint8_t cmd, uint8_t *wbuffer, uint8_t *rbuffer)
      {
       simulated_i2c_cmd_handler_container_t::iterator cmdp;
       cmdp = m_cmd_handlers.find(cmd);
       if (cmdp != m_cmd_handlers.end())
        {
-        return cmdp->second(wbuffer, wlength, rbuffer);
+        return cmdp->second(cmd);
        }
       else
        {

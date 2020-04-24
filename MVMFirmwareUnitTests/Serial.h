@@ -1,5 +1,5 @@
 /* Stub implementation of the Arduino 'Serial' class, */
-/* as it seems to be used directly */
+/* as it seems to be used directly outside of the HW abstraction */
 
 #ifndef _MVM_FW_TEST_SERIAL_H
 #define _MVM_FW_TEST_SERIAL_H

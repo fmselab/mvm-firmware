@@ -21,7 +21,7 @@
 
 #include "hw.h"
 
-#include <iostream>
+#include "simulated_i2c_device.h"
 
 #define IIC_COUNT 8
 
@@ -54,8 +54,6 @@ public:
     float GetBoardTemperature();
     uint16_t GetSupervisorAlarms();
 
-    void set_logf(std::ostream &st) { m_logf= &st; }
-
 private:
     void __service_i2c_detect();
     void i2c_MuxSelect(uint8_t i);
@@ -75,8 +73,6 @@ private:
     float pIN;
     float BoardTemperature;
     uint16_t HW_AlarmsFlags;
-
-    std::ostream *m_logf;
 
 };
 
