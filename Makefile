@@ -40,9 +40,10 @@ MVM_FIRMWARE_OBJECTS = Alarms.o \
 WRAPPER_INCLUDES := -I $(MVM_FW_ROOT) -I $(WRAPPER_ROOT) -I $(WRAPPER_ROOT)/rapidjson/include -I $(WRAPPER_ROOT)/exprtk
 WRAPPER_OBJECTS = WString.o \
 				  simulated_fw_board_v4.o \
-					stdlib_noniso.o \
-                       mvm_fw_unit_test_config.o 
- 
+				  stdlib_noniso.o \
+				  mvm_fw_unit_test_config.o \
+				  simulate_i2c_devices.o
+ 				  
 #                      mvm_fw_unit_test_run.o
 
 %.o: $(WRAPPER_ROOT)/%.cpp ;\
@@ -55,7 +56,7 @@ WRAPPER_OBJECTS = WString.o \
 # test objects
 
 TEST_ROOT := ./test
-TEST_INCLUDES := -I $(MVM_FW_ROOT) -I $(WRAPPER_ROOT)
+TEST_INCLUDES := -I $(MVM_FW_ROOT) -I $(WRAPPER_ROOT) -I $(WRAPPER_ROOT)/rapidjson/include -I $(WRAPPER_ROOT)/exprtk
 
 TEST_OBJECTS =  testStatemachine.o 
 
