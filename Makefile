@@ -2,8 +2,8 @@
 #
 # CPPFLAGS = -DLIBVNCSERVER_HAVE_LIBZ -DLIBVNCSERVER_HAVE_LIBJPEG
 
-CPPFLAGS = -DLIBVNCSERVER_HAVE_LIBZ -DLIBVNCSERVER_HAVE_LIBJPEG
-CUSTOMDEFINES = -DLIBVNCSERVER_HAVE_LIBZ -DLIBVNCSERVER_HAVE_LIBJPEG
+#CXXFLAGS  = -Wall -Werror -Wextra -pedantic -ansi
+CXXFLAGS  = -Wall -O0 -g3
 #
 # firmware objects
 WRAPPER_ROOT := ./MVMFirmwareUnitTests
@@ -33,7 +33,7 @@ MVM_FIRMWARE_OBJECTS = Alarms.o \
 
 
 %.o: $(MVM_FW_ROOT)/%.cpp ;\
-   $(CXX)  $(CUSTOMDEFINES) -c $< $(MVM_FW_INCLUDES)
+   $(CXX)  $(CXXFLAGS) -c $< $(MVM_FW_INCLUDES)
 
 # wrapper objects (not part of the firmware)
 
@@ -61,7 +61,7 @@ TEST_INCLUDES := -I $(MVM_FW_ROOT) -I $(WRAPPER_ROOT) -I $(WRAPPER_ROOT)/rapidjs
 TEST_OBJECTS =  testStatemachine.o 
 
 %.o: $(TEST_ROOT)/%.cpp ;\
-   $(CXX) -c $< $(TEST_INCLUDES)
+   $(CXX) $(CXXFLAGS) -c $< $(TEST_INCLUDES)
 
 
 # link together
@@ -70,7 +70,7 @@ TARGET_DIR = ./target
 TARGET =	runtests.exe
 
 $(TARGET):	$(MVM_FIRMWARE_OBJECTS) $(WRAPPER_OBJECTS) $(TEST_OBJECTS) 
-	$(CXX) -o $(TARGET) $(MVM_FIRMWARE_OBJECTS)  $(WRAPPER_OBJECTS) $(TEST_OBJECTS) $(LIBS)
+	$(CXX) $(CXXFLAGS) -o $(TARGET) $(MVM_FIRMWARE_OBJECTS)  $(WRAPPER_OBJECTS) $(TEST_OBJECTS) $(LIBS)
 
 all: $(TARGET);
 

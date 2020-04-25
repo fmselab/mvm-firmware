@@ -7,6 +7,7 @@
 #include "simulated_fw_board_v4.h" // Our HW abstraction
 #include "Serial.h" // Our HW abstraction
 #include "MVMCore.h"
+#include <iostream>
 
 // The following can go away when all leftover references disappear from
 // the firmware code.
@@ -21,8 +22,9 @@ quantity_timelines<double> FW_TEST_qtl_double;
 qtl_tick_t FW_TEST_tick;
 
 BOOST_AUTO_TEST_CASE(first_test) {
-	MVMCore the_mvm;
-	the_mvm.Init();
+	MVMCore mvm;
+	mvm.Init();
 	//
-	the_mvm.Tick();
+	BOOST_CHECK_EQUAL("",mvm.GetParameter("bpm"));
+	mvm.Tick();
 }
