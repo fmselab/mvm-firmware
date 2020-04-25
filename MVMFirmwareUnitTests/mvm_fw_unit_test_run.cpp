@@ -17,15 +17,13 @@
 
 #include <ctime> // nanosleep
 
-#include "generic_definitions.h"
-#undef  HARDWARE_TARGET_PLATFORM_V3
-#undef  HARDWARE_TARGET_PLATFORM_V4
-
-#include "simulated_fw_board_v4.h" // Our HW abstraction
+#include "simulated_fw_board_v4.h"
 #include "MVMCore.h"
 
 #include "mvm_fw_unit_test_config.h"
-mvm_fw_unit_test_config FW_TEST_main_config;
+mvm_fw_unit_test_config    FW_TEST_main_config;
+quantity_timelines<double> FW_TEST_qtl_double;
+qtl_tick_t                 FW_TEST_tick;
 
 // The following can go away when all leftover references disappear from
 // the firmware code.
@@ -56,6 +54,8 @@ main (int argc, char *argv[])
     return 2;
    }
 
+  FW_TEST_qtl_double.initialize(FW_TEST_main_config.get_conf());
+  
   std::string log_file;
   std::ofstream logf;
   if (FW_TEST_main_config.get_string(MVM_FM_confattr_LogFile, log_file))
@@ -98,12 +98,30 @@ main (int argc, char *argv[])
   // Would probably need to set up the TTY here. We go via named
   // pipes for the time being.
 
+  qtl_tick_t start_tick, end_tick;
+  if (!FW_TEST_main_config.get_number<qtl_tick_t>(MVM_FM_confattr_StartTick,
+                                                  start_tick))
+   {
+    std::cerr << argv[0] << ": Warning. Could not find any  " 
+              << MVM_FM_confattr_StartTick
+              << " attribute in " << json_conf 
+              << ". Using default value: " << start_tick << "." << std::endl;
+   }
+
+  if (!FW_TEST_main_config.get_number<qtl_tick_t>(MVM_FM_confattr_EndTick,
+                                                  end_tick))
+   {
+    std::cerr << argv[0] << ": Warning. Could not find any  " 
+              << MVM_FM_confattr_EndTick
+              << " attribute in " << json_conf 
+              << ". Using default value: " << end_tick << "." << std::endl;
+   }
+
   MVMCore the_mvm;
   the_mvm.Init(); // Should check for errors - where ?
 
   // Main ticker loop 
-  uint64_t curtick;
-  for (curtick = 0; ;++curtick)
+  for (FW_TEST_tick = start_tick; FW_TEST_tick <= end_tick ; ++FW_TEST_tick)
    {
     the_mvm.Tick();
     timespec wait = {0, 100000};

@@ -1,4 +1,8 @@
 {
+ "SerialTTY": "/tmp/ptty",
+ "LogFile": "/tmp/mvm_fw_ut.log",
+ "start_tick": 0,
+ "end_tick": 10000,
  "qtl_timelines" : [
   { "depth": 100, "name": "PS1snip1",
     "start": 0, "end": 200,
@@ -22,6 +26,10 @@
   { "depth": 110, "name": "PS1",
     "start": 300, "end": 400, 
     "value": 0
+  },
+  { "depth": 100, "name": "IIC_PS_0_alive",
+    "start": 0, "end": 0,
+    "value" : 1
   }
  ]
 }

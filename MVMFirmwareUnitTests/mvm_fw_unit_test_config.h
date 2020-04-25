@@ -25,6 +25,8 @@
 #include <cerrno>
 #include <cstring> // strerror()
 
+#include "quantity_timelines.hpp"
+
 class system_error
 {
   public:
@@ -41,6 +43,8 @@ std::ostream& operator<< (std::ostream &os, const system_error &serr);
 
 const std::string MVM_FM_confattr_LogFile("LogFile");
 const std::string MVM_FM_confattr_SerialTTY("SerialTTY");
+const std::string MVM_FM_confattr_StartTick("start_tick");
+const std::string MVM_FM_confattr_EndTick("end_tick");
 
 class mvm_fw_unit_test_config
 {
@@ -101,6 +105,7 @@ class mvm_fw_unit_test_config
      }
 
     bool load_config(const std::string &conf_file);
+    const mvm_fw_test_config_t &get_conf() const { return m_conf; }
 
     const std::string &get_error_string() const { return m_error_string; }
 
@@ -113,5 +118,8 @@ class mvm_fw_unit_test_config
 };
 
 extern mvm_fw_unit_test_config FW_TEST_main_config;
+
+extern quantity_timelines<double> FW_TEST_qtl_double;
+extern qtl_tick_t                 FW_TEST_tick;
 
 #endif /* defined _MVM_FW_TEST_CONFIG_H */

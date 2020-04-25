@@ -172,7 +172,8 @@ class qtl_config_blob: public exprtk::ifunction<TNUM>
       if (! m_valid) return inval;
       if (m_is_constant)
        { 
-        if ((t >= m_tick_start) && (t < m_tick_end)) return m_const_value;
+        if ((m_tick_start == m_tick_end) ||
+            ((t >= m_tick_start) && (t < m_tick_end))) return m_const_value;
         else return inval;
        }
 
@@ -292,10 +293,6 @@ qtl_config_blob<TNUM>::initialize(qtl_tick_t start, qtl_tick_t end,
 
     std::vector<std::string>::const_iterator it;
     std::vector<std::string>::const_iterator end = m_dep_fun.end();
-    for (it = m_dep_fun.begin(); it != end; ++it)
-     {
-      std::cerr << "DEBUG: unk variable <" << *it << ">" << std::endl;
-     }
     m_expr = expr_str;
     return true;
    }
@@ -386,6 +383,8 @@ qtl_config_blob<TNUM>::resolve(function_map_t &mfun)
   return m_valid;
 }
 
+static const char *default_head_el = "qtl_timelines";
+
 template<typename TNUM>
 class quantity_timelines
 {
@@ -396,18 +395,23 @@ class quantity_timelines
 
     const TNUM inval = static_cast<TNUM>(std::nan(""));
 
-    quantity_timelines(const char *config_filename) : m_parse_ok(false), m_count(0)
+    quantity_timelines() : m_parse_ok(false), m_count(0) {}
+    quantity_timelines(const char *config_filename,
+                       const char *head_el=default_head_el) : m_parse_ok(false), m_count(0)
      {
-      initialize(config_filename);
+      initialize(config_filename, head_el);
      }
-    quantity_timelines(std::string config_filename) : m_parse_ok(false), m_count(0)
+    quantity_timelines(std::string config_filename,
+                       std::string head_el=default_head_el) : m_parse_ok(false), m_count(0)
      {
-      initialize(config_filename.c_str());
+      initialize(config_filename.c_str(), head_el.c_str());
      }
     ~quantity_timelines() {}
 
-    void initialize(const char *config_filename);
-    void initialize(const rapidjson::Document &d);
+    void initialize(const char *config_filename,
+                    const char *head_el=default_head_el);
+    void initialize(const rapidjson::Document &d,
+                    const char *head_el=default_head_el);
 
     bool parse_ok() const { return m_parse_ok; }
     int  count() const { return m_count; }
@@ -415,6 +419,7 @@ class quantity_timelines
     TNUM value(const std::string &name, qtl_tick_t t)
      {
       TNUM res = inval;
+      if (!m_parse_ok) return res;
 
       typename qtl_blob_container_t::const_iterator bit;        
       typename qtl_blob_container_t::const_iterator bend = m_blobs.end();        
@@ -441,7 +446,8 @@ class quantity_timelines
 
 template<typename TNUM>
 void
-quantity_timelines<TNUM>::initialize(const char *config_filename)
+quantity_timelines<TNUM>::initialize(const char *config_filename,
+                                     const char *head_el)
 {
   std::ifstream ifs(config_filename);
   if (!ifs.good()) return;
@@ -452,7 +458,7 @@ quantity_timelines<TNUM>::initialize(const char *config_filename)
   rapidjson::ParseResult pres = d.ParseStream(isw);
   if (pres)
    {
-    initialize(d);
+    initialize(d, head_el);
    }
   else
    {
@@ -464,12 +470,12 @@ quantity_timelines<TNUM>::initialize(const char *config_filename)
 
 template<typename TNUM>
 void
-quantity_timelines<TNUM>::initialize(const rapidjson::Document &d)
+quantity_timelines<TNUM>::initialize(const rapidjson::Document &d, const char *head_el)
 {
-  if (d.HasMember("qtl_timelines"))
+  if (d.HasMember(head_el))
    {
     m_parse_ok = true;
-    const rapidjson::Value& a(d["qtl_timelines"]);
+    const rapidjson::Value& a(d[head_el]);
     if (!a.IsArray()) return;
     for (rapidjson::SizeType i = 0; i < a.Size(); i++)
      {
@@ -580,8 +586,8 @@ quantity_timelines<TNUM>::initialize(const rapidjson::Document &d)
       if (dbl == m_blobs.end())
        {
         qtl_blob_map_t newmap;
-        newmap.insert(std::pair<std::string, qtl_config_blob<TNUM> >(newblob.get_name(), newblob));
-        m_blobs.insert(std::pair <int, qtl_blob_map_t>(depth, newmap));
+        newmap.insert(std::make_pair(newblob.get_name(), newblob));
+        m_blobs.insert(std::make_pair(depth, newmap));
         ++m_count;
        }
       else
@@ -589,7 +595,7 @@ quantity_timelines<TNUM>::initialize(const rapidjson::Document &d)
         typename qtl_blob_map_t::iterator dit = dbl->second.find(newblob.get_name());
         if (dit == dbl->second.end())
          {
-          dbl->second.insert(std::pair<std::string, qtl_config_blob<TNUM> >(newblob.get_name(),newblob));
+          dbl->second.insert(std::make_pair(newblob.get_name(),newblob));
           ++m_count;
          }
         else
@@ -602,10 +608,11 @@ quantity_timelines<TNUM>::initialize(const rapidjson::Document &d)
 
   // Resolve and compute functions by multiple iterations
   bool changed = true;
+  bool all_valid;
   while (changed)
    {
     changed = false;
-    bool all_valid = true;
+    all_valid = true;
     typename qtl_blob_container_t::iterator bit;
     typename qtl_blob_container_t::iterator bend = m_blobs.end();        
     for (bit = m_blobs.begin(); bit != bend; ++bit)
@@ -624,10 +631,10 @@ quantity_timelines<TNUM>::initialize(const rapidjson::Document &d)
          }
        }
      }
-    if (!all_valid)
-     {
-      std::cerr << "DEBUG: not all blobs are valid." << std::endl;
-     }
+   }
+  if (!all_valid)
+   {
+    std::cerr << "DEBUG: Warning: not all blobs are valid." << std::endl;
    }
 }
 
