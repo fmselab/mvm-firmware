@@ -1,7 +1,12 @@
+
+#
+# CPPFLAGS = -DLIBVNCSERVER_HAVE_LIBZ -DLIBVNCSERVER_HAVE_LIBJPEG
+
+CPPFLAGS = -DLIBVNCSERVER_HAVE_LIBZ -DLIBVNCSERVER_HAVE_LIBJPEG
+CUSTOMDEFINES = -DLIBVNCSERVER_HAVE_LIBZ -DLIBVNCSERVER_HAVE_LIBJPEG
 #
 # firmware objects
 WRAPPER_ROOT := ./MVMFirmwareUnitTests
-
 
 MVM_FW_ROOT := ./MVMFirmwareCpp/MVMFirmwareCore
 MVM_FW_INCLUDES := -I $(MVM_FW_ROOT) -I $(WRAPPER_ROOT)
@@ -28,7 +33,7 @@ MVM_FIRMWARE_OBJECTS = Alarms.o \
 
 
 %.o: $(MVM_FW_ROOT)/%.cpp ;\
-   $(CXX) -c $< $(MVM_FW_INCLUDES)
+   $(CXX)  $(CUSTOMDEFINES) -c $< $(MVM_FW_INCLUDES)
 
 # wrapper objects (not part of the firmware)
 
@@ -68,4 +73,4 @@ $(TARGET):	$(MVM_FIRMWARE_OBJECTS) $(WRAPPER_OBJECTS) $(TEST_OBJECTS)
 
 all: $(TARGET);
 
-clean: ; /bin/rm *.o;
+clean: ; /bin/rm *.o *.exe;

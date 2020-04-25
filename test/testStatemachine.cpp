@@ -1,7 +1,7 @@
 #define BOOST_TEST_MODULE My Test
 
-#undef  HARDWARE_TARGET_PLATFORM_V3
-#undef  HARDWARE_TARGET_PLATFORM_V4
+//#undef  HARDWARE_TARGET_PLATFORM_V3
+//#undef  HARDWARE_TARGET_PLATFORM_V4
 
 #include <boost/test/included/unit_test.hpp>
 #include "simulated_fw_board_v4.h" // Our HW abstraction
