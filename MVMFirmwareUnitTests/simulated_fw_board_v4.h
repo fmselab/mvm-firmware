@@ -13,6 +13,9 @@
 #ifndef _FW_BOARD_SIMUL_h
 #define _FW_BOARD_SIMUL_h
 
+// Make sure we don't include the definition in the firmware code.
+#define _FW_BOARD_NI_V4_h
+
 #if defined(ARDUINO) && ARDUINO >= 100
 	#include "Arduino.h"
 #else
@@ -21,7 +24,9 @@
 
 #include "hw.h"
 
-#include "simulated_i2c_device.h"
+#include "simulate_i2c_devices.h"
+
+#include <map>
 
 #define IIC_COUNT 8
 
@@ -55,6 +60,8 @@ public:
     uint16_t GetSupervisorAlarms();
 
 private:
+
+    
     void __service_i2c_detect();
     void i2c_MuxSelect(uint8_t i);
     t_i2cdev GetIICDevice(t_i2cdevices device);
@@ -74,6 +81,8 @@ private:
     float BoardTemperature;
     uint16_t HW_AlarmsFlags;
 
+    std::map<t_i2cdevices, sim_i2c_devaddr> m_dev_addrs;
+    simulate_i2c_devices m_sim_devs;
 };
 
 #define LOW               0x0

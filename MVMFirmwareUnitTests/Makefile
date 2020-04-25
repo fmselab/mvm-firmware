@@ -11,7 +11,7 @@
 # Unix makefile for building the MVM Firmware Unit test framework.
 #
 
-MVM_FW_ROOT := ../MVMFirmwareCore
+MVM_FW_ROOT := ../MVMFirmwareCpp/MVMFirmwareCore
 MVM_FW_INCLUDES := -I . -I $(MVM_FW_ROOT) -I rapidjson/include -I exprtk
 
 DEBUG = -g 

@@ -32,26 +32,77 @@ bool
 HW_V4::Init()
 
 {
+  m_dev_addrs.insert(std::make_pair(IIC_PS_0,  sim_i2c_devaddr(0, 0x76)));
+  m_dev_addrs.insert(std::make_pair(IIC_PS_1,  sim_i2c_devaddr(0, 0x77)));
+  m_dev_addrs.insert(std::make_pair(IIC_PS_2,  sim_i2c_devaddr(1, 0x76)));
+  m_dev_addrs.insert(std::make_pair(IIC_FLOW1, sim_i2c_devaddr(1, 0x2E)));
+  m_dev_addrs.insert(std::make_pair(IIC_ADC_0, sim_i2c_devaddr(4, 0x48)));
+  m_dev_addrs.insert(std::make_pair(IIC_SUPERVISOR,
+                                               sim_i2c_devaddr(3, 0x22)));
+  m_dev_addrs.insert(std::make_pair(IIC_MUX,   sim_i2c_devaddr(-1, 0x70)));
+  m_dev_addrs.insert(std::make_pair(IIC_GENERAL_CALL_SENSIRION,
+                                               sim_i2c_devaddr(1, 0x00)));
+
+  for (int i = 0; i < 8; i++)
+   {
+    i2c_MuxSelect(i);
+    Serial.println("SCAN I2C BUS: " + String(i));
+    __service_i2c_detect();
+   }
+
+  batteryStatus_reading_LT = GetMillis();
+
+  currentBatteryCharge = 100;
+  pWall=true;
+  pIN=3;
+  BoardTemperature=25;
+  //init supervisor watchdog
+  WriteSupervisor(0x00, 0);  //REMOVE COMMENT BEFORE RELEASE
+
   return true;
 }
 
 bool
 HW_V4::I2CWrite(t_i2cdevices device, uint8_t* wbuffer, int wlength, bool stop)
 {
+  sim_i2c_devaddr dad=m_dev_addrs[device];
+  int ret;
+  if ((ret = m_sim_devs.exchange_message(dad, wbuffer, wlength,
+                                         NULL, 0, stop)) < 0)
+   {
+    return false;
+   }
+
   return true;
 }
 
 bool
 HW_V4::I2CRead(t_i2cdevices device, uint8_t* wbuffer, int wlength, uint8_t* rbuffer, int rlength, bool stop)
 {
+  sim_i2c_devaddr dad=m_dev_addrs[device];
+  int ret;
+  if ((ret = m_sim_devs.exchange_message(dad, wbuffer, wlength,
+                                         rbuffer, rlength, stop) < 0))
+   {
+    return false;
+   }
+
   return true;
 }
 
 bool
 HW_V4::I2CRead(t_i2cdevices device, uint8_t* rbuffer, int rlength, bool stop)
 {
+  sim_i2c_devaddr dad=m_dev_addrs[device];
+  int ret;
+  if (ret = m_sim_devs.exchange_message(dad, NULL, 0,
+                                        rbuffer, rlength, stop) < 0)
+   {
+    return false;
+   }
   return true;
 }
+
 bool
 HW_V4::PWMSet(hw_pwm id, float value)
 {
@@ -194,8 +245,30 @@ int64_t HW_V4::Get_dT_millis(uint64_t ms)
 
 void HW_V4::__service_i2c_detect()
 {
-	uint8_t error, address;
-	int nDevices = 0;
+  /* No state change ? Just a diagnostics printout, it would seem. */
+  uint8_t error, address;
+  int nDevices = 0;
+  Serial.println("Scanning... I2C");
+  nDevices = 0;
+  for (address = 1; address < 127; address++)
+   {
+    sim_i2c_devaddr dad(current_muxpos, address);
+    if (m_sim_devs.alive(dad))
+     {
+      Serial.print("I2C device found at address 0x");
+      if (address < 16)
+       {
+        Serial.print("0");
+       }
+      Serial.println(address, HEX);
+      nDevices++;
+     }
+   }
+
+  if (nDevices == 0)
+   {
+    Serial.println("No I2C devices found\n");
+   }
 }
 
 
