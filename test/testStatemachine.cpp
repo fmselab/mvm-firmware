@@ -16,7 +16,13 @@ WireImpl Wire;
 std::fstream IOS_ttys;
 extern SerialImpl Serial;
 SerialImpl Serial(IOS_ttys);
+mvm_fw_unit_test_config FW_TEST_main_config;
+quantity_timelines<double> FW_TEST_qtl_double;
+qtl_tick_t FW_TEST_tick;
 
 BOOST_AUTO_TEST_CASE(first_test) {
-	MVMCore mvmcore;
+	MVMCore the_mvm;
+	the_mvm.Init();
+	//
+	the_mvm.Tick();
 }
