@@ -9,7 +9,7 @@
 #include <iostream>
 // used somewhere
 //extern SerialImpl Serial;
-SerialImpl Serial;
+//SerialImpl Serial;
 
 size_t SerialImpl::println(const String &str) {
 	std::cout << str;
