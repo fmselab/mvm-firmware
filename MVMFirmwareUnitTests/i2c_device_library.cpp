@@ -25,7 +25,7 @@ mvm_fw_unit_test_TE_MS5525DSO::m_init_prom()
    // but the firmware code doesn't seem to check them anyway.
    // Here the 16-bit words are XORed together and 4 LSBs are used.
 
-   if (!FW_TEST_main_config.get_num_array(m_name + "_prom", m_prom,
+   if (!FW_TEST_main_config.get_ushort_array(m_name + "_prom", m_prom,
                                           sizeof(m_prom)/sizeof(m_prom[0])))
     {
      // No config. use default values. 

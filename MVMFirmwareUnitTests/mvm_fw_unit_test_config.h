@@ -82,7 +82,6 @@ class mvm_fw_unit_test_config
       const char *cname=name.c_str();
       if (m_conf.HasMember(cname))
        {
-        TNUM ret;
         const rapidjson::Value& v(m_conf[cname]);
         if (!v.IsNumber()) return false;
         value = v.Get<TNUM>();
@@ -98,18 +97,42 @@ class mvm_fw_unit_test_config
       const char *cname=name.c_str();
       if (m_conf.HasMember(cname))
        {
-        TNUM ret;
         const rapidjson::Value& a(m_conf[cname]);
         if (!a.IsArray()) return false;
         for (rapidjson::SizeType i = 0; ((i < a.Size())&&(i < size)); i++)
          {
-          if (!(a[i].IsNumber()))
+          const rapidjson::Value& v(a[i]);
+          if (!(v.IsNumber()))
            {
             value[i] = 0;
             continue;
            }
-          const rapidjson::Value& v(a[i]);
           value[i] = v.Get<TNUM>();
+         }
+        return true;
+       }
+      return false;
+     }
+
+    bool get_ushort_array(const std::string &name, uint16_t *value, int size)
+     {
+      // It seems that  no template classes can be instantiated for
+      // uint16_t's.
+      if (!m_valid) return false;
+      const char *cname=name.c_str();
+      if (m_conf.HasMember(cname))
+       {
+        const rapidjson::Value& a(m_conf[cname]);
+        if (!a.IsArray()) return false;
+        for (rapidjson::SizeType i = 0; ((i < a.Size())&&(i < size)); i++)
+         {
+          const rapidjson::Value& v(a[i]);
+          if (!(v.IsNumber()))
+           {
+            value[i] = 0;
+            continue;
+           }
+          value[i] = static_cast<uint16_t>(v.GetInt());
          }
         return true;
        }
