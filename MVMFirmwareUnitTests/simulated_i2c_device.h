@@ -23,6 +23,8 @@ const int I2C_DEVICE_SIMUL_NOT_FOUND=-1;
 const int I2C_DEVICE_SIMUL_NO_CMD=-2;
 const int I2C_DEVICE_SIMUL_UNKNOWN_CMD=-3;
 const int I2C_DEVICE_SIMUL_DEAD=-4;
+const int I2C_DEVICE_INSUFFICIENT_READ_BUFFER=-5;
+
 const std::string I2C_DEVICE_module_name("I2C SIMULATION");
 
 #include "DebugIface.h"
@@ -127,8 +129,6 @@ class simulated_i2c_device
   protected:
     DebugIfaceClass &m_dbg;
     simulated_i2c_cmd_handler_container_t m_cmd_handlers; 
-
-  private:
     std::string m_name;
     std::string m_alive_attr;
     std::string m_timeline_prefix;

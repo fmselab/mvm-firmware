@@ -91,6 +91,31 @@ class mvm_fw_unit_test_config
       return false;
      }
 
+    template<typename TNUM>
+    bool get_num_array(const std::string &name, TNUM *value, int size)
+     {
+      if (!m_valid) return false;
+      const char *cname=name.c_str();
+      if (m_conf.HasMember(cname))
+       {
+        TNUM ret;
+        const rapidjson::Value& a(m_conf[cname]);
+        if (!a.IsArray()) return false;
+        for (rapidjson::SizeType i = 0; ((i < a.Size())&&(i < size)); i++)
+         {
+          if (!(a[i].IsNumber()))
+           {
+            value[i] = 0;
+            continue;
+           }
+          const rapidjson::Value& v(a[i]);
+          value[i] = v.Get<TNUM>();
+         }
+        return true;
+       }
+      return false;
+     }
+
     bool get_bool(const std::string &name, bool &value)
      {
       if (!m_valid) return false;

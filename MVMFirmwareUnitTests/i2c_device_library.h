@@ -24,13 +24,17 @@ mvm_fw_unit_test_TE_MS5525DSO: public simulated_i2c_device
 {
   public:
     mvm_fw_unit_test_TE_MS5525DSO(const std::string &name, DebugIfaceClass &dbg):
-     simulated_i2c_device(name, dbg) {} 
+     simulated_i2c_device(name, dbg) { m_init_prom(); } 
     mvm_fw_unit_test_TE_MS5525DSO(const char *name, DebugIfaceClass &dbg) :
-     simulated_i2c_device(name, dbg) {} 
+     simulated_i2c_device(name, dbg) { m_init_prom(); } 
     ~mvm_fw_unit_test_TE_MS5525DSO() {}
 
     int handle_command(uint8_t cmd, uint8_t *wbuffer, int wlength,
                                     uint8_t *rbuffer, int rlength);
+    private:
+    void m_init_prom();
+    uint16_t m_prom[8];
+    bool m_want_to_read_pressure;
 };
 
 class
