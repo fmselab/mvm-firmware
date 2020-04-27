@@ -21,9 +21,9 @@
 void
 mvm_fw_unit_test_TE_MS5525DSO::m_init_prom()
 {
-   // How the CRC bit are added up is not specified in the datasheet,
+   // The datasheet does not specify how the CRC bits are added up 
    // but the firmware code doesn't seem to check them anyway.
-   // Here the 16-bit words are XORed together and 4 LSBs are used.
+   // Here the 16-bit words are XORed together and the 4 LSBs are used.
 
    if (!FW_TEST_main_config.get_ushort_array(m_name + "_prom", m_prom,
                                           sizeof(m_prom)/sizeof(m_prom[0])))
@@ -47,6 +47,44 @@ mvm_fw_unit_test_TE_MS5525DSO::m_init_prom()
 
    m_prom[7] &= 0xfff0;
    m_prom[7] |= crc&0xf;
+
+   // Init the Q coefficients;
+   switch(m_model)
+    {
+     case pp001DS:
+      m_q[0]=15; m_q[1]=17; m_q[2]=7; m_q[3]=5; m_q[4]=7, m_q[5]=21;
+      break;
+     case pp002GS:
+      m_q[0]=14; m_q[1]=16; m_q[2]=8; m_q[3]=6; m_q[4]=7, m_q[5]=22;
+      break;
+     case pp002DS:
+      m_q[0]=16; m_q[1]=18; m_q[2]=6; m_q[3]=4; m_q[4]=7, m_q[5]=22;
+      break;
+     case pp005GS:
+      m_q[0]=16; m_q[1]=17; m_q[2]=6; m_q[3]=5; m_q[4]=7, m_q[5]=21;
+      break;
+     case pp005DS:
+      m_q[0]=17; m_q[1]=19; m_q[2]=5; m_q[3]=3; m_q[4]=7, m_q[5]=22;
+      break;
+     case pp015GS:
+      m_q[0]=16; m_q[1]=17; m_q[2]=6; m_q[3]=5; m_q[4]=7, m_q[5]=22;
+      break;
+     case pp015AS:
+      m_q[0]=16; m_q[1]=17; m_q[2]=6; m_q[3]=5; m_q[4]=7, m_q[5]=22;
+      break;
+     case pp015DS:
+      m_q[0]=17; m_q[1]=19; m_q[2]=5; m_q[3]=3; m_q[4]=7, m_q[5]=22;
+      break;
+     case pp030AS:
+      m_q[0]=17; m_q[1]=18; m_q[2]=5; m_q[3]=4; m_q[4]=7, m_q[5]=22;
+      break;
+     case pp030GS:
+      m_q[0]=17; m_q[1]=18; m_q[2]=5; m_q[3]=4; m_q[4]=7, m_q[5]=22;
+      break;
+     case pp030DS:
+      m_q[0]=18; m_q[1]=21; m_q[2]=4; m_q[3]=1; m_q[4]=7, m_q[5]=22;
+      break;
+    }
 }
 
 int
@@ -77,26 +115,50 @@ mvm_fw_unit_test_TE_MS5525DSO::handle_command(uint8_t cmd,
 
   double dreading = 0;
   uint32_t reading=0xffffffff;
+  int dt, d1, d2, psim;
+  int64_t off, sens;
+
   switch (cmd)
    {
     case 0x0:
 
+      dt = ((m_treading*100.) - 2000.)/m_prom[6]*(1<<m_q[5]);
+      d2 =  dt + m_prom[5]*(1<<m_q[4]);
+
+      // Here we invert this datasheet recipe:
+      // Difference between actual and reference temperature
+      // dT = D2 - T REF = D2 - C5 * 2^Q5
+      //  TEMP Measured temperature
+      // TEMP=20°C+dT*TEMPSENS=2000+dT*C6/2^Q6
+      // Calculate Temperature Compensated Pressure
+      // OFF Offset at actual temperature
+      //OFF=OFF T1 +TCO * dT=C2*2^Q2 +(C4*dT)/2^Q4
+      //SENS Sensitivity at actual temperature
+      //SENS=SENS T1 +TCS*dT=C1*2^Q1 +(C3*dT)/2^Q3 
+      //P Temperature Compensated Pressure
+      //P=D1*SENS-OFF=(D1*SENS/2^21 -OFF)/2^15
+
+      psim = m_preading*10000;
+      off = m_prom[1]*(1<<m_q[1]) + (m_prom[4] * dt)/(1<<m_q[3]);
+      sens = m_prom[1]*(1<<m_q[0]) + (m_prom[3] * dt)/(1<<m_q[2]);
+      d1 = (psim*(1<<15) + off) * (1<<21)/sens;
+      if (rlength < 3) return I2C_DEVICE_INSUFFICIENT_READ_BUFFER;
       if (m_want_to_read_pressure)
        {
-        dreading = FW_TEST_qtl_double.value(m_name + "_pressure",FW_TEST_tick);
+        rbuffer[0] = (d1&0xff0000) >> 16;
+        rbuffer[1] = (d1&0xff00) >> 8;
+        rbuffer[2] = (d1&0xf) >> 8;
+       } else {
+        rbuffer[0] = (d2&0xff0000) >> 16;
+        rbuffer[1] = (d2&0xff00) >> 8;
+        rbuffer[2] = (d2&0xf) >> 8;
        }
-      else
-       {
-        //Read temperature.
-        dreading = FW_TEST_qtl_double.value(m_name + "_temperature",FW_TEST_tick);
-        if (std::isnan(dreading))
-         {
-          dreading = FW_TEST_qtl_double.value("env_temperature",FW_TEST_tick);
-         }
-       }
-      // XXX Add recipe for goung from double to hex.
-      msg << "Read ADC (" << std::hex << std::showbase << cmd 
-          << ") command received.";
+      msg << "Read " << (m_want_to_read_pressure ? "pressure" : "temperature")
+          << " ADC "  << std::hex << std::showbase << cmd 
+          << ") command received. Returning [" << std::hex 
+          << std::setfill('0') << rbuffer[0] << "][" << rbuffer[1] 
+          << "][" << rbuffer[2] << "].";
+      ret = 3;
       break;
     case 0x1e:
       msg << "RESET (" << std::hex << std::showbase << cmd 
@@ -108,6 +170,7 @@ mvm_fw_unit_test_TE_MS5525DSO::handle_command(uint8_t cmd,
     case 0x44:
     case 0x46:
     case 0x48:
+      m_preading = FW_TEST_qtl_double.value(m_name + "_pressure",FW_TEST_tick);
       m_want_to_read_pressure = true;
       msg << "D1 Setup (" << std::hex << std::showbase << cmd 
           << ") command received.";
@@ -117,6 +180,11 @@ mvm_fw_unit_test_TE_MS5525DSO::handle_command(uint8_t cmd,
     case 0x54:
     case 0x56:
     case 0x58:
+      m_treading = FW_TEST_qtl_double.value(m_name + "_temperature",FW_TEST_tick);
+      if (std::isnan(m_treading))
+       {
+        m_treading = FW_TEST_qtl_double.value("env_temperature",FW_TEST_tick);
+       }
       m_want_to_read_pressure = false;
       msg << "D2 Setup (" << std::hex << std::showbase << cmd 
           << ") command received.";

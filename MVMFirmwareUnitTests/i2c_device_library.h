@@ -19,22 +19,42 @@
 #include "simulated_i2c_device.h"
 #include "mvm_fw_unit_test_config.h"
 
+enum TE_MS5525DSO_models
+{
+  pp001DS,
+  pp002GS,
+  pp002DS,
+  pp005GS,
+  pp005DS,
+  pp015GS,
+  pp015AS,
+  pp015DS,
+  pp030AS,
+  pp030GS,
+  pp030DS
+};
+
 class
 mvm_fw_unit_test_TE_MS5525DSO: public simulated_i2c_device
 {
   public:
-    mvm_fw_unit_test_TE_MS5525DSO(const std::string &name, DebugIfaceClass &dbg):
-     simulated_i2c_device(name, dbg) { m_init_prom(); } 
-    mvm_fw_unit_test_TE_MS5525DSO(const char *name, DebugIfaceClass &dbg) :
-     simulated_i2c_device(name, dbg) { m_init_prom(); } 
+    mvm_fw_unit_test_TE_MS5525DSO(TE_MS5525DSO_models model,
+                            const std::string &name, DebugIfaceClass &dbg):
+     simulated_i2c_device(name, dbg), m_model(model) { m_init_prom(); } 
+    mvm_fw_unit_test_TE_MS5525DSO(TE_MS5525DSO_models model,
+                            const char *name, DebugIfaceClass &dbg) :
+     simulated_i2c_device(name, dbg), m_model(model) { m_init_prom(); } 
     ~mvm_fw_unit_test_TE_MS5525DSO() {}
 
     int handle_command(uint8_t cmd, uint8_t *wbuffer, int wlength,
                                     uint8_t *rbuffer, int rlength);
     private:
     void m_init_prom();
+    TE_MS5525DSO_models m_model;
     uint16_t m_prom[8];
+    int      m_q[6];
     bool m_want_to_read_pressure;
+    double m_preading, m_treading;
 };
 
 class
