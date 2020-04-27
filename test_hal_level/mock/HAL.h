@@ -11,6 +11,13 @@
 #include "DebugIface.h"
 
 class HAL {
+
+	private:
+	float InputValve;
+	bool OutputValve;
+	bool alarmedled, alarmedrel;
+	bool buzzer;
+
 public:
 	DebugIfaceClass dbg;
 	void Init();
