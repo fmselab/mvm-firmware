@@ -7,7 +7,7 @@
 // 23-Apr-2020 Initial version.
 //
 // Description:
-// Base class to describe simulated I2C devices
+// Base class to describe simulated I2C devices.
 //
 
 #ifndef _I2C_DEVICE_SIMUL_H
@@ -26,6 +26,7 @@ const int I2C_DEVICE_SIMUL_DEAD=-4;
 const std::string I2C_DEVICE_module_name("I2C SIMULATION");
 
 #include "DebugIface.h"
+#include "mvm_fw_unit_test_config.h"
 
 struct sim_i2c_devaddr
 {
@@ -52,6 +53,12 @@ class simulated_i2c_device
     virtual ~simulated_i2c_device() {}
 
     void set_alive_attr(const std::string &attr) { m_alive_attr = attr; }
+    // The device name will be used as a prefix for retrieving timeline
+    // attributes unless the following is set:
+    void set_timeline_prefix(const std::string &prefix)
+     {
+      m_timeline_prefix = prefix;
+     }
 
     int exchange_message(uint8_t* wbuffer, int wlength,
                          uint8_t *rbuffer, int rlength, bool stop)
@@ -124,8 +131,9 @@ class simulated_i2c_device
   private:
     std::string m_name;
     std::string m_alive_attr;
+    std::string m_timeline_prefix;
 };
 
-typedef std::map<sim_i2c_devaddr, simulated_i2c_device> simulated_i2c_devices_t;
+typedef std::map<sim_i2c_devaddr, simulated_i2c_device *> simulated_i2c_devices_t;
 
 #endif /* defined _I2C_DEVICE_SIMUL_H */

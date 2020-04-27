@@ -37,7 +37,7 @@ simulate_i2c_devices
       dit = m_devs.find(addr);
       if (dit != m_devs.end())
        {
-        return dit->second.exchange_message(wbuffer, wlength,
+        return dit->second->exchange_message(wbuffer, wlength,
                                             rbuffer, rlength, stop);
        }
       else return I2C_DEVICE_SIMUL_NOT_FOUND;
@@ -53,8 +53,8 @@ simulate_i2c_devices
       dit = m_devs.find(dad);
       if (dit != m_devs.end())
        {
-        return dit->second.exchange_message(wbuffer, wlength,
-                                            rbuffer, rlength, stop);
+        return dit->second->exchange_message(wbuffer, wlength,
+                                             rbuffer, rlength, stop);
        }
       else return I2C_DEVICE_SIMUL_NOT_FOUND;
      }
@@ -67,7 +67,7 @@ simulate_i2c_devices
       dit = m_devs.find(dad);
       if (dit != m_devs.end())
        {
-        return dit->second.alive();
+        return dit->second->alive();
        }
       return false;
      }
@@ -81,7 +81,7 @@ simulate_i2c_devices
       dit = m_devs.find(addr);
       if (dit == m_devs.end())
        {
-        m_devs.insert(std::make_pair(addr, dev));
+        m_devs.insert(std::make_pair(addr, &dev));
         return true;
        }
       return false;

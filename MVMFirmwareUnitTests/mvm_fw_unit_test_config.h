@@ -26,6 +26,7 @@
 #include <cstring> // strerror()
 
 #include "quantity_timelines.hpp"
+struct sim_i2c_devaddr;
 
 class system_error
 {
@@ -116,6 +117,20 @@ class mvm_fw_unit_test_config
     bool m_valid;
     mvm_fw_test_config_t m_conf;
 };
+
+/* Hardware map */
+
+enum FW_TEST_devices
+{
+  TEST_TE_MS5525DSO,
+  TEST_SENSIRION_SFM3019,
+  TEST_TI_ADS1115,
+  TEST_TCA_I2C_MULTIPLEXER,
+  TEST_XXX_SUPERVISOR
+};
+
+typedef std::map<sim_i2c_devaddr, FW_TEST_devices> test_hardware_t;
+extern test_hardware_t FW_TEST_hardware;
 
 extern mvm_fw_unit_test_config FW_TEST_main_config;
 

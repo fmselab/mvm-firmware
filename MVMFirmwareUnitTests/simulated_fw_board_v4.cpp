@@ -12,6 +12,9 @@
 
 #include <ctime>
 
+#include "mvm_fw_unit_test_config.h"
+test_hardware_t FW_TEST_hardware;
+
 #include "simulated_fw_board_v4.h"
 
 unsigned long millis()
@@ -32,16 +35,38 @@ bool
 HW_V4::Init()
 
 {
-  m_dev_addrs.insert(std::make_pair(IIC_PS_0,  sim_i2c_devaddr(0, 0x76)));
-  m_dev_addrs.insert(std::make_pair(IIC_PS_1,  sim_i2c_devaddr(0, 0x77)));
-  m_dev_addrs.insert(std::make_pair(IIC_PS_2,  sim_i2c_devaddr(1, 0x76)));
-  m_dev_addrs.insert(std::make_pair(IIC_FLOW1, sim_i2c_devaddr(1, 0x2E)));
-  m_dev_addrs.insert(std::make_pair(IIC_ADC_0, sim_i2c_devaddr(4, 0x48)));
-  m_dev_addrs.insert(std::make_pair(IIC_SUPERVISOR,
-                                               sim_i2c_devaddr(3, 0x22)));
-  m_dev_addrs.insert(std::make_pair(IIC_MUX,   sim_i2c_devaddr(-1, 0x70)));
-  m_dev_addrs.insert(std::make_pair(IIC_GENERAL_CALL_SENSIRION,
-                                               sim_i2c_devaddr(1, 0x00)));
+  sim_i2c_devaddr dadd;
+  dadd.muxport = 0; dadd.address = 0x76;
+  FW_TEST_hardware.insert(std::make_pair(dadd, TEST_TE_MS5525DSO));
+  m_dev_addrs.insert(std::make_pair(IIC_PS_0, dadd));
+
+  dadd.muxport = 0; dadd.address = 0x77;
+  FW_TEST_hardware.insert(std::make_pair(dadd, TEST_TE_MS5525DSO));
+  m_dev_addrs.insert(std::make_pair(IIC_PS_1, dadd));
+
+  dadd.muxport = 1; dadd.address = 0x76;
+  FW_TEST_hardware.insert(std::make_pair(dadd, TEST_TE_MS5525DSO));
+  m_dev_addrs.insert(std::make_pair(IIC_PS_2, dadd));
+
+  dadd.muxport = 1; dadd.address = 0x2e;
+  FW_TEST_hardware.insert(std::make_pair(dadd, TEST_SENSIRION_SFM3019));
+  m_dev_addrs.insert(std::make_pair(IIC_FLOW1, dadd));
+
+  dadd.muxport = 4; dadd.address = 0x48;
+  FW_TEST_hardware.insert(std::make_pair(dadd, TEST_TI_ADS1115));
+  m_dev_addrs.insert(std::make_pair(IIC_ADC_0, dadd));
+
+  dadd.muxport = 3; dadd.address = 0x22;
+  FW_TEST_hardware.insert(std::make_pair(dadd, TEST_XXX_SUPERVISOR));
+  m_dev_addrs.insert(std::make_pair(IIC_SUPERVISOR, dadd));
+
+  dadd.muxport = -1; dadd.address = 0x70;
+  FW_TEST_hardware.insert(std::make_pair(dadd, TEST_TCA_I2C_MULTIPLEXER));
+  m_dev_addrs.insert(std::make_pair(IIC_MUX, dadd));
+
+  /* Broadcast address */
+  dadd.muxport = 1; dadd.address = 0x00;
+  m_dev_addrs.insert(std::make_pair(IIC_GENERAL_CALL_SENSIRION, dadd));
 
   for (int i = 0; i < 8; i++)
    {
