@@ -249,7 +249,11 @@ mvm_fw_gpio_devs
 
     bool operator[](mvm_fw_bool_regs dev) const { return m_devs[dev]; }
 
-    uint16_t get_pv1(uint16_t value) const { return m_pv1_value; }
+    uint16_t get_pv1() const { return m_pv1_value; }
+    double get_pv1_fraction() const
+     {
+      return (static_cast<double>(m_pv1_value) / 0xffff);
+     }
 
   private:
     bool m_devs[LAST_REG];
@@ -266,14 +270,31 @@ class
 mvm_fw_unit_test_pflow
 {
   public:
-    mvm_fw_unit_test_pflow() {}
-    ~mvm_fw_unit_test_pflow() {}
+    mvm_fw_unit_test_pflow() { m_init(); }
+    ~mvm_fw_unit_test_pflow() { m_init(); }
 
     double p_value(const std::string &name, qtl_tick_t t);
     double f_value(qtl_tick_t t);
 
+    enum p_sensors
+     {
+      PS0,
+      PS1,
+      PS2,
+      LAST_PS
+     };
+
   private:
     qtl_tick_t m_last_tick;
+    void m_init();
+    void m_evolve(qtl_tick_t t);
+    double m_m_resistance, m_v_resistance;
+    double m_ps1_fraction, m_ps2_fraction;
+    double m_overpressure;
+    double m_capacity;
+    double m_volume;
+    double m_flow;
+    double m_p[LAST_PS];
 };
 
 extern mvm_fw_unit_test_pflow FW_TEST_pflow;
