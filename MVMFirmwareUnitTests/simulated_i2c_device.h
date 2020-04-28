@@ -24,6 +24,7 @@ const int I2C_DEVICE_SIMUL_NO_CMD=-2;
 const int I2C_DEVICE_SIMUL_UNKNOWN_CMD=-3;
 const int I2C_DEVICE_SIMUL_DEAD=-4;
 const int I2C_DEVICE_INSUFFICIENT_READ_BUFFER=-5;
+const int I2C_DEVICE_NOT_ACTIVE=-6;
 
 const std::string I2C_DEVICE_module_name("I2C SIMULATION");
 

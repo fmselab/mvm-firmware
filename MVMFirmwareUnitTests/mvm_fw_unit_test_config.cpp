@@ -57,3 +57,17 @@ mvm_fw_unit_test_config::load_config(const std::string &conf_file)
   return true;
 }
 
+double
+mvm_fw_unit_test_pflow::p_value(const std::string &name, qtl_tick_t t)
+{
+  // XXX To be filled in.
+  return std::nan("");
+}
+
+double
+mvm_fw_unit_test_pflow::f_value(qtl_tick_t t)
+{
+  // XXX To be filled in.
+  return std::nan("");
+}
+

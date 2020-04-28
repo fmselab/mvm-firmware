@@ -14,6 +14,9 @@
 
 #include "mvm_fw_unit_test_config.h"
 test_hardware_t FW_TEST_hardware;
+bool FW_TEST_in_valve;
+bool FW_TEST_out_valve;
+mvm_fw_unit_test_pflow FW_TEST_pflow;
 
 #include "simulated_fw_board_v4.h"
 
@@ -78,6 +81,9 @@ HW_V4::Init()
   batteryStatus_reading_LT = GetMillis();
 
   currentBatteryCharge = 100;
+  FW_TEST_in_valve = false;
+  FW_TEST_out_valve = false;
+
   pWall=true;
   pIN=3;
   BoardTemperature=25;

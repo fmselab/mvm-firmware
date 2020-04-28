@@ -166,6 +166,25 @@ class mvm_fw_unit_test_config
     mvm_fw_test_config_t m_conf;
 };
 
+extern bool FW_TEST_in_valve;
+extern bool FW_TEST_out_valve;
+
+class
+mvm_fw_unit_test_pflow
+{
+  public:
+    mvm_fw_unit_test_pflow() {}
+    ~mvm_fw_unit_test_pflow() {}
+
+    double p_value(const std::string &name, qtl_tick_t t);
+    double f_value(qtl_tick_t t);
+
+  private:
+    qtl_tick_t m_last_tick;
+};
+
+extern mvm_fw_unit_test_pflow FW_TEST_pflow;
+
 /* Hardware map */
 
 enum FW_TEST_devices

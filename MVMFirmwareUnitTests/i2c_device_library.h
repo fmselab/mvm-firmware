@@ -40,10 +40,10 @@ mvm_fw_unit_test_TE_MS5525DSO: public simulated_i2c_device
   public:
     mvm_fw_unit_test_TE_MS5525DSO(TE_MS5525DSO_models model,
                             const std::string &name, DebugIfaceClass &dbg):
-     simulated_i2c_device(name, dbg), m_model(model) { m_init_prom(); } 
+     simulated_i2c_device(name, dbg), m_model(model) { m_init_prom(); }
     mvm_fw_unit_test_TE_MS5525DSO(TE_MS5525DSO_models model,
                             const char *name, DebugIfaceClass &dbg) :
-     simulated_i2c_device(name, dbg), m_model(model) { m_init_prom(); } 
+     simulated_i2c_device(name, dbg), m_model(model) { m_init_prom(); }
     ~mvm_fw_unit_test_TE_MS5525DSO() {}
 
     int handle_command(uint8_t cmd, uint8_t *wbuffer, int wlength,
@@ -62,13 +62,72 @@ mvm_fw_unit_test_SENSIRION_SFM3019: public simulated_i2c_device
 {
   public:
     mvm_fw_unit_test_SENSIRION_SFM3019(const std::string &name, DebugIfaceClass &dbg) :
-     simulated_i2c_device(name, dbg) {} 
+     simulated_i2c_device(name, dbg) { m_init(); }
     mvm_fw_unit_test_SENSIRION_SFM3019(const char *name, DebugIfaceClass &dbg) :
-     simulated_i2c_device(name, dbg) {} 
+     simulated_i2c_device(name, dbg) { m_init(); }
     ~mvm_fw_unit_test_SENSIRION_SFM3019() {}
 
     int handle_command(uint8_t cmd, uint8_t *wbuffer, int wlength,
                                     uint8_t *rbuffer, int rlength);
+  private:
+
+    bool m_m_active;
+    qtl_tick_t m_last_mtick;
+
+    uint16_t m_scale_factor, m_flow_unit, m_status_word;
+    int16_t m_flow_val, m_temp_val, m_offset;
+    const uint32_t m_product_number = 0x04020611;
+    const uint64_t m_serial_number  = 2020123456;
+
+    void m_init()
+     {
+      m_m_active = false;
+      m_scale_factor = 0;
+      m_offset = 0;
+      m_flow_unit = 0;
+      m_last_mtick = 0;
+      m_status_word = 0x3ff;
+      m_scale_factor = 170;
+      m_offset = -24576;
+     }
+
+    bool m_update_measurement();
+
+    uint8_t m_crc(uint16_t data)
+     {
+      return m_crc(&data, sizeof(data));
+     }
+
+    uint8_t m_crc(int16_t data)
+     {
+      return m_crc(reinterpret_cast<uint16_t *>(&data), sizeof(data));
+     }
+
+    uint8_t m_crc(uint16_t *data, int byte_count)
+     {
+      return m_crc(reinterpret_cast<uint8_t *>(data), byte_count);
+     }
+
+    uint8_t m_crc(uint8_t* data, int count)
+     {
+      uint16_t cb;
+      uint8_t crc = 0xFF;
+      uint8_t crc_bit;
+
+      for (cb = 0; cb < count; ++cb)
+       {
+        crc ^= (data[cb]);
+        for (crc_bit = 8; crc_bit > 0; --crc_bit)
+         {
+          if (crc & 0x80)
+           crc = (crc << 1) ^ 0x31; // CRC 'polynomial'
+          else
+           crc = (crc << 1);
+         }
+       }
+      return crc;
+     }
+
 };
 
 class
@@ -76,9 +135,9 @@ mvm_fw_unit_test_TI_ADS1115: public simulated_i2c_device
 {
   public:
     mvm_fw_unit_test_TI_ADS1115(const std::string &name, DebugIfaceClass &dbg) :
-     simulated_i2c_device(name, dbg) {} 
+     simulated_i2c_device(name, dbg) {}
     mvm_fw_unit_test_TI_ADS1115(const char *name, DebugIfaceClass &dbg) :
-     simulated_i2c_device(name, dbg) {} 
+     simulated_i2c_device(name, dbg) {}
     ~mvm_fw_unit_test_TI_ADS1115() {}
 
     int handle_command(uint8_t cmd, uint8_t *wbuffer, int wlength,
