@@ -83,6 +83,35 @@ mvm_fw_unit_test_TI_ADS1115: public simulated_i2c_device
 
     int handle_command(uint8_t cmd, uint8_t *wbuffer, int wlength,
                                     uint8_t *rbuffer, int rlength);
+    enum registers
+     {
+      CONVERSION_REG,
+      CONFIG_REG,
+      LO_THRESHOLD,
+      HI_THRESHOLD
+     };
+
+  private:
+    void m_init()
+     {
+      m_reg[CONVERSION_REG] = 0;
+      m_reg[CONFIG_REG] = 0x8583;
+      m_reg[LO_THRESHOLD] = 0x8000;
+      m_reg[HI_THRESHOLD] = 0x7fff;
+      if (!FW_TEST_main_config.get_number<double>("o2_sensor_calib_q", m_o2_sensor_calib_q))
+       {
+        m_o2_sensor_calib_q = 0.00452689;
+       }
+      if (!FW_TEST_main_config.get_number<double>("o2_sensor_calib_m", m_o2_sensor_calib_m))
+       {
+        m_o2_sensor_calib_m = -1.63;
+       }
+     }
+    uint16_t m_reg[4];
+    int m_cur_mux, m_cur_gain;
+    double m_o2_sensor_calib_q, m_o2_sensor_calib_m;
+    double m_vmax;
+    double m_o2_concentration, m_voltage_ref, m_voltage_12v, m_voltage_5v;
 };
 
 struct

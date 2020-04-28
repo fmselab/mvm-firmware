@@ -97,7 +97,8 @@ mvm_fw_unit_test_TE_MS5525DSO::handle_command(uint8_t cmd,
   ::clock_gettime(CLOCK_REALTIME, &now);
   std::ostringstream msg;
   msg << I2C_DEVICE_module_name << " - MS5525DSO - " << m_name << " - "
-      << now.tv_sec << ":" << now.tv_nsec/1000000 << " - ";
+      << now.tv_sec << ":" << now.tv_nsec/1000000 << " - tick:"
+      << FW_TEST_tick << " - ";
   
   if ((cmd >= 0xa0) && (cmd <= 0xae))
    {
@@ -211,6 +212,84 @@ int
 mvm_fw_unit_test_TI_ADS1115::handle_command(uint8_t cmd,
                  uint8_t *wbuffer, int wlength, uint8_t *rbuffer, int rlength)
 {
-  return -1;
+  int ret = -1;
+
+  timespec now;
+  ::clock_gettime(CLOCK_REALTIME, &now);
+  std::ostringstream msg;
+  msg << I2C_DEVICE_module_name << " - ADS1115 - " << m_name << " - "
+      << now.tv_sec << ":" << now.tv_nsec/1000000 << " - tick:"
+      << FW_TEST_tick << " - ";
+  
+  if ((cmd >= 0) && (cmd <= 3))
+   {
+    if (wlength >= 2)
+     {
+      m_reg[cmd] = ((rbuffer[0] << 8) | rbuffer[1]);
+      if (cmd == CONFIG_REG)
+       {
+        m_cur_mux = ((m_reg[CONFIG_REG] & 0x7000) >> 12);
+        m_cur_gain = ((m_reg[CONFIG_REG] & 0x0e00) >> 9);
+        m_vmax = (6.144/(1<<m_cur_gain));
+        if (m_cur_gain > 5) m_cur_gain = 5;
+        if ((m_reg[CONFIG_REG] & 0x8000) || // One-shot conversion ?
+            (m_reg[CONFIG_REG] & 0x0100))   // Continuous conversion ?
+         {
+          m_reg[CONVERSION_REG] = 0;
+          if (m_cur_mux == 4)
+           {
+            m_o2_concentration = FW_TEST_qtl_double.value("o2_concentration",FW_TEST_tick);
+            m_reg[CONVERSION_REG] = (m_o2_concentration - m_o2_sensor_calib_m)/
+                                    m_o2_sensor_calib_q;
+            msg << "O2 concentration: " << m_o2_concentration << "%";
+           }
+          else if ((m_cur_mux >= 5) && (m_cur_mux <= 7))
+           {
+            m_voltage_ref = FW_TEST_qtl_double.value("voltage_ref",FW_TEST_tick);
+            uint16_t vrefs;
+            if (m_voltage_ref <= 0) vrefs = 0;
+            else if (m_voltage_ref > m_vmax) vrefs = 0xffff;
+            else vrefs = 0xffff*(m_voltage_ref/m_vmax);
+            msg << " Voltage reference: " << m_voltage_ref << " V";
+            
+            if (m_cur_mux == 6)
+             {
+              m_voltage_12v = FW_TEST_qtl_double.value("voltage_12v",FW_TEST_tick);
+              msg << " 12V voltage: " << m_voltage_12v << " V";
+              m_reg[CONVERSION_REG] = (m_voltage_12v/(2.5*5.)) * vrefs;
+             }
+            else if (m_cur_mux == 7)
+             {
+              m_voltage_5v = FW_TEST_qtl_double.value("voltage_5v",FW_TEST_tick);
+              msg << " 5V voltage: " << m_voltage_5v << " V";
+              m_reg[CONVERSION_REG] = (m_voltage_5v/(2.5*2.)) * vrefs;
+             }
+            else m_reg[CONVERSION_REG] = vrefs;
+           }
+          
+          msg << " == [" << std::hex << std::setfill('0')
+              << m_reg[CONVERSION_REG] << std::dec;
+          if (m_reg[CONFIG_REG] & 0x8000) m_reg[CONFIG_REG] &= 0x7fff;
+         }
+       }
+     }
+    if (rlength >= 2)
+     {
+      rbuffer[0] = (m_reg[cmd]&0xff00) >> 8;
+      rbuffer[1] = (m_reg[cmd]&0xff);
+      msg << "Read register " << std::hex << std::showbase << cmd
+          << ". Returning [" << std::hex << std::setfill('0')
+          << rbuffer[0] << "][" << rbuffer[1] << "]." << std::dec;
+      ret = 2;
+     }
+   }
+  else
+   {
+    msg << "UNKNOWN (" << std::hex << std::showbase << cmd 
+        << ") command received.";
+    ret = I2C_DEVICE_SIMUL_UNKNOWN_CMD;
+   }
+  m_dbg.DbgPrint(DBG_CODE, DBG_INFO, msg.str().c_str());
+  return ret;
 };
 
