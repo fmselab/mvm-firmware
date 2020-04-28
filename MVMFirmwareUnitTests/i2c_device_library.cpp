@@ -119,6 +119,7 @@ mvm_fw_unit_test_TE_MS5525DSO::handle_command(uint8_t cmd,
   uint32_t reading=0xffffffff;
   int dt, d1, d2, psim;
   int64_t off, sens;
+  const double CMH2O_TO_PSI = 0.014223343307054;
 
   switch (cmd)
    {
@@ -140,7 +141,6 @@ mvm_fw_unit_test_TE_MS5525DSO::handle_command(uint8_t cmd,
       //P Temperature Compensated Pressure
       //P=D1*SENS-OFF=(D1*SENS/2^21 -OFF)/2^15
 
-      const double CMH2O_TO_PSI = 0.014223343307054;
       psim = m_preading*(CMH2O_TO_PSI*10000);
       off = m_prom[1]*(1<<m_q[1]) + (m_prom[4] * dt)/(1<<m_q[3]);
       sens = m_prom[1]*(1<<m_q[0]) + (m_prom[3] * dt)/(1<<m_q[2]);
