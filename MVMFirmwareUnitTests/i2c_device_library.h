@@ -176,10 +176,23 @@ mvm_fw_unit_test_TI_ADS1115: public simulated_i2c_device
 struct
 TCA_I2C_Multiplexer_command_handler
 {
+  TCA_I2C_Multiplexer_command_handler(int cmd): m_cmd(cmd) {}
+  ~TCA_I2C_Multiplexer_command_handler() {}
+
   int operator()(uint8_t* a1, int a2, uint8_t* a3, int a4)
    {
-    return -1;
+    timespec now;
+    ::clock_gettime(CLOCK_REALTIME, &now);
+    std::ostringstream msg;
+    msg << I2C_DEVICE_module_name << " - TCA MUX - " 
+      << now.tv_sec << ":" << now.tv_nsec/1000000 << " - tick:"
+      << FW_TEST_tick << " - called (NOP) with cmd " << m_cmd;
+
+    return 0;
    }
+
+  private:
+   int m_cmd;
 };
 
 class

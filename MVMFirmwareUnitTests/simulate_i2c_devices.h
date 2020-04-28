@@ -22,9 +22,16 @@ class
 simulate_i2c_devices
 {
   public:
-    simulate_i2c_devices(): m_conf(FW_TEST_main_config) { m_init(); }
-    simulate_i2c_devices(mvm_fw_unit_test_config &conf): m_conf(conf) { m_init();}
-    ~simulate_i2c_devices() {}
+    simulate_i2c_devices(): m_conf(FW_TEST_main_config) {} 
+    simulate_i2c_devices(mvm_fw_unit_test_config &conf): m_conf(conf) {}
+    ~simulate_i2c_devices()
+     {
+      simulated_i2c_devices_t::iterator dit;
+      for(dit = m_devs.begin(); dit != m_devs.end(); ++dit)
+       {
+        if (dit->second) delete (dit->second);
+       }
+     }
 
     int
     exchange_message(uint8_t address, int8_t muxport,
@@ -74,21 +81,23 @@ simulate_i2c_devices
 
     bool
     add_device(uint8_t address, int8_t muxport,
-               simulated_i2c_device &dev)
+               simulated_i2c_device *dev)
      {
+      if (!dev) return false;
       sim_i2c_devaddr addr(address, muxport);
       simulated_i2c_devices_t::const_iterator dit;
       dit = m_devs.find(addr);
       if (dit == m_devs.end())
        {
-        m_devs.insert(std::make_pair(addr, &dev));
+        m_devs.insert(std::make_pair(addr, dev));
         return true;
        }
       return false;
      }
 
+    void init_hw(const test_hardware_t &hwl);
+
   private:
-    void m_init();
     mvm_fw_unit_test_config &m_conf;
     simulated_i2c_devices_t m_devs;
 };

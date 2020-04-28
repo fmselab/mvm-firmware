@@ -28,6 +28,8 @@
 #include "quantity_timelines.hpp"
 struct sim_i2c_devaddr;
 
+#include "DebugIface.h"
+
 class system_error
 {
   public:
@@ -166,8 +168,99 @@ class mvm_fw_unit_test_config
     mvm_fw_test_config_t m_conf;
 };
 
-extern bool FW_TEST_in_valve;
-extern bool FW_TEST_out_valve;
+extern quantity_timelines<double> FW_TEST_qtl_double;
+extern qtl_tick_t                 FW_TEST_tick;
+
+class 
+mvm_fw_gpio_devs
+{
+  public:
+    enum
+    mvm_fw_bool_regs
+     {
+      BREATHE, 
+      OUT_VALVE,
+      BUZZER,
+      ALARM_LED,
+      ALARM_RELAY,
+      LAST_REG
+     };
+
+    bool set(mvm_fw_bool_regs dev, bool value)
+     {
+      double enable;
+      bool ret = false;
+      enable = FW_TEST_qtl_double.value(std::string(m_names[dev])+"_enable",
+                                        FW_TEST_tick);
+      timespec now;
+      ::clock_gettime(CLOCK_REALTIME, &now);
+      m_msg.clear();
+      m_msg << "GPIO_DEVS" << " - " << m_names[dev] << " - "
+      << now.tv_sec << ":" << now.tv_nsec/1000000 << " - tick:"
+      << FW_TEST_tick << " - ";
+
+      if (std::isnan(enable) || 
+          (!std::isnan(enable) && (enable != 0)))
+       {
+        m_devs[dev] = value;
+        m_msg << "value set to " << value;
+        ret = true;
+       }
+      else
+       {
+        m_msg << "device disabled in config. NOT set to " << value
+              << " - current value is " << m_devs[dev];
+       }
+      return ret;
+     }
+
+    bool set_pv1(uint16_t value)
+     {
+      double enable;
+      bool ret = false;
+      enable = FW_TEST_qtl_double.value("PV1_enable", FW_TEST_tick);
+      timespec now;
+      ::clock_gettime(CLOCK_REALTIME, &now);
+      m_msg.clear();
+      m_msg << "GPIO_DEVS" << " - PV1 - "
+      << now.tv_sec << ":" << now.tv_nsec/1000000 << " - tick:"
+      << FW_TEST_tick << " - ";
+
+      if (std::isnan(enable) || 
+          (!std::isnan(enable) && (enable != 0)))
+       {
+        m_pv1_value = value;
+        m_msg << "value set to " << value;
+        ret = true;
+       }
+      else
+       {
+        m_msg << "device disabled in config. NOT set to " << value
+              << " - current value is " << m_pv1_value;
+       }
+      return ret;
+     }
+
+    const std::string &get_error_msg()
+     {
+      m_msg_str = m_msg.str();
+      return m_msg_str;
+     }
+
+    bool operator[](mvm_fw_bool_regs dev) const { return m_devs[dev]; }
+
+    uint16_t get_pv1(uint16_t value) const { return m_pv1_value; }
+
+  private:
+    bool m_devs[LAST_REG];
+    std::ostringstream m_msg;
+    std::string m_msg_str;
+    uint16_t m_pv1_value;
+    const char *m_names[LAST_REG] = { "BREATHE", "OUT_VALVE", "BUZZER",
+                                      "ALARM_LED", "ALARM_RELAY" };
+};
+
+extern mvm_fw_gpio_devs FW_TEST_gdevs;
 
 class
 mvm_fw_unit_test_pflow
@@ -196,12 +289,9 @@ enum FW_TEST_devices
   TEST_XXX_SUPERVISOR
 };
 
-typedef std::map<sim_i2c_devaddr, FW_TEST_devices> test_hardware_t;
+typedef std::map<sim_i2c_devaddr, std::pair<FW_TEST_devices, std::string> > test_hardware_t;
 extern test_hardware_t FW_TEST_hardware;
 
 extern mvm_fw_unit_test_config FW_TEST_main_config;
-
-extern quantity_timelines<double> FW_TEST_qtl_double;
-extern qtl_tick_t                 FW_TEST_tick;
 
 #endif /* defined _MVM_FW_TEST_CONFIG_H */

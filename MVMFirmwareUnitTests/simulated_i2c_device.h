@@ -51,8 +51,10 @@ class simulated_i2c_device
     typedef std::function<int (uint8_t* a1, int a2, uint8_t* a3, int a4)> simulated_i2c_cmd_handler_t;
     typedef std::map<uint8_t, simulated_i2c_cmd_handler_t> simulated_i2c_cmd_handler_container_t;
 
-    simulated_i2c_device(const std::string &name, DebugIfaceClass &dbg); 
-    simulated_i2c_device(const char *name, DebugIfaceClass &dbg);
+    simulated_i2c_device(const std::string &name, DebugIfaceClass &dbg) :
+      m_dbg(dbg), m_name(name) {}
+    simulated_i2c_device(const char *name, DebugIfaceClass &dbg) :
+      m_dbg(dbg), m_name(name) {}
     virtual ~simulated_i2c_device() {}
 
     void set_alive_attr(const std::string &attr) { m_alive_attr = attr; }
@@ -84,7 +86,7 @@ class simulated_i2c_device
       return handle_command(cmd, wbuffer, wlength-1, rbuffer, rlength);
      }
 
-    void add_command_handler(uint8_t cmd, simulated_i2c_cmd_handler_t &hnd)
+    void add_command_handler(uint8_t cmd, simulated_i2c_cmd_handler_t hnd)
      {
       simulated_i2c_cmd_handler_container_t::iterator cmdp;
       cmdp = m_cmd_handlers.find(cmd);

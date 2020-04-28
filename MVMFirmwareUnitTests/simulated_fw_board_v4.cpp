@@ -14,9 +14,9 @@
 
 #include "mvm_fw_unit_test_config.h"
 test_hardware_t FW_TEST_hardware;
-bool FW_TEST_in_valve;
-bool FW_TEST_out_valve;
+mvm_fw_gpio_devs FW_TEST_gdevs;
 mvm_fw_unit_test_pflow FW_TEST_pflow;
+DebugIfaceClass DebugIface;
 
 #include "simulated_fw_board_v4.h"
 
@@ -40,31 +40,38 @@ HW_V4::Init()
 {
   sim_i2c_devaddr dadd;
   dadd.muxport = 0; dadd.address = 0x76;
-  FW_TEST_hardware.insert(std::make_pair(dadd, TEST_TE_MS5525DSO));
+  FW_TEST_hardware.insert(std::make_pair(dadd,
+                          std::make_pair(TEST_TE_MS5525DSO, "PS0")));
   m_dev_addrs.insert(std::make_pair(IIC_PS_0, dadd));
 
   dadd.muxport = 0; dadd.address = 0x77;
-  FW_TEST_hardware.insert(std::make_pair(dadd, TEST_TE_MS5525DSO));
+  FW_TEST_hardware.insert(std::make_pair(dadd,
+                          std::make_pair(TEST_TE_MS5525DSO, "PS1")));
   m_dev_addrs.insert(std::make_pair(IIC_PS_1, dadd));
 
   dadd.muxport = 1; dadd.address = 0x76;
-  FW_TEST_hardware.insert(std::make_pair(dadd, TEST_TE_MS5525DSO));
+  FW_TEST_hardware.insert(std::make_pair(dadd,
+                          std::make_pair(TEST_TE_MS5525DSO, "PS2")));
   m_dev_addrs.insert(std::make_pair(IIC_PS_2, dadd));
 
   dadd.muxport = 1; dadd.address = 0x2e;
-  FW_TEST_hardware.insert(std::make_pair(dadd, TEST_SENSIRION_SFM3019));
+  FW_TEST_hardware.insert(std::make_pair(dadd,
+                          std::make_pair(TEST_SENSIRION_SFM3019, "FLOW1")));
   m_dev_addrs.insert(std::make_pair(IIC_FLOW1, dadd));
 
   dadd.muxport = 4; dadd.address = 0x48;
-  FW_TEST_hardware.insert(std::make_pair(dadd, TEST_TI_ADS1115));
+  FW_TEST_hardware.insert(std::make_pair(dadd,
+                          std::make_pair(TEST_TI_ADS1115, "ADC0")));
   m_dev_addrs.insert(std::make_pair(IIC_ADC_0, dadd));
 
   dadd.muxport = 3; dadd.address = 0x22;
-  FW_TEST_hardware.insert(std::make_pair(dadd, TEST_XXX_SUPERVISOR));
+  FW_TEST_hardware.insert(std::make_pair(dadd, 
+                          std::make_pair(TEST_XXX_SUPERVISOR, "SUPER")));
   m_dev_addrs.insert(std::make_pair(IIC_SUPERVISOR, dadd));
 
   dadd.muxport = -1; dadd.address = 0x70;
-  FW_TEST_hardware.insert(std::make_pair(dadd, TEST_TCA_I2C_MULTIPLEXER));
+  FW_TEST_hardware.insert(std::make_pair(dadd,
+                          std::make_pair(TEST_TCA_I2C_MULTIPLEXER, "MUX0")));
   m_dev_addrs.insert(std::make_pair(IIC_MUX, dadd));
 
   /* Broadcast address */
@@ -81,12 +88,16 @@ HW_V4::Init()
   batteryStatus_reading_LT = GetMillis();
 
   currentBatteryCharge = 100;
-  FW_TEST_in_valve = false;
-  FW_TEST_out_valve = false;
+
+  FW_TEST_gdevs.set_pv1(0);
+  FW_TEST_gdevs.set(mvm_fw_gpio_devs::BREATHE, false);
+  FW_TEST_gdevs.set(mvm_fw_gpio_devs::OUT_VALVE, false);
+  FW_TEST_gdevs.set(mvm_fw_gpio_devs::BUZZER, false);
+  FW_TEST_gdevs.set(mvm_fw_gpio_devs::ALARM_LED, false);
+  FW_TEST_gdevs.set(mvm_fw_gpio_devs::ALARM_RELAY, false);
 
   pWall=true;
   pIN=3;
-  BoardTemperature=25;
   //init supervisor watchdog
   WriteSupervisor(0x00, 0);  //REMOVE COMMENT BEFORE RELEASE
 
@@ -137,20 +148,17 @@ HW_V4::I2CRead(t_i2cdevices device, uint8_t* rbuffer, int rlength, bool stop)
 bool
 HW_V4::PWMSet(hw_pwm id, float value)
 {
-
   if ((value < 0) || (value > 100.0)) return false;
 
-	switch (id)
-	{
-	case PWM_PV1:
-		uint32_t v = (uint32_t)value * 4095.0 / 100.0;
-		//ledcWrite(0, v);
-		if (v > 0)
-		//	digitalWrite(BREETHE, HIGH);
-		break;
-
-	}
-
+  switch (id)
+   {
+    case PWM_PV1:
+      FW_TEST_gdevs.set_pv1((value * 4095.0) / 100.0);
+      if (value > 0) FW_TEST_gdevs.set(mvm_fw_gpio_devs::BREATHE, true);
+      break;
+    default:
+      break;
+   }
 
   return true;
 }
@@ -158,26 +166,27 @@ HW_V4::PWMSet(hw_pwm id, float value)
 bool
 HW_V4::IOSet(hw_gpio id, bool value)
 {
-	switch (id)
-	{
-	case GPIO_PV2:
-		//digitalWrite(VALVE_OUT_PIN, value ? HIGH : LOW);
-		if (value==LOW)
-			//digitalWrite(BREETHE, LOW);
-		break;
-	case GPIO_BUZZER:
-		//digitalWrite(BUZZER, value ? HIGH : LOW);
-		break;
-	case GPIO_LED:
-		//digitalWrite(ALARM_LED, value ? HIGH : LOW);
-		break;
-	case GPIO_RELEALLARM:
-		//digitalWrite(ALARM_RELE, value ? HIGH : LOW);
-		break;
-	default:
-		return false;
-		break;
-	}
+  std::ostringstream msg;
+
+  switch (id)
+   {
+    case GPIO_PV2:
+      FW_TEST_gdevs.set(mvm_fw_gpio_devs::OUT_VALVE, value);
+      if (!value) FW_TEST_gdevs.set(mvm_fw_gpio_devs::BREATHE, false);
+      break;
+    case GPIO_BUZZER:
+      FW_TEST_gdevs.set(mvm_fw_gpio_devs::BUZZER, value);
+      break;
+    case GPIO_LED:
+      FW_TEST_gdevs.set(mvm_fw_gpio_devs::ALARM_LED, value);
+      break;
+    case GPIO_RELEALLARM:
+      FW_TEST_gdevs.set(mvm_fw_gpio_devs::ALARM_RELAY, value);
+      break;
+    default:
+      return false;
+      break;
+   }
   return true;
 }
 
@@ -187,16 +196,16 @@ HW_V4::IOGet(hw_gpio id, bool* value)
 	switch (id)
 	{
 	case GPIO_PV2:
-		//*value = digitalRead(VALVE_OUT_PIN);
+		*value = FW_TEST_gdevs[mvm_fw_gpio_devs::OUT_VALVE];
 		break;
 	case GPIO_BUZZER:
-		//*value = digitalRead(BUZZER);
+		*value = FW_TEST_gdevs[mvm_fw_gpio_devs::BUZZER];
 		break;
 	case GPIO_LED:
-		//*value = digitalRead(ALARM_LED);
+		*value = FW_TEST_gdevs[mvm_fw_gpio_devs::ALARM_LED];
 		break;
 	case GPIO_RELEALLARM:
-		//*value = digitalRead(ALARM_RELE);
+		*value = FW_TEST_gdevs[mvm_fw_gpio_devs::ALARM_RELAY];
 		break;
 	default:
 		return false;
@@ -208,16 +217,18 @@ HW_V4::IOGet(hw_gpio id, bool* value)
 void
 HW_V4::__delay_blocking_ms(uint32_t ms)
 {
-	delay(ms);
+  delay(ms);
 }
 
 void
 HW_V4::PrintDebugConsole(String s)
 {
+  Serial.print(s);
 }
 
 void HW_V4::PrintLineDebugConsole(String s)
 {
+  Serial.println(s);
 }
 
 void HW_V4::Tick()
@@ -226,14 +237,12 @@ void HW_V4::Tick()
 	{
 		batteryStatus_reading_LT = GetMillis();
 		currentBatteryCharge = 0; /* XXX */
-		pWall = false; /* XXX */
 		pIN = 0; /* XXX */
-		BoardTemperature = 30; /* XXX */
 		HW_AlarmsFlags = (uint16_t)0; /* XXX */
 
 		//reset supervisor watchdog
- 		//WriteSupervisor(0x00, 0);
-		//Serial.println("Battery: " + String(currentBatteryCharge) + " PWALL: " + String (pWall));
+ 		WriteSupervisor(0x00, 0);
+		Serial.println("Battery: " + String(currentBatteryCharge) + " PWALL: " + String (pWall));
 	}
 	
 
@@ -246,28 +255,28 @@ void HW_V4::GetPowerStatus(bool* batteryPowered, float* charge)
 
 }
 
-
-
 bool HW_V4::DataAvailableOnUART0()
 {
-	return false;
+  return Serial.available();
 }
 
 bool HW_V4::WriteUART0(String s)
 {
-	return true;
+  Serial.println(s);
+  return true;
 }
+
 String HW_V4::ReadUART0UntilEOL()
 {
-	//PERICOLO. SE IL \n NON VIENE INVIATO TUTTO STALLA!!!!
-	//return Serial.readStringUntil('\n');
-        return String("");
+  //Sic: PERICOLO. SE IL \n NON VIENE INVIATO TUTTO STALLA!!!!
+  return Serial.readStringUntil('\n');
 }
 
 uint64_t HW_V4::GetMillis()
 {
 	return (uint64_t)millis();
 }
+
 int64_t HW_V4::Get_dT_millis(uint64_t ms)
 {
 	return (int64_t)(millis() - ms);
@@ -329,27 +338,27 @@ t_i2cdev HW_V4::GetIICDevice(t_i2cdevices device)
    return ret;
 }
 
-
-
 uint16_t HW_V4::ReadSupervisor(uint8_t i_address)
 {
-	uint8_t wbuffer[4];
-	uint8_t rbuffer[4];
-        uint16_t a;
+  uint8_t wbuffer[4];
+  uint8_t rbuffer[4];
+  uint16_t a;
 		
-	wbuffer[0] = i_address;
-
-	a = (rbuffer [1]<< 8) | rbuffer[0];
-	return a;
+  wbuffer[0] = i_address;
+  if (I2CRead(IIC_SUPERVISOR, wbuffer, 1, rbuffer, sizeof(rbuffer), true) >= 2)
+   {
+    a = (rbuffer [1]<< 8) | rbuffer[0];
+   }
+  return a;
 }
-
 
 void HW_V4::WriteSupervisor( uint8_t i_address, uint16_t write_data)
 {
-	uint8_t wbuffer[4];
-	wbuffer[0] = i_address;
-	wbuffer[1] = write_data & 0xFF;
-	wbuffer[2] = (write_data >> 8) & 0xFF;
+  uint8_t wbuffer[4];
+  wbuffer[0] = i_address;
+  wbuffer[1] = write_data & 0xFF;
+  wbuffer[2] = (write_data >> 8) & 0xFF;
+  I2CWrite(IIC_SUPERVISOR, wbuffer, 3, true);
 }
 
 float HW_V4::GetPIN()
@@ -359,7 +368,8 @@ float HW_V4::GetPIN()
 
 float HW_V4::GetBoardTemperature()
 {
-	return BoardTemperature;
+  float res = FW_TEST_qtl_double.value("env_temperature",FW_TEST_tick);
+  return res;
 }
 
 uint16_t HW_V4::GetSupervisorAlarms()

@@ -30,13 +30,8 @@
 
 #define IIC_COUNT 8
 
-#define PLOOP_MODEL     GS_05
-#define PPATIENT_MODEL  DS_01
-#define PVENTURI        DS_01
-
 class HW_V4 : public HW {
 public:
-
 
     bool Init();
     bool I2CWrite(t_i2cdevices device, uint8_t* wbuffer, int wlength, bool stop);
@@ -78,7 +73,6 @@ private:
     bool pWall;
 
     float pIN;
-    float BoardTemperature;
     uint16_t HW_AlarmsFlags;
 
     std::map<t_i2cdevices, sim_i2c_devaddr> m_dev_addrs;
