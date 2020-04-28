@@ -82,9 +82,7 @@ mvm_fw_unit_test_SENSIRION_SFM3019: public simulated_i2c_device
     void m_init()
      {
       m_m_active = false;
-      m_scale_factor = 0;
-      m_offset = 0;
-      m_flow_unit = 0;
+      m_flow_unit = 0x0148; // Standard liters @20C per minute
       m_last_mtick = 0;
       m_status_word = 0x3ff;
       m_scale_factor = 170;
