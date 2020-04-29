@@ -37,14 +37,24 @@ SerialImpl Serial(IOS_ttys);
 int 
 main (int argc, char *argv[]) 
 {
-  std::string expr;
+  std::ostringstream usage_string;
+  usage_string << "Usage: " << argv[0] << " [-d debug_level]  <JSON config>"
+               << std::endl;
   if (argc < 2)
    {
-    std::cerr << "Usage: " << argv[0] << " <JSON config>"
-              << std::endl;
+    std::cerr << usage_string.str() << std::endl;
     return 1;
    }
-  const char *json_conf = argv[1];
+  if (std::string(argv[1]) == "-d")
+   {
+    if (argc < 4)
+     {
+      std::cerr << usage_string.str() << std::endl;
+     }
+    std::istringstream dis(argv[2]);
+    dis >> FW_TEST_debug_level;
+   } 
+  const char *json_conf = argv[argc - 1];
 
   if (!FW_TEST_main_config.load_config(json_conf))
    {

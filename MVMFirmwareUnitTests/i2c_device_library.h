@@ -57,6 +57,7 @@ mvm_fw_unit_test_TE_MS5525DSO: public simulated_i2c_device
     int      m_q[6];
     bool m_want_to_read_pressure;
     double m_preading, m_treading;
+    bool m_cmd_0_in, got_treading;
 };
 
 class
@@ -104,23 +105,17 @@ mvm_fw_unit_test_SENSIRION_SFM3019: public simulated_i2c_device
 
         union { uint16_t uw; int16_t sw; } m_w;
         uint8_t m_crcval;
-        uint8_t m_crc(uint16_t data)
-         {
-          return m_crc(&data, sizeof(data));
-         }
-    
-        uint8_t m_crc(uint16_t *data, int byte_count)
-         {
-          return m_crc(reinterpret_cast<uint8_t *>(data), byte_count);
-         }
-    
-        uint8_t m_crc(uint8_t* data, int count)
+        uint8_t m_crc(uint16_t dw)
          {
           uint16_t cb;
           uint8_t crc = 0xFF;
           uint8_t crc_bit;
+          // CRC is big-endian.
+          uint8_t data[2];
+          data[0] = static_cast<uint8_t>((dw&0xff00)>>8);
+          data[1] = static_cast<uint8_t>(dw&0xff);
     
-          for (cb = 0; cb < count; ++cb)
+          for (cb = 0; cb < sizeof(data); ++cb)
            {
             crc ^= (data[cb]);
             for (crc_bit = 8; crc_bit > 0; --crc_bit)
@@ -177,9 +172,9 @@ mvm_fw_unit_test_TI_ADS1115: public simulated_i2c_device
 {
   public:
     mvm_fw_unit_test_TI_ADS1115(const std::string &name, DebugIfaceClass &dbg) :
-     simulated_i2c_device(name, dbg) {}
+     simulated_i2c_device(name, dbg) { m_init(); }
     mvm_fw_unit_test_TI_ADS1115(const char *name, DebugIfaceClass &dbg) :
-     simulated_i2c_device(name, dbg) {}
+     simulated_i2c_device(name, dbg) { m_init(); }
     ~mvm_fw_unit_test_TI_ADS1115() {}
 
     int handle_command(uint8_t cmd, uint8_t *wbuffer, int wlength,

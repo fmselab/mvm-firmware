@@ -19,6 +19,7 @@ mvm_fw_gpio_devs FW_TEST_gdevs;
 mvm_fw_unit_test_pflow FW_TEST_pflow;
 qtl_tick_t FW_TEST_last_watchdog_reset;
 DebugIfaceClass DebugIface;
+int FW_TEST_debug_level = -1;
 
 #include "simulated_fw_board_v4.h"
 
@@ -40,7 +41,11 @@ bool
 HW_V4::Init()
 
 {
-  DebugIface.Init(DBG_ALL, this);
+  if (FW_TEST_debug_level >= 0)
+   {
+    DebugIface.Init(static_cast<verbose_level>(FW_TEST_debug_level), this);
+   }
+  else DebugIface.Init(DBG_ERROR, this);
   sim_i2c_devaddr dadd;
   dadd.muxport = 0; dadd.address = 0x76;
   FW_TEST_hardware.insert(std::make_pair(dadd,

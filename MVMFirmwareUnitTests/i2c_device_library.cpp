@@ -85,6 +85,8 @@ mvm_fw_unit_test_TE_MS5525DSO::m_init_prom()
       m_q[0]=18; m_q[1]=21; m_q[2]=4; m_q[3]=1; m_q[4]=7, m_q[5]=22;
       break;
     }
+  m_cmd_0_in = false;
+  got_treading = false;
 }
 
 int
@@ -110,7 +112,8 @@ mvm_fw_unit_test_TE_MS5525DSO::handle_command(uint8_t cmd,
     msg << "Read PROM " << std::hex << std::showbase << cmd
         << ") command received. Returning ["
         << std::hex << std::setfill('0') << std::noshowbase
-        << rbuffer[0] << "][" << rbuffer[1] << "]." << std::dec;
+        << static_cast<int>(rbuffer[0]) << "]["
+        << static_cast<int>(rbuffer[1]) << "]." << std::dec;
     m_dbg.DbgPrint(DBG_CODE, DBG_INFO, msg.str().c_str());
     return 2;
    }
@@ -121,83 +124,103 @@ mvm_fw_unit_test_TE_MS5525DSO::handle_command(uint8_t cmd,
   int64_t off, sens;
   const double CMH2O_TO_PSI = 0.014223343307054;
 
-  switch (cmd)
+  if ((cmd == 0) && m_cmd_0_in && (rlength > 0))
    {
-    case 0x0:
+    m_cmd_0_in = false;
+    dt = ((m_treading*100.) - 2000.)/m_prom[6]*(1<<m_q[5]);
+    d2 =  dt + m_prom[5]*(1<<m_q[4]);
 
-      dt = ((m_treading*100.) - 2000.)/m_prom[6]*(1<<m_q[5]);
-      d2 =  dt + m_prom[5]*(1<<m_q[4]);
+    // Here we invert this datasheet recipe:
+    // Difference between actual and reference temperature
+    // dT = D2 - T REF = D2 - C5 * 2^Q5
+    //  TEMP Measured temperature
+    // TEMP=20°C+dT*TEMPSENS=2000+dT*C6/2^Q6
+    // Calculate Temperature Compensated Pressure
+    // OFF Offset at actual temperature
+    //OFF=OFF T1 +TCO * dT=C2*2^Q2 +(C4*dT)/2^Q4
+    //SENS Sensitivity at actual temperature
+    //SENS=SENS T1 +TCS*dT=C1*2^Q1 +(C3*dT)/2^Q3
+    //P Temperature Compensated Pressure
+    //P=D1*SENS-OFF=(D1*SENS/2^21 -OFF)/2^15
 
-      // Here we invert this datasheet recipe:
-      // Difference between actual and reference temperature
-      // dT = D2 - T REF = D2 - C5 * 2^Q5
-      //  TEMP Measured temperature
-      // TEMP=20°C+dT*TEMPSENS=2000+dT*C6/2^Q6
-      // Calculate Temperature Compensated Pressure
-      // OFF Offset at actual temperature
-      //OFF=OFF T1 +TCO * dT=C2*2^Q2 +(C4*dT)/2^Q4
-      //SENS Sensitivity at actual temperature
-      //SENS=SENS T1 +TCS*dT=C1*2^Q1 +(C3*dT)/2^Q3
-      //P Temperature Compensated Pressure
-      //P=D1*SENS-OFF=(D1*SENS/2^21 -OFF)/2^15
-
-      psim = m_preading*(CMH2O_TO_PSI*10000);
-      off = m_prom[1]*(1<<m_q[1]) + (m_prom[4] * dt)/(1<<m_q[3]);
-      sens = m_prom[1]*(1<<m_q[0]) + (m_prom[3] * dt)/(1<<m_q[2]);
-      d1 = (psim*(1<<15) + off) * (1<<21)/sens;
-      if (rlength < 3) return I2C_DEVICE_INSUFFICIENT_READ_BUFFER;
-      if (m_want_to_read_pressure)
-       {
-        rbuffer[0] = (d1&0xff0000) >> 16;
-        rbuffer[1] = (d1&0xff00) >> 8;
-        rbuffer[2] = (d1&0xf) >> 8;
-       } else {
-        rbuffer[0] = (d2&0xff0000) >> 16;
-        rbuffer[1] = (d2&0xff00) >> 8;
-        rbuffer[2] = (d2&0xf) >> 8;
-       }
-      msg << "Read " << (m_want_to_read_pressure ? "pressure" : "temperature")
-          << " ADC "  << std::hex << std::showbase << cmd
-          << ") command received. Returning [" << std::hex << std::noshowbase
-          << std::setfill('0') << rbuffer[0] << "][" << rbuffer[1]
-          << "][" << rbuffer[2] << "]." << std::dec;
-      ret = 3;
-      break;
-    case 0x1e:
-      msg << "RESET (" << std::hex << std::showbase << cmd
-          << ") command received." << std::dec << std::noshowbase;
-      ret = 0;
-      break;
-    case 0x40:
-    case 0x42:
-    case 0x44:
-    case 0x46:
-    case 0x48:
-      m_preading = FW_TEST_pflow.p_value(m_name,FW_TEST_tick);
-      m_want_to_read_pressure = true;
-      msg << "D1 Setup (" << std::hex << std::showbase << cmd
-          << ") command received." << std::dec << std::noshowbase;
-      break;
-    case 0x50:
-    case 0x52:
-    case 0x54:
-    case 0x56:
-    case 0x58:
-      m_treading = FW_TEST_qtl_double.value(m_name + "_temperature",FW_TEST_tick);
-      if (std::isnan(m_treading))
-       {
-        m_treading = FW_TEST_qtl_double.value("env_temperature",FW_TEST_tick);
-       }
-      m_want_to_read_pressure = false;
-      msg << "D2 Setup (" << std::hex << std::showbase << cmd
-          << ") command received." << std::dec << std::noshowbase;
-      break;
-
-    default:
-      msg << "UNKNOWN (" << std::hex << std::showbase << static_cast<int>(cmd)
-          << ") command received." << std::dec << std::noshowbase;
-      ret = I2C_DEVICE_SIMUL_UNKNOWN_CMD;
-      break;
+    psim = m_preading*(CMH2O_TO_PSI*10000);
+    off = m_prom[1]*(1<<m_q[1]) + (m_prom[4] * dt)/(1<<m_q[3]);
+    sens = m_prom[1]*(1<<m_q[0]) + (m_prom[3] * dt)/(1<<m_q[2]);
+    d1 = (psim*(1<<15) + off) * (1<<21)/sens;
+    if (rlength < 3) return I2C_DEVICE_INSUFFICIENT_READ_BUFFER;
+    if (m_want_to_read_pressure)
+     {
+      rbuffer[0] = (d1&0xff0000) >> 16;
+      rbuffer[1] = (d1&0xff00) >> 8;
+      rbuffer[2] = (d1&0xf) >> 8;
+     } else {
+      rbuffer[0] = (d2&0xff0000) >> 16;
+      rbuffer[1] = (d2&0xff00) >> 8;
+      rbuffer[2] = (d2&0xf) >> 8;
+     }
+    msg << "Read " << (m_want_to_read_pressure ? "pressure" : "temperature")
+        << " ADC "  << std::hex << std::showbase << static_cast<int>(cmd)
+        << ") command received. Returning [" << std::hex << std::noshowbase
+        << std::setfill('0') << static_cast<int>(rbuffer[0])
+        << "][" << static_cast<int>(rbuffer[1])
+        << "][" << static_cast<int>(rbuffer[2]) << "]." << std::dec;
+    ret = 3;
+   }
+  else
+   {
+    bool read_pressure = false;
+    switch (cmd)
+     {
+      case 0x0:
+        m_cmd_0_in = true;
+        ret = 0;
+        break;
+      case 0x1e:
+        msg << "RESET (" << std::hex << std::showbase << static_cast<int>(cmd)
+            << ") command received." << std::dec << std::noshowbase;
+        ret = 0;
+        break;
+      case 0x40:
+      case 0x42:
+      case 0x44:
+      case 0x46:
+      case 0x48:
+        m_preading = FW_TEST_pflow.p_value(m_name,FW_TEST_tick);
+        m_want_to_read_pressure = true;
+        msg << "D1 Setup (" << std::hex << std::showbase << static_cast<int>(cmd)
+            << ") command received. Pressure == " << std::dec
+            << std::noshowbase << m_preading << ".";
+        ret = 0;
+        read_pressure = true;
+        if (got_treading) break;
+      case 0x50:
+      case 0x52:
+      case 0x54:
+      case 0x56:
+      case 0x58:
+        m_treading = FW_TEST_qtl_double.value(m_name + "_temperature",FW_TEST_tick);
+        if (std::isnan(m_treading))
+         {
+          m_treading = FW_TEST_qtl_double.value("env_temperature",FW_TEST_tick);
+         }
+        got_treading = true;
+        if (!read_pressure)
+         {
+          m_want_to_read_pressure = false;
+          msg << "D2 Setup (" << std::hex << std::showbase 
+              << static_cast<int>(cmd) << ") command received.";
+         }
+        msg << " Temperature == " << std::dec
+            << std::noshowbase << m_treading << ".";
+        ret = 0;
+        break;
+  
+      default:
+        msg << "UNKNOWN (" << std::hex << std::showbase << static_cast<int>(cmd)
+            << ") command received." << std::dec << std::noshowbase;
+        ret = I2C_DEVICE_SIMUL_UNKNOWN_CMD;
+        break;
+     }
    }
   m_dbg.DbgPrint(DBG_CODE, DBG_INFO, msg.str().c_str());
   return ret;
@@ -216,8 +239,9 @@ mvm_fw_unit_test_SENSIRION_SFM3019::handle_command(uint8_t cmd,
       << now.tv_sec << ":" << now.tv_nsec/1000000 << " - tick:"
       << FW_TEST_tick << " - ";
 
-  if ((wlength <= 0) && (m_retc.size() >= (rlength*3)))
+  if ((wlength <= 0) && ((m_retc.size()*3) >= rlength))
    {
+    msg << " Read from stored buffer of size " << m_retc.size();
     ret = 0;
     for (uint8_t *rp = rbuffer; rp <(rbuffer+rlength); rp+=3)
      {
@@ -230,25 +254,28 @@ mvm_fw_unit_test_SENSIRION_SFM3019::handle_command(uint8_t cmd,
    }
   else if ((wlength <= 0) && (rlength >= 9))
    {
-    msg << "Read op";
+    msg << "Read op ";
     if (!m_m_active)
      {
       ret = I2C_DEVICE_NOT_ACTIVE;
-      msg << " received while device not active.";
+      msg << "received while device not active.";
      }
     else
      {
       m_update_measurement();
-      return_word r(m_scale_factor);
+      return_word r(m_flow_val);
       ret = 0;
       if (rlength >= 3) { r.fill_data_crc(&(rbuffer[0])); ret += 3; }
       else m_retc.push_back(r);
-      r = m_offset;
+      r = m_temp_val;
       if (rlength >= 6) { r.fill_data_crc(&(rbuffer[3])); ret += 3; }
       else m_retc.push_back(r);
       r = m_status_word;
       if (rlength >= 6) { r.fill_data_crc(&(rbuffer[6])); ret += 3; }
       else m_retc.push_back(r);
+      msg << "flow: [" << std::hex << m_flow_val << "], temp: ["  
+          << m_temp_val << "], status: [" << m_status_word
+          << "].";
      }
    }
   else if ((cmd == 0x36) && (wlength >= 1))
@@ -257,10 +284,10 @@ mvm_fw_unit_test_SENSIRION_SFM3019::handle_command(uint8_t cmd,
      {
       //Read scale factor
       msg << " Read scale factor";
-      if (!m_m_active)
+      if (m_m_active)
        {
-        ret = I2C_DEVICE_NOT_ACTIVE;
-        msg << " received while device not active.";
+        ret = I2C_DEVICE_BUSY;
+        msg << " received while device is busy reading out.";
        }
       else
        {
@@ -314,20 +341,15 @@ mvm_fw_unit_test_SENSIRION_SFM3019::handle_command(uint8_t cmd,
     m_status_word &= 0x0fff;
     m_m_active = false;
     msg << " Stop measurement [" << std::hex << cmd << "]["
-        << wbuffer[0] << "].";
+        << static_cast<int>(wbuffer[0]) << "].";
    }
   else if ((cmd == 0xe1) && (wlength >= 1) && (wbuffer[0] == 0x02))
    {
     msg << " Read product identifier";
-    if (!m_m_active)
+    if (m_m_active)
      {
-      ret = I2C_DEVICE_NOT_ACTIVE;
-      msg << " received while device not active.";
-     }
-    else if (rlength < 18)
-     {
-      ret = I2C_DEVICE_INSUFFICIENT_READ_BUFFER;
-      msg << " Read buffer (" << rlength << ") is too short.";
+      ret = I2C_DEVICE_BUSY;
+      msg << " received while device is busy reading out.";
      }
     else
      {
@@ -410,6 +432,7 @@ mvm_fw_unit_test_SENSIRION_SFM3019::m_update_measurement()
     m_temp_val = 0xffff;
     ret = false;
    }
+  m_last_mtick = FW_TEST_tick;
   return ret;
 }
 
@@ -434,54 +457,58 @@ mvm_fw_unit_test_TI_ADS1115::handle_command(uint8_t cmd,
       if (cmd == CONFIG_REG)
        {
         m_reconfig_gain();
-        if ((m_reg[CONFIG_REG] & 0x8000) || // One-shot conversion ?
-            (m_reg[CONFIG_REG] & 0x0100))   // Continuous conversion ?
-         {
-          m_reg[CONVERSION_REG] = 0;
-          if (m_cur_mux == 4)
-           {
-            m_o2_concentration = FW_TEST_qtl_double.value("o2_concentration",FW_TEST_tick);
-            m_reg[CONVERSION_REG] = (m_o2_concentration - m_o2_sensor_calib_m)/
-                                    m_o2_sensor_calib_q;
-            msg << "O2 concentration: " << m_o2_concentration << "%";
-           }
-          else if ((m_cur_mux >= 5) && (m_cur_mux <= 7))
-           {
-            m_voltage_ref = FW_TEST_qtl_double.value("voltage_ref",FW_TEST_tick);
-            uint16_t vrefs;
-            if (m_voltage_ref <= 0) vrefs = 0;
-            else if (m_voltage_ref > m_vmax) vrefs = 0xffff;
-            else vrefs = 0xffff*(m_voltage_ref/m_vmax);
-            msg << " Voltage reference: " << m_voltage_ref << " V";
-
-            if (m_cur_mux == 6)
-             {
-              m_voltage_12v = FW_TEST_qtl_double.value("voltage_12v",FW_TEST_tick);
-              msg << " 12V voltage: " << m_voltage_12v << " V";
-              m_reg[CONVERSION_REG] = (m_voltage_12v/(2.5*5.)) * vrefs;
-             }
-            else if (m_cur_mux == 7)
-             {
-              m_voltage_5v = FW_TEST_qtl_double.value("voltage_5v",FW_TEST_tick);
-              msg << " 5V voltage: " << m_voltage_5v << " V";
-              m_reg[CONVERSION_REG] = (m_voltage_5v/(2.5*2.)) * vrefs;
-             }
-            else m_reg[CONVERSION_REG] = vrefs;
-           }
-
-          msg << " == [" << std::hex << std::setfill('0')
-              << m_reg[CONVERSION_REG] << std::dec << std::noshowbase;
-          if (m_reg[CONFIG_REG] & 0x8000) m_reg[CONFIG_REG] &= 0x7fff;
-          ret = 0;
-         }
+        ret = 0;
        }
      }
+
     if (rlength >= 2)
      {
+      if ((m_reg[CONFIG_REG] & 0x8000) || // One-shot conversion ?
+          (m_reg[CONFIG_REG] & 0x0100))   // Continuous conversion ?
+       {
+        m_reg[CONVERSION_REG] = 0;
+        if (m_cur_mux == 4)
+         {
+          m_o2_concentration = FW_TEST_qtl_double.value("o2_concentration",FW_TEST_tick);
+          m_reg[CONVERSION_REG] = (m_o2_concentration - m_o2_sensor_calib_m)/
+                                  m_o2_sensor_calib_q;
+          msg << "O2 concentration: " << m_o2_concentration << "%";
+         }
+        else if ((m_cur_mux >= 5) && (m_cur_mux <= 7))
+         {
+          m_voltage_ref = FW_TEST_qtl_double.value("voltage_ref",FW_TEST_tick);
+          uint16_t vrefs;
+          if (m_voltage_ref <= 0) vrefs = 0;
+          else if (m_voltage_ref > m_vmax) vrefs = 0xffff;
+          else vrefs = 0xffff*(m_voltage_ref/m_vmax);
+          msg << " Voltage reference: " << m_voltage_ref << " V";
+  
+          if (m_cur_mux == 6)
+           {
+            m_voltage_12v = FW_TEST_qtl_double.value("voltage_12v",FW_TEST_tick);
+            msg << " 12V voltage: " << m_voltage_12v << " V";
+            m_reg[CONVERSION_REG] = (m_voltage_12v/(2.5*5.)) * vrefs;
+           }
+          else if (m_cur_mux == 7)
+           {
+            m_voltage_5v = FW_TEST_qtl_double.value("voltage_5v",FW_TEST_tick);
+            msg << " 5V voltage: " << m_voltage_5v << " V";
+            m_reg[CONVERSION_REG] = (m_voltage_5v/(2.5*2.)) * vrefs;
+           }
+          else m_reg[CONVERSION_REG] = vrefs;
+         }
+  
+        msg << " == [" << std::hex << std::setfill('0')
+            << m_reg[CONVERSION_REG] << "]."
+            << std::dec << std::noshowbase;
+        if (m_reg[CONFIG_REG] & 0x8000) m_reg[CONFIG_REG] &= 0x7fff;
+       }
+
       rbuffer[0] = (m_reg[cmd]&0xff00) >> 8;
       rbuffer[1] = (m_reg[cmd]&0xff);
-      msg << "Read register " << std::hex << std::showbase << cmd
-          << ". Returning [" << std::hex << std::setfill('0') << std::noshowbase
+      msg << " Read register " << std::hex 
+          << std::showbase << static_cast<int>(cmd)
+          << " returning [" << std::hex << std::setfill('0') << std::noshowbase
           << static_cast<int>(rbuffer[0]) << "][" 
           << static_cast<int>(rbuffer[1]) << "]." << std::dec;
       ret = 2;

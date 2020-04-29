@@ -90,16 +90,6 @@ simulate_i2c_devices
       if (dit == m_devs.end())
        {
         m_devs.insert(std::make_pair(addr, dev));
-        simulated_i2c_devices_t::const_iterator dtest;
-        dtest = m_devs.find(addr);
-        if (dtest != m_devs.end())
-         {
-          std::cerr << "DEBUG: address == " << dtest->first.address << std::endl;
-         }
-        else
-         {
-          std::cerr << "DEBUG: not found!" << std::endl;
-         }
         return true;
        }
       return false;

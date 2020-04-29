@@ -61,7 +61,10 @@ mvm_fw_unit_test_config::load_config(const std::string &conf_file)
 void
 mvm_fw_unit_test_pflow::m_init()
 {
-  m_volume = 0; // Zero volume is atmospheric pressure.
+  m_volume = 0.; // Zero volume is atmospheric pressure.
+  m_flow = 0.;
+  m_last_tick = -1;
+
   if (!FW_TEST_main_config.get_number<double>("pflow_capacity",
                                               m_capacity))
    {
@@ -98,12 +101,12 @@ mvm_fw_unit_test_pflow::m_init()
 void
 mvm_fw_unit_test_pflow::m_evolve(qtl_tick_t tf)
 {
-  if (tf <= m_last_tick) return;
   double net_flow = 0.;
+  if (tf <= m_last_tick) return;
 
   // Just a crude finite-difference evolution to establish
   // a plausible interplay between the simulated quantities.
-  for (qtl_tick_t t = m_last_tick; t<tf; ++t)
+  for (qtl_tick_t t = m_last_tick+1; t<=tf; ++t)
    {
     double in_p = FW_TEST_qtl_double.value("input_line_pressure",t);
     double out_p = FW_TEST_qtl_double.value("env_pressure",t);
@@ -157,7 +160,11 @@ mvm_fw_unit_test_pflow::m_evolve(qtl_tick_t tf)
      }
    }
 
-  m_flow = net_flow / static_cast<double>(tf - m_last_tick);
+  if (tf > m_last_tick)
+   {
+    m_flow = net_flow / static_cast<double>(tf - m_last_tick);
+   }
+
   m_last_tick = tf;
 }
 

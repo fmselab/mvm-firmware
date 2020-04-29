@@ -313,5 +313,6 @@ extern test_hardware_t FW_TEST_hardware;
 extern qtl_tick_t FW_TEST_last_watchdog_reset;
 
 extern mvm_fw_unit_test_config FW_TEST_main_config;
+extern int FW_TEST_debug_level;
 
 #endif /* defined _MVM_FW_TEST_CONFIG_H */

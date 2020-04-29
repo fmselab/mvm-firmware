@@ -25,6 +25,7 @@ const int I2C_DEVICE_SIMUL_UNKNOWN_CMD=-3;
 const int I2C_DEVICE_SIMUL_DEAD=-4;
 const int I2C_DEVICE_INSUFFICIENT_READ_BUFFER=-5;
 const int I2C_DEVICE_NOT_ACTIVE=-6;
+const int I2C_DEVICE_BUSY=-7;
 
 const std::string I2C_DEVICE_module_name("I2C SIMULATION");
 
@@ -79,7 +80,7 @@ class simulated_i2c_device
       uint8_t cmd = 0;
       if (wbuffer != NULL)
        {
-        cmd = wbuffer[0]&0x7f;
+        cmd = wbuffer[0];
         ++wbuffer;
        }
       return handle_command(cmd, wbuffer, wlength-1, rbuffer, rlength);
