@@ -423,10 +423,7 @@ mvm_fw_unit_test_TI_ADS1115::handle_command(uint8_t cmd,
       m_reg[cmd] = ((rbuffer[0] << 8) | rbuffer[1]);
       if (cmd == CONFIG_REG)
        {
-        m_cur_mux = ((m_reg[CONFIG_REG] & 0x7000) >> 12);
-        m_cur_gain = ((m_reg[CONFIG_REG] & 0x0e00) >> 9);
-        m_vmax = (6.144/(1<<m_cur_gain));
-        if (m_cur_gain > 5) m_cur_gain = 5;
+        m_reconfig_gain();
         if ((m_reg[CONFIG_REG] & 0x8000) || // One-shot conversion ?
             (m_reg[CONFIG_REG] & 0x0100))   // Continuous conversion ?
          {

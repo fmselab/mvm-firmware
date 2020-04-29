@@ -13,6 +13,7 @@
 #include <ctime>
 
 #include "mvm_fw_unit_test_config.h"
+#include "DebugIface.h"
 test_hardware_t FW_TEST_hardware;
 mvm_fw_gpio_devs FW_TEST_gdevs;
 mvm_fw_unit_test_pflow FW_TEST_pflow;
@@ -38,6 +39,7 @@ bool
 HW_V4::Init()
 
 {
+  DebugIface.SetVerboseLevel(DBG_ALL);
   sim_i2c_devaddr dadd;
   dadd.muxport = 0; dadd.address = 0x76;
   FW_TEST_hardware.insert(std::make_pair(dadd,
@@ -423,7 +425,7 @@ size_t
 SerialImpl::print(const char str[])
 {
   std::streampos before(m_ttys.tellp());
-  m_ttys << str << std::endl << std::flush; 
+  m_ttys << str << std::flush; 
   std::streampos after(m_ttys.tellp());
   if(m_ttys.good()) return (after - before);
   return -1;

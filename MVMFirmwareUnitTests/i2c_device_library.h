@@ -153,6 +153,7 @@ mvm_fw_unit_test_TI_ADS1115: public simulated_i2c_device
      {
       m_reg[CONVERSION_REG] = 0;
       m_reg[CONFIG_REG] = 0x8583;
+      m_reconfig_gain();
       m_reg[LO_THRESHOLD] = 0x8000;
       m_reg[HI_THRESHOLD] = 0x7fff;
       if (!FW_TEST_main_config.get_number<double>("o2_sensor_calib_q", m_o2_sensor_calib_q))
@@ -164,6 +165,14 @@ mvm_fw_unit_test_TI_ADS1115: public simulated_i2c_device
         m_o2_sensor_calib_m = -1.63;
        }
      }
+    void m_reconfig_gain ()
+     {
+      m_cur_mux = ((m_reg[CONFIG_REG] & 0x7000) >> 12);
+      m_cur_gain = ((m_reg[CONFIG_REG] & 0x0e00) >> 9);
+      if (m_cur_gain > 5) m_cur_gain = 5;
+      m_vmax = (6.144/(1<<m_cur_gain));
+     }
+
     uint16_t m_reg[4];
     int m_cur_mux, m_cur_gain;
     double m_o2_sensor_calib_q, m_o2_sensor_calib_m;

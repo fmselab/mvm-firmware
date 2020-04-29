@@ -28,8 +28,6 @@
 #include "quantity_timelines.hpp"
 struct sim_i2c_devaddr;
 
-#include "DebugIface.h"
-
 class system_error
 {
   public:

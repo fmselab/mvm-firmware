@@ -12,12 +12,6 @@ void delay(uint32_t);
 
 #include "Serial.h"
 
-#if 0
-#include "feather_esp32_pins_arduino.h"
-#include "esp32-hal-gpio.h"
-#include "esp32-hal-uart.h"
-#include "esp32-hal-ledc.h"
+// Make sure we don't include the definition in the firmware code.
+#define _FW_BOARD_NI_V4_h
 
-
-typedef uint8_t byte;
-#endif

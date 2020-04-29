@@ -49,7 +49,8 @@ mvm_fw_unit_test_config::load_config(const std::string &conf_file)
     std::ostringstream ers;
     ers << "Error parsing configuration file "
         << conf_file << ": "
-        << rapidjson::GetParseError_En(pres.Code()) << ".";
+        << rapidjson::GetParseError_En(pres.Code()) 
+        << " Offset: " << pres.Offset() << ".";
     m_error_string = ers.str();
     return false;
    }
