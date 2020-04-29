@@ -14,8 +14,11 @@
 
 #include <iostream>
 #include <fstream>
+#include <sstream>
+#include <string>
 
 #include <ctime> // nanosleep
+#include <cstdio> // serial TTY file access
 
 #include "simulated_fw_board_v4.h"
 #include "MVMCore.h"
@@ -30,9 +33,49 @@ qtl_tick_t                 FW_TEST_tick;
 extern WireImpl Wire;
 WireImpl Wire;
 
-std::fstream IOS_ttys;
 extern SerialImpl Serial;
-SerialImpl Serial(IOS_ttys);
+SerialImpl Serial;
+
+int
+send_command_to_mvm(String sline, MVMCore &mvm)
+{
+  std::istringstream ils(sline.c_str());
+
+  std::string command;
+  std::string param;
+  std::string value;
+  ils >> command;
+  if (command == "get")
+   {
+    ils >> param;
+    if (param.length() > 0)
+     {
+      String strParam(param.c_str());
+      mvm.WriteUART0(mvm.GetParameter(strParam));
+      return 0;
+     }
+   } 
+  else if (command == "set")
+   {
+    ils >> param;
+    if (param.length() > 0)
+     {
+      ils >> value;
+      if (value.length() > 0)
+       {
+        String strParam(param.c_str());
+        String strValue(value.c_str());
+        if (mvm.SetParameter(strParam, strValue))
+         {
+          mvm.WriteUART0("valore=OK");
+          return 0;
+         }
+        else mvm.WriteUART0("valore=ERROR:Invalid Command Argument");
+       }
+     }
+   }
+  return -1;
+}
 
 int 
 main (int argc, char *argv[]) 
@@ -95,8 +138,8 @@ main (int argc, char *argv[])
     return 4;
    }
 
-  IOS_ttys.open(serial_tty, std::ofstream::out | std::ofstream::in);
-  if (!IOS_ttys.good())
+  FILE *ttys = ::fopen(serial_tty.c_str(), "w+");
+  if (ttys == 0)
    {
     std::cerr << argv[0] << ": Error. Could not open TTY file " 
               << serial_tty
@@ -107,6 +150,10 @@ main (int argc, char *argv[])
 
   // Would probably need to set up the TTY here. We go via named
   // pipes for the time being.
+
+  Serial.set_ttys(ttys);
+  FW_TEST_main_config.get_number<int>(MVM_FM_confattr_SerialPollTimeout,
+                                      FW_TEST_serial_poll_timeout);
 
   qtl_tick_t start_tick, end_tick;
   if (!FW_TEST_main_config.get_number<qtl_tick_t>(MVM_FM_confattr_StartTick,
@@ -134,8 +181,19 @@ main (int argc, char *argv[])
   for (FW_TEST_tick = start_tick; FW_TEST_tick <= end_tick ; ++FW_TEST_tick)
    {
     the_mvm.Tick();
-    timespec wait = {0, 100000};
-    ::nanosleep(&wait, NULL);
+    if (Serial.available())
+     {
+      String line = Serial.readStringUntil('\n');
+      if (line.length() > 0)
+       {
+        send_command_to_mvm(line, the_mvm);
+       }
+     }
+    else
+     {
+      timespec wait = {0, 100000};
+      ::nanosleep(&wait, NULL);
+     }
    }
 
   return 0;

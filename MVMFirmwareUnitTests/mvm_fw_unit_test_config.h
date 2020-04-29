@@ -44,6 +44,7 @@ std::ostream& operator<< (std::ostream &os, const system_error &serr);
 
 const std::string MVM_FM_confattr_LogFile("LogFile");
 const std::string MVM_FM_confattr_SerialTTY("SerialTTY");
+const std::string MVM_FM_confattr_SerialPollTimeout("serial_port_timeout");
 const std::string MVM_FM_confattr_StartTick("start_tick");
 const std::string MVM_FM_confattr_EndTick("end_tick");
 
@@ -314,5 +315,6 @@ extern qtl_tick_t FW_TEST_last_watchdog_reset;
 
 extern mvm_fw_unit_test_config FW_TEST_main_config;
 extern int FW_TEST_debug_level;
+extern int FW_TEST_serial_poll_timeout;
 
 #endif /* defined _MVM_FW_TEST_CONFIG_H */

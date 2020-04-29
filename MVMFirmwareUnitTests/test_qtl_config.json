@@ -1,5 +1,5 @@
 {
- "SerialTTY": "/dev/pts/20",
+ "SerialTTY": "/dev/pts/22",
  "LogFile": "/tmp/mvm_fw_ut.log",
  "start_tick": 0,
  "end_tick": 100000,

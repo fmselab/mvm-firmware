@@ -20,6 +20,7 @@ mvm_fw_unit_test_pflow FW_TEST_pflow;
 qtl_tick_t FW_TEST_last_watchdog_reset;
 DebugIfaceClass DebugIface;
 int FW_TEST_debug_level = -1;
+int FW_TEST_serial_poll_timeout = 0;
 
 #include "simulated_fw_board_v4.h"
 
@@ -389,13 +390,22 @@ uint16_t HW_V4::GetSupervisorAlarms()
 
 #include <sstream>
 #include <iomanip>
-#include "Serial.h"
+#include <cstdio>
+#include <poll.h>
+
 
 bool
 SerialImpl::available()
 {
-  if (m_ttys.rdbuf()->in_avail()) return true;
-  return true;
+  if (m_ttys == 0) return false;
+  pollfd spfd;
+  spfd.fd = ::fileno(m_ttys);
+  spfd.events = POLLIN|POLLERR|POLLHUP|POLLNVAL;
+  spfd.revents = 0;
+  int rpoll = ::poll(&spfd, 1, FW_TEST_serial_poll_timeout);
+  if ((rpoll >= 1) && (spfd.revents & POLLIN)) return true;
+
+  return false;
 }
 
 void
@@ -412,11 +422,10 @@ SerialImpl::println(const String &str)
 size_t
 SerialImpl::println(const char str[])
 {
-  std::streampos before(m_ttys.tellp());
-  m_ttys << str << std::endl << std::flush; 
-  std::streampos after(m_ttys.tellp());
-  if(m_ttys.good()) return (after - before);
-  return -1;
+  if (m_ttys == 0) return -1;
+  int ret = ::fprintf(m_ttys, "%s\n", str);
+  ::fflush(m_ttys);
+  return ret;
 }
 
 size_t
@@ -436,19 +445,24 @@ SerialImpl::print(const String &str)
 size_t
 SerialImpl::print(const char str[])
 {
-  std::streampos before(m_ttys.tellp());
-  m_ttys << str << std::flush; 
-  std::streampos after(m_ttys.tellp());
-  if(m_ttys.good()) return (after - before);
-  return -1;
+  if (m_ttys == 0) return -1;
+  int ret = ::fprintf(m_ttys, "%s", str);
+  ::fflush(m_ttys);
+  return ret;
 }
 
 String
 SerialImpl::readStringUntil(char end)
 {
-  std::string result;
-  std::getline(m_ttys, result, end);
-  if(m_ttys.good()) return String(result.c_str());
-  return String("");
+  char *result = NULL;
+  size_t len = 0;
+  String sres;
+  int ret = ::getdelim(&result, &len, end, m_ttys);
+  if ((ret >= 0) && (result != NULL))
+   {
+    sres = result;
+   }
+  if (result != NULL) ::free(result);
+  return sres;
 }
 
