@@ -69,7 +69,7 @@ simulate_i2c_devices
     bool 
     alive (const sim_i2c_devaddr &dad)
      {
-      if (m_devs.size() <= 0) return I2C_DEVICE_SIMUL_NOT_FOUND;
+      if (m_devs.size() <= 0) return false;
       simulated_i2c_devices_t::iterator dit;
       dit = m_devs.find(dad);
       if (dit != m_devs.end())
