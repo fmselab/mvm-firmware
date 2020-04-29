@@ -43,15 +43,17 @@ simulate_i2c_devices::init_hw(const test_hardware_t &hwl)
       nd = new simulated_i2c_device(it->second.second, DebugIface);
       if (nd)
        {
-        nd->add_command_handler(0, TCA_I2C_Multiplexer_command_handler(0));
-        nd->add_command_handler(1, TCA_I2C_Multiplexer_command_handler(1));
-        nd->add_command_handler(2, TCA_I2C_Multiplexer_command_handler(2));
-        nd->add_command_handler(3, TCA_I2C_Multiplexer_command_handler(3));
+        nd->add_command_handler(0, TCA_I2C_Multiplexer_command_handler(0, nd->get_dbg()));
+        nd->add_command_handler(1, TCA_I2C_Multiplexer_command_handler(1, nd->get_dbg()));
+        nd->add_command_handler(2, TCA_I2C_Multiplexer_command_handler(2, nd->get_dbg()));
+        nd->add_command_handler(3, TCA_I2C_Multiplexer_command_handler(3, nd->get_dbg()));
        }
      }
     else if (it->second.first == TEST_XXX_SUPERVISOR)
      {
       nd = new simulated_i2c_device(it->second.second, DebugIface);
+      nd->add_command_handler(0,
+          TCA_I2C_Supervisor_watchdog_reset_handler(0, nd->get_dbg()));
      }
     if (nd) add_device(it->first.address, it->first.muxport, nd);
    }

@@ -194,7 +194,7 @@ mvm_fw_unit_test_TE_MS5525DSO::handle_command(uint8_t cmd,
       break;
 
     default:
-      msg << "UNKNOWN (" << std::hex << std::showbase << cmd
+      msg << "UNKNOWN (" << std::hex << std::showbase << static_cast<int>(cmd)
           << ") command received." << std::dec << std::noshowbase;
       ret = I2C_DEVICE_SIMUL_UNKNOWN_CMD;
       break;
@@ -216,7 +216,19 @@ mvm_fw_unit_test_SENSIRION_SFM3019::handle_command(uint8_t cmd,
       << now.tv_sec << ":" << now.tv_nsec/1000000 << " - tick:"
       << FW_TEST_tick << " - ";
 
-  if ((wlength <= 0) && (rlength >= 9))
+  if ((wlength <= 0) && (m_retc.size() >= (rlength*3)))
+   {
+    ret = 0;
+    for (uint8_t *rp = rbuffer; rp <(rbuffer+rlength); rp+=3)
+     {
+      if ((rp - rbuffer) > (rlength - 3)) break;
+      return_word  rw = m_retc.front();
+      m_retc.pop_front();
+      rw.fill_data_crc(rp);
+      ret += 3;
+     }
+   }
+  else if ((wlength <= 0) && (rlength >= 9))
    {
     msg << "Read op";
     if (!m_m_active)
@@ -224,23 +236,19 @@ mvm_fw_unit_test_SENSIRION_SFM3019::handle_command(uint8_t cmd,
       ret = I2C_DEVICE_NOT_ACTIVE;
       msg << " received while device not active.";
      }
-    else if (rlength < 9)
-     {
-      ret = I2C_DEVICE_INSUFFICIENT_READ_BUFFER;
-      msg << " Read buffer (" << rlength << ") is too short.";
-     }
     else
      {
       m_update_measurement();
-      rbuffer[0] = ((m_scale_factor&0xff00) >> 8);
-      rbuffer[1] =  (m_scale_factor &0xff);
-      rbuffer[2] = m_crc(m_scale_factor);
-      rbuffer[3] = ((m_offset&0xff00) >> 8);
-      rbuffer[4] =  (m_offset&0xff);
-      rbuffer[5] = m_crc(m_offset);
-      rbuffer[6] = ((m_status_word&0xff00) >> 8);
-      rbuffer[7] =  (m_status_word&0xff);
-      rbuffer[8] = m_crc(m_status_word);
+      return_word r(m_scale_factor);
+      ret = 0;
+      if (rlength >= 3) { r.fill_data_crc(&(rbuffer[0])); ret += 3; }
+      else m_retc.push_back(r);
+      r = m_offset;
+      if (rlength >= 6) { r.fill_data_crc(&(rbuffer[3])); ret += 3; }
+      else m_retc.push_back(r);
+      r = m_status_word;
+      if (rlength >= 6) { r.fill_data_crc(&(rbuffer[6])); ret += 3; }
+      else m_retc.push_back(r);
      }
    }
   else if ((cmd == 0x36) && (wlength >= 1))
@@ -249,22 +257,23 @@ mvm_fw_unit_test_SENSIRION_SFM3019::handle_command(uint8_t cmd,
      {
       //Read scale factor
       msg << " Read scale factor";
-      if (rlength < 9)
+      if (!m_m_active)
        {
-        ret = I2C_DEVICE_INSUFFICIENT_READ_BUFFER;
-        msg << " Read buffer (" << rlength << ") is too short.";
+        ret = I2C_DEVICE_NOT_ACTIVE;
+        msg << " received while device not active.";
        }
       else
        {
-        rbuffer[0] = ((m_scale_factor&0xff00) >> 8);
-        rbuffer[1] =  (m_scale_factor &0xff);
-        rbuffer[2] = m_crc(m_scale_factor);
-        rbuffer[3] = ((m_offset&0xff00) >> 8);
-        rbuffer[4] =  (m_offset &0xff);
-        rbuffer[5] = m_crc(m_offset);
-        rbuffer[6] = ((m_flow_unit&0xff00) >> 8);
-        rbuffer[7] =  (m_flow_unit &0xff);
-        rbuffer[8] = m_crc(m_flow_unit);
+        ret = 0;
+        return_word r(m_scale_factor);
+        if (rlength >= 3) { r.fill_data_crc(&(rbuffer[0])); ret += 3; }
+        else m_retc.push_back(r);
+        r = m_offset;
+        if (rlength >= 6) { r.fill_data_crc(&(rbuffer[3])); ret += 3; }
+        else m_retc.push_back(r);
+        r = m_flow_unit;
+        if (rlength >= 6) { r.fill_data_crc(&(rbuffer[6])); ret += 3; }
+        else m_retc.push_back(r);
        }
      }
     else if (wbuffer[0] == 0x63)
@@ -291,13 +300,13 @@ mvm_fw_unit_test_SENSIRION_SFM3019::handle_command(uint8_t cmd,
     else
      {
       // Unknown command
-      msg << "UNKNOWN (" << std::hex << std::showbase << cmd
-          << "," << wbuffer[0]
+      msg << "UNKNOWN (" << std::hex << std::showbase << static_cast<int>(cmd)
+          << "," << static_cast<int>(wbuffer[0])
           << ") command received." << std::dec << std::noshowbase;
       ret = I2C_DEVICE_SIMUL_UNKNOWN_CMD;
      }
 
-    msg << " [" << std::hex << cmd << "][" << wbuffer[0] << "].";
+    msg << " [" << std::hex << cmd << "][" << static_cast<int>(wbuffer[0]) << "].";
    }
   else if ((cmd == 0x3f) && (wlength >= 1) && (wbuffer[0] == 0xf9))
    {
@@ -322,24 +331,25 @@ mvm_fw_unit_test_SENSIRION_SFM3019::handle_command(uint8_t cmd,
      }
     else
      {
-      rbuffer[0] = ((m_product_number&0xff000000) >> 24);
-      rbuffer[1] = ((m_product_number&0xff0000) >> 16);
-      rbuffer[2] = m_crc(&(rbuffer[0]), 2);
-      rbuffer[3] = ((m_product_number&0xff00) >> 8);
-      rbuffer[4] = (m_product_number&0xff);
-      rbuffer[5] = m_crc(&(rbuffer[3]), 2);
-      rbuffer[6] = ((m_serial_number&0xff00000000000000UL) >> 56);
-      rbuffer[7] = ((m_serial_number&0xff000000000000UL) >> 48);
-      rbuffer[8] = m_crc(&(rbuffer[6]), 2);
-      rbuffer[9] = ((m_serial_number&0xff0000000000UL) >> 40);
-      rbuffer[10] = ((m_serial_number&0xff00000000UL) >> 32);
-      rbuffer[11] = m_crc(&(rbuffer[9]), 2);
-      rbuffer[12] = ((m_product_number&0xff000000) >> 24);
-      rbuffer[13] = ((m_product_number&0xff0000) >> 16);
-      rbuffer[14] = m_crc(&(rbuffer[12]), 2);
-      rbuffer[15] = ((m_product_number&0xff00) >> 8);
-      rbuffer[16] = (m_product_number&0xff);
-      rbuffer[17] = m_crc(&(rbuffer[15]), 2);
+      ret = 0;
+      return_word r(static_cast<uint16_t>((m_product_number&0xffff0000)>>16));
+      if (rlength >= 3) { r.fill_data_crc(&(rbuffer[0])); ret += 3; }
+      else m_retc.push_back(r);
+      r = (static_cast<uint16_t>(m_product_number&0xffff));
+      if (rlength >= 6) { r.fill_data_crc(&(rbuffer[3])); ret += 3; }
+      else m_retc.push_back(r);
+      r = (static_cast<uint16_t>((m_serial_number&0xffff000000000000UL)>>48));
+      if (rlength >= 6) { r.fill_data_crc(&(rbuffer[6])); ret += 3; }
+      else m_retc.push_back(r);
+      r = (static_cast<uint16_t>((m_serial_number&0xffff00000000UL)>>32));
+      if (rlength >= 9) { r.fill_data_crc(&(rbuffer[9])); ret += 3; }
+      else m_retc.push_back(r);
+      r = (static_cast<uint16_t>((m_serial_number&0xffff0000)>>16));
+      if (rlength >= 12) { r.fill_data_crc(&(rbuffer[12])); ret += 3; }
+      else m_retc.push_back(r);
+      r = (static_cast<uint16_t>(m_serial_number&0xffff));
+      if (rlength >= 15) { r.fill_data_crc(&(rbuffer[15])); ret += 3; }
+      else m_retc.push_back(r);
      }
    }
   else if ((cmd == 0xe1) && (wlength >= 1) && (wbuffer[0] == 0x7d))
@@ -356,8 +366,8 @@ mvm_fw_unit_test_SENSIRION_SFM3019::handle_command(uint8_t cmd,
   else
    {
     // Unknown command
-    msg << "UNKNOWN (" << std::hex << std::showbase << cmd ;
-    if (wlength > 0) msg << "," << wbuffer[0];
+    msg << "UNKNOWN (" << std::hex << std::showbase << static_cast<int>(cmd);
+    if (wlength > 0) msg << "," << static_cast<int>(wbuffer[0]);
     msg << ") command received." << std::dec << std::noshowbase;
     ret = I2C_DEVICE_SIMUL_UNKNOWN_CMD;
    }
@@ -420,7 +430,7 @@ mvm_fw_unit_test_TI_ADS1115::handle_command(uint8_t cmd,
    {
     if (wlength >= 2)
      {
-      m_reg[cmd] = ((rbuffer[0] << 8) | rbuffer[1]);
+      m_reg[cmd] = ((wbuffer[0] << 8) | wbuffer[1]);
       if (cmd == CONFIG_REG)
        {
         m_reconfig_gain();
@@ -472,13 +482,14 @@ mvm_fw_unit_test_TI_ADS1115::handle_command(uint8_t cmd,
       rbuffer[1] = (m_reg[cmd]&0xff);
       msg << "Read register " << std::hex << std::showbase << cmd
           << ". Returning [" << std::hex << std::setfill('0') << std::noshowbase
-          << rbuffer[0] << "][" << rbuffer[1] << "]." << std::dec;
+          << static_cast<int>(rbuffer[0]) << "][" 
+          << static_cast<int>(rbuffer[1]) << "]." << std::dec;
       ret = 2;
      }
    }
   else
    {
-    msg << "UNKNOWN (" << std::hex << std::showbase << cmd
+    msg << "UNKNOWN (" << std::hex << std::showbase << static_cast<int>(cmd)
         << ") command received." << std::dec << std::noshowbase;
     ret = I2C_DEVICE_SIMUL_UNKNOWN_CMD;
    }

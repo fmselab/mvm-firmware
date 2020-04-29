@@ -15,6 +15,8 @@
 #ifndef _MVM_FW_TEST_I2C_DEVLIB
 #define _MVM_FW_TEST_I2C_DEVLIB
 
+#include <deque>
+
 #include "DebugIface.h"
 #include "simulated_i2c_device.h"
 #include "mvm_fw_unit_test_config.h"
@@ -61,6 +63,80 @@ class
 mvm_fw_unit_test_SENSIRION_SFM3019: public simulated_i2c_device
 {
   public:
+
+
+    struct return_word
+     {
+      return_word(uint16_t w)
+       {
+        m_w.uw = w;
+        m_crcval = m_crc(m_w.uw);
+       }
+      return_word(int16_t w)
+       {
+        m_w.sw = w;
+        m_crcval = m_crc(m_w.uw);
+       }
+      ~return_word() {}
+       
+      return_word &operator= (const uint16_t &w)
+       {
+        m_w.uw = w;
+        m_crcval = m_crc(m_w.uw);
+        return *this;
+       }
+
+      return_word &operator= (const int16_t &w)
+       {
+        m_w.sw = w;
+        m_crcval = m_crc(m_w.uw);
+        return *this;
+       }
+
+      void fill_data_crc(uint8_t *ptr)
+       {
+        ptr[0] = ((m_w.uw & 0xff00) >> 8);
+        ptr[1] = (m_w.uw & 0xff);
+        ptr[2] = m_crcval;
+       }
+
+      private:
+
+        union { uint16_t uw; int16_t sw; } m_w;
+        uint8_t m_crcval;
+        uint8_t m_crc(uint16_t data)
+         {
+          return m_crc(&data, sizeof(data));
+         }
+    
+        uint8_t m_crc(uint16_t *data, int byte_count)
+         {
+          return m_crc(reinterpret_cast<uint8_t *>(data), byte_count);
+         }
+    
+        uint8_t m_crc(uint8_t* data, int count)
+         {
+          uint16_t cb;
+          uint8_t crc = 0xFF;
+          uint8_t crc_bit;
+    
+          for (cb = 0; cb < count; ++cb)
+           {
+            crc ^= (data[cb]);
+            for (crc_bit = 8; crc_bit > 0; --crc_bit)
+             {
+              if (crc & 0x80)
+               crc = (crc << 1) ^ 0x31; // CRC 'polynomial'
+              else
+               crc = (crc << 1);
+             }
+           }
+          return crc;
+         }
+     };
+
+    typedef std::deque<return_word> return_word_container_t; 
+ 
     mvm_fw_unit_test_SENSIRION_SFM3019(const std::string &name, DebugIfaceClass &dbg) :
      simulated_i2c_device(name, dbg) { m_init(); }
     mvm_fw_unit_test_SENSIRION_SFM3019(const char *name, DebugIfaceClass &dbg) :
@@ -79,6 +155,8 @@ mvm_fw_unit_test_SENSIRION_SFM3019: public simulated_i2c_device
     const uint32_t m_product_number = 0x04020611;
     const uint64_t m_serial_number  = 2020123456;
 
+    return_word_container_t m_retc;
+
     void m_init()
      {
       m_m_active = false;
@@ -91,40 +169,6 @@ mvm_fw_unit_test_SENSIRION_SFM3019: public simulated_i2c_device
 
     bool m_update_measurement();
 
-    uint8_t m_crc(uint16_t data)
-     {
-      return m_crc(&data, sizeof(data));
-     }
-
-    uint8_t m_crc(int16_t data)
-     {
-      return m_crc(reinterpret_cast<uint16_t *>(&data), sizeof(data));
-     }
-
-    uint8_t m_crc(uint16_t *data, int byte_count)
-     {
-      return m_crc(reinterpret_cast<uint8_t *>(data), byte_count);
-     }
-
-    uint8_t m_crc(uint8_t* data, int count)
-     {
-      uint16_t cb;
-      uint8_t crc = 0xFF;
-      uint8_t crc_bit;
-
-      for (cb = 0; cb < count; ++cb)
-       {
-        crc ^= (data[cb]);
-        for (crc_bit = 8; crc_bit > 0; --crc_bit)
-         {
-          if (crc & 0x80)
-           crc = (crc << 1) ^ 0x31; // CRC 'polynomial'
-          else
-           crc = (crc << 1);
-         }
-       }
-      return crc;
-     }
 
 };
 
@@ -183,7 +227,7 @@ mvm_fw_unit_test_TI_ADS1115: public simulated_i2c_device
 struct
 TCA_I2C_Multiplexer_command_handler
 {
-  TCA_I2C_Multiplexer_command_handler(int cmd): m_cmd(cmd) {}
+  TCA_I2C_Multiplexer_command_handler(int cmd, DebugIfaceClass &dbg): m_cmd(cmd), m_dbg(dbg) {}
   ~TCA_I2C_Multiplexer_command_handler() {}
 
   int operator()(uint8_t* a1, int a2, uint8_t* a3, int a4)
@@ -194,21 +238,35 @@ TCA_I2C_Multiplexer_command_handler
     msg << I2C_DEVICE_module_name << " - TCA MUX - " 
       << now.tv_sec << ":" << now.tv_nsec/1000000 << " - tick:"
       << FW_TEST_tick << " - called (NOP) with cmd " << m_cmd;
-
+    m_dbg.DbgPrint(DBG_CODE, DBG_INFO, msg.str().c_str());
     return 0;
    }
 
   private:
    int m_cmd;
+   DebugIfaceClass &m_dbg;
 };
 
-class
-TCA_I2C_supervisor_command_handler
+struct
+TCA_I2C_Supervisor_watchdog_reset_handler
 {
+  TCA_I2C_Supervisor_watchdog_reset_handler(int cmd, DebugIfaceClass &dbg): m_cmd(cmd), m_dbg(dbg) {}
+  ~TCA_I2C_Supervisor_watchdog_reset_handler() {}
   int operator()(uint8_t* a1, int a2, uint8_t* a3, int a4)
    {
-    return -1;
+    FW_TEST_last_watchdog_reset = FW_TEST_tick;
+    timespec now;
+    ::clock_gettime(CLOCK_REALTIME, &now);
+    std::ostringstream msg;
+    msg << I2C_DEVICE_module_name << " - SUPER - " 
+      << now.tv_sec << ":" << now.tv_nsec/1000000 << " - tick:"
+      << FW_TEST_tick << " - reset watchdog - command: " << m_cmd;
+    m_dbg.DbgPrint(DBG_CODE, DBG_INFO, msg.str().c_str());
+    return 0;
    }
+  private:
+   int m_cmd;
+   DebugIfaceClass &m_dbg;
 };
 
 #endif /* defined _MVM_FW_TEST_I2C_DEVLIB */

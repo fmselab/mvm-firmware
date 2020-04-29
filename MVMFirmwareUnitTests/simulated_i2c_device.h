@@ -39,9 +39,8 @@ struct sim_i2c_devaddr
   int8_t muxport; //-1 indicates ANY
   bool operator< (const sim_i2c_devaddr &other) const
    {
-    if (this->muxport < other.muxport) return true;
-    if (this->address < other.address) return true;
-    return false;
+    if (this->muxport == other.muxport) return (this->address < other.address);
+    else return (this->muxport < other.muxport);
    }
 };
 
@@ -113,14 +112,15 @@ class simulated_i2c_device
        {
         std::ostringstream err;
         err << I2C_DEVICE_module_name << ": No handler in device '"
-            << m_name << "' for command"
-            << std::hex << std::showbase << cmd << ".";
+            << m_name << "' for command "
+            << std::hex << std::showbase << static_cast<int>(cmd) << ".";
         m_dbg.DbgPrint(DBG_CODE, DBG_INFO, err.str().c_str());
         return I2C_DEVICE_SIMUL_UNKNOWN_CMD;
        }
      }
 
   const std::string &get_name() const { return m_name; }
+  DebugIfaceClass &get_dbg() const { return m_dbg; }
 
   bool alive()
    {

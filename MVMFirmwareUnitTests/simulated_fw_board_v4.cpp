@@ -17,6 +17,7 @@
 test_hardware_t FW_TEST_hardware;
 mvm_fw_gpio_devs FW_TEST_gdevs;
 mvm_fw_unit_test_pflow FW_TEST_pflow;
+qtl_tick_t FW_TEST_last_watchdog_reset;
 DebugIfaceClass DebugIface;
 
 #include "simulated_fw_board_v4.h"
@@ -296,7 +297,7 @@ void HW_V4::__service_i2c_detect()
   nDevices = 0;
   for (address = 1; address < 127; address++)
    {
-    sim_i2c_devaddr dad(current_muxpos, address);
+    sim_i2c_devaddr dad(address, current_muxpos);
     if (m_sim_devs.alive(dad))
      {
       Serial.print("I2C device found at address 0x");
@@ -386,7 +387,11 @@ uint16_t HW_V4::GetSupervisorAlarms()
 #include "Serial.h"
 
 bool
-SerialImpl::available() { return true; }
+SerialImpl::available()
+{
+  if (m_ttys.rdbuf()->in_avail()) return true;
+  return true;
+}
 
 void
 SerialImpl::begin(unsigned long baud, uint32_t config, int8_t rxPin,

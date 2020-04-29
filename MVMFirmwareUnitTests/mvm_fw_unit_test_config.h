@@ -310,6 +310,7 @@ enum FW_TEST_devices
 
 typedef std::map<sim_i2c_devaddr, std::pair<FW_TEST_devices, std::string> > test_hardware_t;
 extern test_hardware_t FW_TEST_hardware;
+extern qtl_tick_t FW_TEST_last_watchdog_reset;
 
 extern mvm_fw_unit_test_config FW_TEST_main_config;
 
