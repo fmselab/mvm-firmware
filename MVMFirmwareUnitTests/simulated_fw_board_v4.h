@@ -74,6 +74,7 @@ private:
     bool pWall;
 
     float pIN;
+    float BoardTemperature;
     uint16_t HW_AlarmsFlags;
 
     std::map<t_i2cdevices, sim_i2c_devaddr> m_dev_addrs;

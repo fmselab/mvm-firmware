@@ -3,6 +3,7 @@
  "LogFile": "/tmp/mvm_fw_ut.log",
  "start_tick": 0,
  "end_tick": 100000,
+ "initial_battery_charge": 90.0,
  "qtl_timelines" : [
   { "depth": 100, "name": "env_temperature",
     "start": 0, "end": 1000,
@@ -19,6 +20,18 @@
   { "depth": 100, "name": "o2_concentration",
     "start": 0, "end": 10000,
     "expr": "70. - 0.005*t"
+  },
+  { "depth": 100, "name": "wall_power",
+    "start": 0, "end": 0,
+    "value": 1
+  },
+  { "depth": 100, "name": "charge_current",
+    "start": 0, "end": 0,
+    "value": 0.2
+  },
+  { "depth": 100, "name": "discharge_current",
+    "start": 0, "end": 0,
+    "value": -0.1
   },
   { "depth": 100, "name": "voltage_ref",
     "start": 0, "end": 100,

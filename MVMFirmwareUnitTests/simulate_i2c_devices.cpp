@@ -51,9 +51,7 @@ simulate_i2c_devices::init_hw(const test_hardware_t &hwl)
      }
     else if (it->second.first == TEST_XXX_SUPERVISOR)
      {
-      nd = new simulated_i2c_device(it->second.second, DebugIface);
-      nd->add_command_handler(0,
-          TCA_I2C_Supervisor_watchdog_reset_handler(0, nd->get_dbg()));
+      nd = new mvm_fw_unit_test_Supervisor(it->second.second, DebugIface); 
      }
     if (nd) add_device(it->first.address, it->first.muxport, nd);
    }

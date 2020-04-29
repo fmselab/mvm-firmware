@@ -63,7 +63,7 @@ mvm_fw_unit_test_pflow::m_init()
 {
   m_volume = 0.; // Zero volume is atmospheric pressure.
   m_flow = 0.;
-  m_last_tick = -1;
+  m_last_tick = FW_TEST_tick;
 
   if (!FW_TEST_main_config.get_number<double>("pflow_capacity",
                                               m_capacity))
@@ -113,7 +113,8 @@ mvm_fw_unit_test_pflow::m_evolve(qtl_tick_t tf)
     double mask_p = FW_TEST_qtl_double.value("mask_pressure",t);
     
     // admit some volume if input valve open 
-    if ((FW_TEST_gdevs[mvm_fw_gpio_devs::BREATHE]) && (in_p > m_p[PS0]))
+    double pv1_open_fraction = FW_TEST_gdevs.get_pv1_fraction();
+    if ((pv1_open_fraction > 0) && (in_p > m_p[PS0]))
      {
       double inlet = (m_volume/m_capacity)*((in_p-m_p[PS0])/m_v_resistance)*
                       (FW_TEST_gdevs.get_pv1_fraction());
@@ -121,7 +122,8 @@ mvm_fw_unit_test_pflow::m_evolve(qtl_tick_t tf)
       net_flow += inlet; 
      }
     // expel some volume if output valve open 
-    if ((FW_TEST_gdevs[mvm_fw_gpio_devs::OUT_VALVE]) && (m_p[PS0] > out_p))
+    // Valve FALSE is open and TRUE is closed...
+    if ((!FW_TEST_gdevs[mvm_fw_gpio_devs::OUT_VALVE]) && (m_p[PS0] > out_p))
      {
       m_volume -= (m_volume/m_capacity)*((m_p[PS0]-out_p)/m_v_resistance);
      }

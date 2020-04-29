@@ -101,14 +101,27 @@ HW_V4::Init()
   currentBatteryCharge = 100;
 
   FW_TEST_gdevs.set_pv1(0);
+  std::string err = FW_TEST_gdevs.get_error_msg();
+  if (err.length() > 0) DebugIface.DbgPrint(DBG_CODE, DBG_INFO, err.c_str());
   FW_TEST_gdevs.set(mvm_fw_gpio_devs::BREATHE, false);
+  err = FW_TEST_gdevs.get_error_msg();
+  if (err.length() > 0) DebugIface.DbgPrint(DBG_CODE, DBG_INFO, err.c_str());
   FW_TEST_gdevs.set(mvm_fw_gpio_devs::OUT_VALVE, false);
+  err = FW_TEST_gdevs.get_error_msg();
+  if (err.length() > 0) DebugIface.DbgPrint(DBG_CODE, DBG_INFO, err.c_str());
   FW_TEST_gdevs.set(mvm_fw_gpio_devs::BUZZER, false);
+  err = FW_TEST_gdevs.get_error_msg();
+  if (err.length() > 0) DebugIface.DbgPrint(DBG_CODE, DBG_INFO, err.c_str());
   FW_TEST_gdevs.set(mvm_fw_gpio_devs::ALARM_LED, false);
+  err = FW_TEST_gdevs.get_error_msg();
+  if (err.length() > 0) DebugIface.DbgPrint(DBG_CODE, DBG_INFO, err.c_str());
   FW_TEST_gdevs.set(mvm_fw_gpio_devs::ALARM_RELAY, false);
+  err = FW_TEST_gdevs.get_error_msg();
+  if (err.length() > 0) DebugIface.DbgPrint(DBG_CODE, DBG_INFO, err.c_str());
 
   pWall=true;
   pIN=3;
+  BoardTemperature=25;
   //init supervisor watchdog
   WriteSupervisor(0x00, 0);  //REMOVE COMMENT BEFORE RELEASE
 
@@ -161,11 +174,20 @@ HW_V4::PWMSet(hw_pwm id, float value)
 {
   if ((value < 0) || (value > 100.0)) return false;
 
+  std::string err;
+
   switch (id)
    {
     case PWM_PV1:
       FW_TEST_gdevs.set_pv1((value * 4095.0) / 100.0);
-      if (value > 0) FW_TEST_gdevs.set(mvm_fw_gpio_devs::BREATHE, true);
+      err = FW_TEST_gdevs.get_error_msg();
+      if (err.length() > 0) DebugIface.DbgPrint(DBG_CODE, DBG_INFO, err.c_str());
+      if (value > 0)
+       {
+        FW_TEST_gdevs.set(mvm_fw_gpio_devs::BREATHE, true);
+        err = FW_TEST_gdevs.get_error_msg();
+        if (err.length() > 0) DebugIface.DbgPrint(DBG_CODE, DBG_INFO, err.c_str());
+       }
       break;
     default:
       break;
@@ -179,20 +201,35 @@ HW_V4::IOSet(hw_gpio id, bool value)
 {
   std::ostringstream msg;
 
+  std::string err;
+
   switch (id)
    {
     case GPIO_PV2:
       FW_TEST_gdevs.set(mvm_fw_gpio_devs::OUT_VALVE, value);
-      if (!value) FW_TEST_gdevs.set(mvm_fw_gpio_devs::BREATHE, false);
+      err = FW_TEST_gdevs.get_error_msg();
+      if (err.length() > 0) DebugIface.DbgPrint(DBG_CODE, DBG_INFO, err.c_str());
+      if (!value)
+       {
+        FW_TEST_gdevs.set(mvm_fw_gpio_devs::BREATHE, false);
+        err = FW_TEST_gdevs.get_error_msg();
+        if (err.length() > 0) DebugIface.DbgPrint(DBG_CODE, DBG_INFO, err.c_str());
+       }
       break;
     case GPIO_BUZZER:
       FW_TEST_gdevs.set(mvm_fw_gpio_devs::BUZZER, value);
+      err = FW_TEST_gdevs.get_error_msg();
+      if (err.length() > 0) DebugIface.DbgPrint(DBG_CODE, DBG_INFO, err.c_str());
       break;
     case GPIO_LED:
       FW_TEST_gdevs.set(mvm_fw_gpio_devs::ALARM_LED, value);
+      err = FW_TEST_gdevs.get_error_msg();
+      if (err.length() > 0) DebugIface.DbgPrint(DBG_CODE, DBG_INFO, err.c_str());
       break;
     case GPIO_RELEALLARM:
       FW_TEST_gdevs.set(mvm_fw_gpio_devs::ALARM_RELAY, value);
+      err = FW_TEST_gdevs.get_error_msg();
+      if (err.length() > 0) DebugIface.DbgPrint(DBG_CODE, DBG_INFO, err.c_str());
       break;
     default:
       return false;
@@ -244,20 +281,23 @@ void HW_V4::PrintLineDebugConsole(String s)
 
 void HW_V4::Tick()
 {
-	if (Get_dT_millis(batteryStatus_reading_LT)>1000)
-	{
-		batteryStatus_reading_LT = GetMillis();
-		currentBatteryCharge = 0; /* XXX */
-		pIN = 0; /* XXX */
-		HW_AlarmsFlags = (uint16_t)0; /* XXX */
+  if (Get_dT_millis(batteryStatus_reading_LT)>1000)
+   {
+    batteryStatus_reading_LT = GetMillis();
+    currentBatteryCharge = (float)ReadSupervisor(0x51);
+    currentBatteryCharge = currentBatteryCharge < 0 ? 0 : currentBatteryCharge;
+    currentBatteryCharge = currentBatteryCharge > 100 ? 100 : currentBatteryCharge;
+    pWall = ReadSupervisor(0x52) >0 ? false : true ;
+    pIN = ((float)ReadSupervisor(0x50));
+    BoardTemperature = ((float)ReadSupervisor(0x56)/10.0);
+    HW_AlarmsFlags = (uint16_t)ReadSupervisor(0x57);
 
-		//reset supervisor watchdog
- 		WriteSupervisor(0x00, 0);
-		Serial.println("Battery: " + String(currentBatteryCharge) + " PWALL: " + String (pWall));
-	}
-	
+    //reset supervisor watchdog
+    WriteSupervisor(0x00, 0);
+    Serial.println("Battery: " + String(currentBatteryCharge) + " PWALL: " + String (pWall));
+   }
 
-	return;
+  return;
 }
 void HW_V4::GetPowerStatus(bool* batteryPowered, float* charge)
 {
@@ -325,28 +365,28 @@ void HW_V4::__service_i2c_detect()
 
 void HW_V4::i2c_MuxSelect(uint8_t i)
 {
-	if (i > 7)
-		return;
+  if (i > 7)
+    return;
 
-	if (i < 0)
-		return;
+  if (i < 0)
+    return;
 
-	if (current_muxpos == i) return;
+  if (current_muxpos == i) return;
 
-	current_muxpos = i;
+  current_muxpos = i;
 }
 
 t_i2cdev HW_V4::GetIICDevice(t_i2cdevices device)
 {
-	for (int i = 0; i < IIC_COUNT; i++)
-	{
-		if (iic_devs[i].t_device == device)
-		{
-			return iic_devs[i];
-		}
-	}
-   t_i2cdev ret = { IIC_INVALID, 0, 0};
-   return ret;
+  for (int i = 0; i < IIC_COUNT; i++)
+   {
+    if (iic_devs[i].t_device == device)
+     {
+      return iic_devs[i];
+     }
+   }
+  t_i2cdev ret = { IIC_INVALID, 0, 0};
+  return ret;
 }
 
 uint16_t HW_V4::ReadSupervisor(uint8_t i_address)
@@ -356,9 +396,9 @@ uint16_t HW_V4::ReadSupervisor(uint8_t i_address)
   uint16_t a;
 		
   wbuffer[0] = i_address;
-  if (I2CRead(IIC_SUPERVISOR, wbuffer, 1, rbuffer, sizeof(rbuffer), true) >= 2)
+  if (I2CRead(IIC_SUPERVISOR, wbuffer, 1, rbuffer, sizeof(rbuffer), true))
    {
-    a = (rbuffer [1]<< 8) | rbuffer[0];
+    a = (static_cast<uint16_t>(rbuffer [1])<< 8) | rbuffer[0];
    }
   return a;
 }
@@ -374,18 +414,17 @@ void HW_V4::WriteSupervisor( uint8_t i_address, uint16_t write_data)
 
 float HW_V4::GetPIN()
 {
-	return pIN;
+  return pIN;
 }
 
 float HW_V4::GetBoardTemperature()
 {
-  float res = FW_TEST_qtl_double.value("env_temperature",FW_TEST_tick);
-  return res;
+  return BoardTemperature;
 }
 
 uint16_t HW_V4::GetSupervisorAlarms()
 {
-	return HW_AlarmsFlags;
+  return HW_AlarmsFlags;
 }
 
 #include <sstream>

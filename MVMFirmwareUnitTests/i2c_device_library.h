@@ -219,6 +219,37 @@ mvm_fw_unit_test_TI_ADS1115: public simulated_i2c_device
     double m_o2_concentration, m_voltage_ref, m_voltage_12v, m_voltage_5v;
 };
 
+class
+mvm_fw_unit_test_Supervisor: public simulated_i2c_device
+{
+  public:
+    mvm_fw_unit_test_Supervisor(const std::string &name, DebugIfaceClass &dbg) :
+     simulated_i2c_device(name, dbg) { m_init(); }
+    mvm_fw_unit_test_Supervisor(const char *name, DebugIfaceClass &dbg) :
+     simulated_i2c_device(name, dbg) { m_init(); }
+    ~mvm_fw_unit_test_Supervisor() {}
+
+    int handle_command(uint8_t cmd, uint8_t *wbuffer, int wlength,
+                                    uint8_t *rbuffer, int rlength);
+  private:
+    void m_init()
+     {
+      m_last_update_tick = FW_TEST_tick;
+      if (!FW_TEST_main_config.get_number<double>("initial_battery_charge", m_charge))
+       {
+        m_charge = 100.;
+       }
+     }
+    void m_update();
+
+    qtl_tick_t m_last_update_tick;
+    bool m_pwall;
+    float m_pin;
+    double m_temp;
+    uint16_t m_alarmsflags;
+    double m_charge;
+};
+
 struct
 TCA_I2C_Multiplexer_command_handler
 {
@@ -237,28 +268,6 @@ TCA_I2C_Multiplexer_command_handler
     return 0;
    }
 
-  private:
-   int m_cmd;
-   DebugIfaceClass &m_dbg;
-};
-
-struct
-TCA_I2C_Supervisor_watchdog_reset_handler
-{
-  TCA_I2C_Supervisor_watchdog_reset_handler(int cmd, DebugIfaceClass &dbg): m_cmd(cmd), m_dbg(dbg) {}
-  ~TCA_I2C_Supervisor_watchdog_reset_handler() {}
-  int operator()(uint8_t* a1, int a2, uint8_t* a3, int a4)
-   {
-    FW_TEST_last_watchdog_reset = FW_TEST_tick;
-    timespec now;
-    ::clock_gettime(CLOCK_REALTIME, &now);
-    std::ostringstream msg;
-    msg << I2C_DEVICE_module_name << " - SUPER - " 
-      << now.tv_sec << ":" << now.tv_nsec/1000000 << " - tick:"
-      << FW_TEST_tick << " - reset watchdog - command: " << m_cmd;
-    m_dbg.DbgPrint(DBG_CODE, DBG_INFO, msg.str().c_str());
-    return 0;
-   }
   private:
    int m_cmd;
    DebugIfaceClass &m_dbg;

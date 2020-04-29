@@ -114,7 +114,7 @@ mvm_fw_unit_test_TE_MS5525DSO::handle_command(uint8_t cmd,
         << std::hex << std::setfill('0') << std::noshowbase
         << static_cast<int>(rbuffer[0]) << "]["
         << static_cast<int>(rbuffer[1]) << "]." << std::dec;
-    m_dbg.DbgPrint(DBG_CODE, DBG_INFO, msg.str().c_str());
+    m_dbg.DbgPrint(DBG_CODE, DBG_VALUE, msg.str().c_str());
     return 2;
    }
 
@@ -207,14 +207,14 @@ mvm_fw_unit_test_TE_MS5525DSO::handle_command(uint8_t cmd,
         if (!read_pressure)
          {
           m_want_to_read_pressure = false;
-          msg << "D2 Setup (" << std::hex << std::showbase 
+          msg << "D2 Setup (" << std::hex << std::showbase
               << static_cast<int>(cmd) << ") command received.";
          }
         msg << " Temperature == " << std::dec
             << std::noshowbase << m_treading << ".";
         ret = 0;
         break;
-  
+
       default:
         msg << "UNKNOWN (" << std::hex << std::showbase << static_cast<int>(cmd)
             << ") command received." << std::dec << std::noshowbase;
@@ -222,7 +222,7 @@ mvm_fw_unit_test_TE_MS5525DSO::handle_command(uint8_t cmd,
         break;
      }
    }
-  m_dbg.DbgPrint(DBG_CODE, DBG_INFO, msg.str().c_str());
+  m_dbg.DbgPrint(DBG_CODE, DBG_VALUE, msg.str().c_str());
   return ret;
 };
 
@@ -273,7 +273,7 @@ mvm_fw_unit_test_SENSIRION_SFM3019::handle_command(uint8_t cmd,
       r = m_status_word;
       if (rlength >= 6) { r.fill_data_crc(&(rbuffer[6])); ret += 3; }
       else m_retc.push_back(r);
-      msg << "flow: [" << std::hex << m_flow_val << "], temp: ["  
+      msg << "flow: [" << std::hex << m_flow_val << "], temp: ["
           << m_temp_val << "], status: [" << m_status_word
           << "].";
      }
@@ -394,7 +394,7 @@ mvm_fw_unit_test_SENSIRION_SFM3019::handle_command(uint8_t cmd,
     ret = I2C_DEVICE_SIMUL_UNKNOWN_CMD;
    }
 
-  m_dbg.DbgPrint(DBG_CODE, DBG_INFO, msg.str().c_str());
+  m_dbg.DbgPrint(DBG_CODE, DBG_VALUE, msg.str().c_str());
   return ret;
 };
 
@@ -482,7 +482,7 @@ mvm_fw_unit_test_TI_ADS1115::handle_command(uint8_t cmd,
           else if (m_voltage_ref > m_vmax) vrefs = 0xffff;
           else vrefs = 0xffff*(m_voltage_ref/m_vmax);
           msg << " Voltage reference: " << m_voltage_ref << " V";
-  
+
           if (m_cur_mux == 6)
            {
             m_voltage_12v = FW_TEST_qtl_double.value("voltage_12v",FW_TEST_tick);
@@ -497,7 +497,7 @@ mvm_fw_unit_test_TI_ADS1115::handle_command(uint8_t cmd,
            }
           else m_reg[CONVERSION_REG] = vrefs;
          }
-  
+
         msg << " == [" << std::hex << std::setfill('0')
             << m_reg[CONVERSION_REG] << "]."
             << std::dec << std::noshowbase;
@@ -506,10 +506,10 @@ mvm_fw_unit_test_TI_ADS1115::handle_command(uint8_t cmd,
 
       rbuffer[0] = (m_reg[cmd]&0xff00) >> 8;
       rbuffer[1] = (m_reg[cmd]&0xff);
-      msg << " Read register " << std::hex 
+      msg << " Read register " << std::hex
           << std::showbase << static_cast<int>(cmd)
           << " returning [" << std::hex << std::setfill('0') << std::noshowbase
-          << static_cast<int>(rbuffer[0]) << "][" 
+          << static_cast<int>(rbuffer[0]) << "]["
           << static_cast<int>(rbuffer[1]) << "]." << std::dec;
       ret = 2;
      }
@@ -520,7 +520,146 @@ mvm_fw_unit_test_TI_ADS1115::handle_command(uint8_t cmd,
         << ") command received." << std::dec << std::noshowbase;
     ret = I2C_DEVICE_SIMUL_UNKNOWN_CMD;
    }
-  m_dbg.DbgPrint(DBG_CODE, DBG_INFO, msg.str().c_str());
+  m_dbg.DbgPrint(DBG_CODE, DBG_VALUE, msg.str().c_str());
   return ret;
 };
 
+void
+mvm_fw_unit_test_Supervisor::m_update()
+{
+  if ( FW_TEST_tick <= m_last_update_tick ) return;
+
+  m_temp = FW_TEST_qtl_double.value("supervisor_temperature",FW_TEST_tick);
+  if (std::isnan(m_temp))
+   {
+    m_temp = FW_TEST_qtl_double.value("env_temperature",FW_TEST_tick);
+   }
+  if (std::isnan(m_temp))
+   {
+    m_temp = 0;
+   }
+
+  double cval;
+  cval = FW_TEST_qtl_double.value("supervisor_pin",FW_TEST_tick);
+  if (!std::isnan(cval))
+   {
+    m_pin = static_cast<float>(cval);
+   }
+  else m_pin = 0.;
+
+  cval = FW_TEST_qtl_double.value("supervisor_alarms",FW_TEST_tick);
+  if (!std::isnan(cval))
+   {
+    m_alarmsflags = static_cast<uint16_t>(cval);
+   }
+  else m_alarmsflags = 0;
+
+  cval = FW_TEST_qtl_double.value("wall_power",FW_TEST_tick);
+  if (!std::isnan(cval))
+   {
+    if (cval != 0) m_pwall = true;
+    else           m_pwall = false;
+   }
+  else m_pwall = true;
+
+  if (m_pwall)
+   {
+    cval = FW_TEST_qtl_double.value("charge_current",FW_TEST_tick);
+    m_charge += cval * 0.001 * (FW_TEST_tick - m_last_update_tick);
+   }
+  else
+   {
+    cval = FW_TEST_qtl_double.value("discharge_current",FW_TEST_tick);
+    m_charge += cval * 0.001 * (FW_TEST_tick - m_last_update_tick);
+   }
+  if (m_charge < 0.) m_charge = 0.;
+  if (m_charge > 100.) m_charge = 100.;
+
+  m_last_update_tick = FW_TEST_tick;
+}
+
+int
+mvm_fw_unit_test_Supervisor::handle_command(uint8_t cmd,
+                 uint8_t *wbuffer, int wlength, uint8_t *rbuffer, int rlength)
+{
+  int ret = -1;
+
+  verbose_level vlev = DBG_VALUE;
+  timespec now;
+  ::clock_gettime(CLOCK_REALTIME, &now);
+  std::ostringstream msg;
+  msg << I2C_DEVICE_module_name << " - SUPER - "
+    << now.tv_sec << ":" << now.tv_nsec/1000000 << " - tick:"
+    << FW_TEST_tick << " - command: " << std::hex << std::showbase
+    << static_cast<int>(cmd);
+
+  uint16_t val;
+
+  switch (cmd)
+   {
+    case 0x0:
+      FW_TEST_last_watchdog_reset = FW_TEST_tick;
+      vlev = DBG_INFO;
+      msg << " - watchdog reset";
+      ret = 0;
+      break;
+    // Supervisor response is interpreted as little-endian.
+    case 0x50:
+      m_update();
+      if (rlength < 2) ret = I2C_DEVICE_INSUFFICIENT_READ_BUFFER;
+      else
+       {
+        val = static_cast<uint16_t>(m_pin);
+        rbuffer[1] = ((val&0xff00)>>8); rbuffer[0] = (val&0xff);
+        ret = 2;
+       }
+      break;
+    case 0x51:
+      m_update();
+      if (rlength < 2) ret = I2C_DEVICE_INSUFFICIENT_READ_BUFFER;
+      else
+       {
+        val = static_cast<uint16_t>(m_charge);
+        rbuffer[1] = ((val&0xff00)>>8); rbuffer[0] = (val&0xff);
+        ret = 2;
+       }
+      break;
+    case 0x52:
+      m_update();
+      if (rlength < 2) ret = I2C_DEVICE_INSUFFICIENT_READ_BUFFER;
+      else
+       {
+        val = (m_pwall ? 1 : 0);
+        rbuffer[1] = ((val&0xff00)>>8); rbuffer[0] = (val&0xff);
+        ret = 2;
+       }
+      break;
+    case 0x56:
+      m_update();
+      if (rlength < 2) ret = I2C_DEVICE_INSUFFICIENT_READ_BUFFER;
+      else
+       {
+        val = static_cast<uint16_t>(m_temp*10);
+        rbuffer[1] = ((val&0xff00)>>8); rbuffer[0] = (val&0xff);
+        ret = 2;
+       }
+      break;
+    case 0x57:
+      m_update();
+      if (rlength < 2) ret = I2C_DEVICE_INSUFFICIENT_READ_BUFFER;
+      else
+       {
+        rbuffer[1] = ((m_alarmsflags&0xff00)>>8);
+        rbuffer[0] = (m_alarmsflags&0xff);
+        ret = 2;
+       }
+      break;
+
+    default:
+      msg << "UNKNOWN command.";
+      ret = I2C_DEVICE_SIMUL_UNKNOWN_CMD;
+   }
+
+  m_dbg.DbgPrint(DBG_CODE, vlev, msg.str().c_str());
+  return ret;
+}

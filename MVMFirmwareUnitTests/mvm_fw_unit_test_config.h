@@ -193,6 +193,8 @@ mvm_fw_gpio_devs
                                         FW_TEST_tick);
       timespec now;
       ::clock_gettime(CLOCK_REALTIME, &now);
+      bool old_value = m_devs[dev];
+      m_msg.str("");
       m_msg.clear();
       m_msg << "GPIO_DEVS" << " - " << m_names[dev] << " - "
       << now.tv_sec << ":" << now.tv_nsec/1000000 << " - tick:"
@@ -204,12 +206,19 @@ mvm_fw_gpio_devs
         m_devs[dev] = value;
         m_msg << "value set to " << value;
         ret = true;
+        if (m_devs[dev] == old_value)
+         {
+          // Don't log too verbosely.
+          m_msg.str("");
+          m_msg.clear();
+         }
        }
       else
        {
         m_msg << "device disabled in config. NOT set to " << value
               << " - current value is " << m_devs[dev];
        }
+      if (m_msg.str().length() > 0) m_msg << std::endl;
       return ret;
      }
 
@@ -220,6 +229,8 @@ mvm_fw_gpio_devs
       enable = FW_TEST_qtl_double.value("PV1_enable", FW_TEST_tick);
       timespec now;
       ::clock_gettime(CLOCK_REALTIME, &now);
+      uint16_t old_pv1_value = m_pv1_value;
+      m_msg.str("");
       m_msg.clear();
       m_msg << "GPIO_DEVS" << " - PV1 - "
       << now.tv_sec << ":" << now.tv_nsec/1000000 << " - tick:"
@@ -231,12 +242,19 @@ mvm_fw_gpio_devs
         m_pv1_value = value;
         m_msg << "value set to " << value;
         ret = true;
+        if (m_pv1_value == old_pv1_value)
+         {
+          // Don't log too verbosely.
+          m_msg.str("");
+          m_msg.clear();
+         }
        }
       else
        {
         m_msg << "device disabled in config. NOT set to " << value
               << " - current value is " << m_pv1_value;
        }
+      if (m_msg.str().length() > 0) m_msg << std::endl;
       return ret;
      }
 
@@ -251,7 +269,9 @@ mvm_fw_gpio_devs
     uint16_t get_pv1() const { return m_pv1_value; }
     double get_pv1_fraction() const
      {
-      return (static_cast<double>(m_pv1_value) / 0xffff);
+      // Fraction of *opening* of the valve. If the 'pipe open' value is
+      // zero, hopefully it works in this way. CHECKME
+      return (1.-(static_cast<double>(m_pv1_value) / 0xffff));
      }
 
   private:
