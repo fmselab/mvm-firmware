@@ -39,7 +39,7 @@ bool
 HW_V4::Init()
 
 {
-  DebugIface.SetVerboseLevel(DBG_ALL);
+  DebugIface.Init(DBG_ALL, this);
   sim_i2c_devaddr dadd;
   dadd.muxport = 0; dadd.address = 0x76;
   FW_TEST_hardware.insert(std::make_pair(dadd,
@@ -79,6 +79,8 @@ HW_V4::Init()
   /* Broadcast address */
   dadd.muxport = 1; dadd.address = 0x00;
   m_dev_addrs.insert(std::make_pair(IIC_GENERAL_CALL_SENSIRION, dadd));
+
+  m_sim_devs.init_hw(FW_TEST_hardware);
 
   for (int i = 0; i < 8; i++)
    {
