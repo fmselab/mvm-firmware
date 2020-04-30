@@ -30,6 +30,7 @@
 *.exe
 *.out
 *.app
+*.gcno
 
 # eclipse
 .settings
