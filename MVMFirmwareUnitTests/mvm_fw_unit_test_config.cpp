@@ -193,7 +193,7 @@ mvm_fw_unit_test_pflow::m_evolve(qtl_tick_t tf)
     if (!(FW_TEST_gdevs[mvm_fw_gpio_devs::OUT_VALVE])) 
      {
       // Valve open.
-      m_p[PS2] = (m_p[PS0] - out_p)*m_ps2_fraction;
+      m_p[PS2] = (m_p[PS0] - out_p)*m_ps2_fraction + out_p;
      }
     else
      {

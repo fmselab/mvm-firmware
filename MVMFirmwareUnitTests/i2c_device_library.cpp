@@ -109,7 +109,8 @@ mvm_fw_unit_test_TE_MS5525DSO::handle_command(uint8_t cmd,
     // big-endian response
     rbuffer[0] = (pval & 0xff00) >> 8;
     rbuffer[1] =  pval & 0xff;
-    msg << "Read PROM " << std::hex << std::showbase << cmd
+    msg << "Read PROM " << std::hex << std::showbase
+        << static_cast<int>(cmd)
         << ") command received. Returning ["
         << std::hex << std::setfill('0') << std::noshowbase
         << static_cast<int>(rbuffer[0]) << "]["
