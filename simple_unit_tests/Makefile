@@ -5,19 +5,10 @@
 CXXFLAGS  = -Wall -O0 -g3
 #CXXFLAGS =	-O2 -g -Wall -fmessage-length=0
 
-TEST_ROOT := ./mvmscenariotest
-#TEST_INCLUDES := -I $(MVM_FW_ROOT) -I $(WRAPPER_ROOT) -I $(WRAPPER_ROOT)/rapidjson/include -I $(WRAPPER_ROOT)/exprtk
-
-TEST_OBJECTS =  test_scenario.o 
-
-%.o: $(TEST_ROOT)/%.cpp ;\
-   $(CXX) $(CXXFLAGS) -c $< $(TEST_INCLUDES)
-
-
 # firmware objects
-WRAPPER_ROOT := ./MVMFirmwareUnitTests
+WRAPPER_ROOT := ../MVMFirmwareUnitTests
 
-MVM_FW_ROOT := ./MVMFirmwareCpp/MVMFirmwareCore
+MVM_FW_ROOT := ../MVMFirmwareCpp/MVMFirmwareCore
 MVM_FW_INCLUDES := -I $(MVM_FW_ROOT) -I $(WRAPPER_ROOT)
 MVM_FIRMWARE_OBJECTS = Alarms.o \
                        CircularBuffer.o \
@@ -45,6 +36,7 @@ MVM_FIRMWARE_OBJECTS = Alarms.o \
    $(CXX)  $(CXXFLAGS) -c $< $(MVM_FW_INCLUDES)
 
 # wrapper objects (not part of the firmware)
+# francesco's framework
 
 WRAPPER_INCLUDES := -I $(MVM_FW_ROOT) -I $(WRAPPER_ROOT) -I $(WRAPPER_ROOT)/rapidjson/include -I $(WRAPPER_ROOT)/exprtk
 WRAPPER_OBJECTS = WString.o \
@@ -62,17 +54,22 @@ WRAPPER_OBJECTS = WString.o \
    $(CXX) -c $< $(WRAPPER_INCLUDES)
 
 
-OBJS =		test_scenario.o
+# test objects
 
+TEST_ROOT := .
+TEST_INCLUDES := -I $(MVM_FW_ROOT) -I $(WRAPPER_ROOT) -I $(WRAPPER_ROOT)/rapidjson/include -I $(WRAPPER_ROOT)/exprtk
 
-#IBS =
+TEST_OBJECTS =  test_scenario.o 
 
-TARGET =	fmselab-mvm-firmware.exe
+%.o: $(TEST_ROOT)/%.cpp ;\
+   $(CXX) $(CXXFLAGS) -c $< $(TEST_INCLUDES)
 
-$(TARGET):	$(OBJS)
-	$(CXX) -o $(TARGET) $(OBJS) $(LIBS)
+# link together
+TARGET =	runtests.exe
 
-all:	$(TARGET)
+$(TARGET):	$(MVM_FIRMWARE_OBJECTS) $(WRAPPER_OBJECTS) $(TEST_OBJECTS) 
+	$(CXX) $(CXXFLAGS) -o $(TARGET) $(MVM_FIRMWARE_OBJECTS)  $(WRAPPER_OBJECTS) $(TEST_OBJECTS) $(LIBS)
 
-clean:
-	rm -f $(OBJS) $(TARGET)
+all: $(TARGET);
+
+clean: ; /bin/rm *.o *.exe;
