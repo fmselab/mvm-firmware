@@ -122,6 +122,7 @@ HW_V4::Init()
   pWall=true;
   pIN=3;
   BoardTemperature=25;
+  HW_AlarmsFlags=0;
   //init supervisor watchdog
   WriteSupervisor(0x00, 0);  //REMOVE COMMENT BEFORE RELEASE
 
