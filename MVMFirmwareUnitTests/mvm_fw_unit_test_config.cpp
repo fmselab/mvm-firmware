@@ -180,7 +180,7 @@ mvm_fw_unit_test_pflow::m_evolve(qtl_tick_t tf)
     m_p[PS0] = m_volume/m_capacity + out_p;
     if (pv1_open_fraction>0)
      {
-      m_p[PS1] = (m_p[PS0] - in_p)*m_ps2_fraction;
+      m_p[PS1] = (m_p[PS0] - in_p)*m_ps2_fraction + out_p;
      }
     else m_p[PS1] = m_p[PS0]; // Should not be so abrupt, really.
     if (m_p[PS1] > m_overpressure)
