@@ -45,7 +45,7 @@ MWM_FW_TEST_OBJECTS =  SerialImpl.o \
                        simulated_fw_board_v4.o \
                        i2c_device_library.o \
                        simulate_i2c_devices.o \
-                       mvm_fw_unit_test_config.o \
+                       mvm_fw_unit_test_config.o #\
                        mvm_fw_unit_test_run.o
 
 MVM_FW_TEST_EXECUTABLES = mvm_fw_unit_test_run

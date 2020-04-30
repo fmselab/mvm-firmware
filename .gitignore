@@ -32,6 +32,9 @@
 *.app
 *.gcno
 
+# 
+*.gcno
+
 # eclipse
 .settings
 Debug
