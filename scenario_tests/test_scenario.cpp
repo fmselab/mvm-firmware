@@ -4,7 +4,7 @@
 
 #include "mvm_fw_unit_test_config.h"
 
-#include "Wire.h"
+//#include "Wire.h"
 
 mvm_fw_unit_test_config    FW_TEST_main_config;
 

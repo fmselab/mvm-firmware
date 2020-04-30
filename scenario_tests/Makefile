@@ -1,16 +1,32 @@
 #
-# CPPFLAGS = -DLIBVNCSERVER_HAVE_LIBZ -DLIBVNCSERVER_HAVE_LIBJPEG
-
-#CXXFLAGS  = -Wall -Werror -Wextra -pedantic -ansi
-CXXFLAGS  = -Wall -O0 -g3
-#CXXFLAGS =	-O2 -g -Wall -fmessage-length=0
-
-# firmware objects
-WRAPPER_ROOT := ../MVMFirmwareUnitTests
+# File: Makefile
+#
+# Author: Francesco Prelz Francesco.Prelz@mi.infn.it
+#
+# Revision history:
+#
+#  23-Apr-2020 Initial creation.
+#
+# Description:
+# Unix makefile for building the MVM Firmware Unit test framework.
+#
 
 MVM_FW_ROOT := ../MVMFirmwareCpp/MVMFirmwareCore
-MVM_FW_INCLUDES := -I $(MVM_FW_ROOT) -I $(WRAPPER_ROOT)
-MVM_FIRMWARE_OBJECTS = Alarms.o \
+WRAPPER_ROOT := ../MVMFirmwareUnitTests
+
+MVM_FW_INCLUDES := -I $(WRAPPER_ROOT) . -I $(MVM_FW_ROOT) -I rapidjson/include -I exprtk
+
+
+DEBUG = -g 
+
+GCOV_OPTS = -fprofile-arcs  -ftest-coverage -g 
+
+CPPFLAGS := $(MVM_FW_INCLUDES) $(CPPFLAGS)
+CXXFLAGS := $(GCOV_OPTS) $(DEBUG) $(CXXFLAGS)
+
+                       
+MVM_FIRMWARE_OBJECTS = HAL.o \
+                       Alarms.o \
                        CircularBuffer.o \
                        ConfigManager.o \
                        DebugIface.o \
@@ -20,59 +36,39 @@ MVM_FIRMWARE_OBJECTS = Alarms.o \
                        driver_SFM3019.o \
                        driver_Supervisor.o \
                        driver_VenturiFlowMeter.o \
-                       HAL.o \
                        hw_ard_esp32.o \
-                       hw.o \
                        MVMCore.o \
                        MVM_StateMachine.o \
                        PressureLoop.o \
-                       TidalVolume.o
+                       TidalVolume.o \
+                       hw.o \
+                       stdlib_noniso.o WString.o
 
-#                       fw_board_ni_v4.o \
-#                       fw_board_razzeto_v3.o \
+MWM_FW_TEST_OBJECTS =  SerialImpl.o \
+                       simulated_fw_board_v4.o \
+                       i2c_device_library.o \
+                       simulate_i2c_devices.o \
+                       mvm_fw_unit_test_config.o #\
+                       mvm_fw_unit_test_run.o
 
+MVM_FW_TEST_EXECUTABLES = test_scenario
+
+all: $(MVM_FIRMWARE_OBJECTS) $(MWM_FW_TEST_OBJECTS) $(MVM_FW_TEST_EXECUTABLES) ;
+
+test_scenario.o: test_scenario.cpp $(WRAPPER_ROOT)\quantity_timelines.hpp \
+                        $(WRAPPER_ROOT)\fw_board_ni_v4.h ;\
+   $(COMPILE.C) -D WITH_POSIX_PTS test_scenario.cpp
+
+fw_board_ni_v4.h: simulated_fw_board_v4.h ;\
+   /bin/ln simulated_fw_board_v4.h fw_board_ni_v4.h; \
+   /bin/mv $(MVM_FW_ROOT)/fw_board_ni_v4.h \
+           $(MVM_FW_ROOT)/fw_board_ni_v4.h.STASH_OUT_OF_THE_WAY
+
+
+mvm_fw_unit_test_run: $(MWM_FW_TEST_OBJECTS) $(MVM_FIRMWARE_OBJECTS); \
+    $(LINK.C) -o $@ $(MWM_FW_TEST_OBJECTS) $(MVM_FIRMWARE_OBJECTS)
 
 %.o: $(MVM_FW_ROOT)/%.cpp ;\
-   $(CXX)  $(CXXFLAGS) -c $< $(MVM_FW_INCLUDES)
+   $(COMPILE.C) $<
 
-# wrapper objects (not part of the firmware)
-# francesco's framework
-
-WRAPPER_INCLUDES := -I $(MVM_FW_ROOT) -I $(WRAPPER_ROOT) -I $(WRAPPER_ROOT)/rapidjson/include -I $(WRAPPER_ROOT)/exprtk
-WRAPPER_OBJECTS = WString.o \
-				  simulated_fw_board_v4.o \
-				  stdlib_noniso.o \
-				  mvm_fw_unit_test_config.o \
-				  SerialImpl.o \
-				  simulate_i2c_devices.o \
-				  i2c_device_library.o
- 				  
-#                      mvm_fw_unit_test_run.o
-
-%.o: $(WRAPPER_ROOT)/%.cpp ;\
-   $(CXX) -c $< $(WRAPPER_INCLUDES)
-
-%.o: $(WRAPPER_ROOT)/%.c ;\
-   $(CXX) -c $< $(WRAPPER_INCLUDES)
-
-
-# test objects
-
-TEST_ROOT := .
-TEST_INCLUDES := -I $(MVM_FW_ROOT) -I $(WRAPPER_ROOT) -I $(WRAPPER_ROOT)/rapidjson/include -I $(WRAPPER_ROOT)/exprtk
-
-TEST_OBJECTS =  test_scenario.o \
-				  Serial.o
-
-%.o: $(TEST_ROOT)/%.cpp ;\
-   $(CXX) $(CXXFLAGS) -c $< $(TEST_INCLUDES)
-
-# link together
-TARGET =	runtests.exe
-
-$(TARGET):	$(MVM_FIRMWARE_OBJECTS) $(WRAPPER_OBJECTS) $(TEST_OBJECTS) 
-	$(CXX) $(CXXFLAGS) -o $(TARGET) $(MVM_FIRMWARE_OBJECTS)  $(WRAPPER_OBJECTS) $(TEST_OBJECTS) $(LIBS)
-
-all: $(TARGET);
-
-clean: ; /bin/rm *.o *.exe;
+clean: ; /bin/rm -f *.o $(MVM_FW_TEST_EXECUTABLES);
