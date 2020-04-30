@@ -58,6 +58,38 @@ mvm_fw_unit_test_config::load_config(const std::string &conf_file)
   return true;
 }
 
+int
+mvm_fw_unit_test_config::load_command_timeline(mvm_fw_test_cmds_t &ctl,
+                                               const std::string &name)
+{
+  int ret = -1;
+
+  const char *cname=name.c_str();
+  if (m_conf.HasMember(cname))
+   {
+    const rapidjson::Value& a(m_conf[cname]);
+    if (!a.IsArray()) return ret;
+    ret = 0;
+    for (rapidjson::SizeType i = 0; i < a.Size(); i++)
+     {
+      const rapidjson::Value& v(a[i]);
+      if (!(v.IsObject())) continue;
+      if (!(v.HasMember("t"))) continue;
+      if (!(v.HasMember("c"))) continue;
+      const rapidjson::Value& vt(v["t"]);
+      const rapidjson::Value& vc(v["c"]);
+      if (!(vt.IsNumber())) continue;
+      if (!(vc.IsString())) continue;
+      qtl_tick_t ts = vt.Get<qtl_tick_t>();
+      std::string cmd(vc.GetString());
+      ctl.insert(std::make_pair(ts, cmd));
+      ret++;
+     }
+   }
+
+  return ret;
+}
+
 void
 mvm_fw_unit_test_pflow::m_init()
 {
@@ -74,12 +106,12 @@ mvm_fw_unit_test_pflow::m_init()
   if (!FW_TEST_main_config.get_number<double>("pflow_valve_resistance",
                                                m_v_resistance))
    {
-    m_v_resistance = 1.; // 1/section of inlet, fundamentally. 
+    m_v_resistance = 100.; // 1/section of inlet, fundamentally. 
    }
   if (!FW_TEST_main_config.get_number<double>("pflow_mouth_resistance",
                                                m_m_resistance))
    {
-    m_m_resistance = 0.2; // 1/section of mouth, fundamentally. 
+    m_m_resistance = 20; // 1/section of mouth, fundamentally. 
    }
   if (!FW_TEST_main_config.get_number<double>("overpressure_valve_setting",
                                                m_overpressure))
@@ -96,6 +128,11 @@ mvm_fw_unit_test_pflow::m_init()
    {
     m_ps2_fraction = 0.1; // trying to estimate the pressure fall at PS2
    }
+   double cur_p = FW_TEST_qtl_double.value("env_pressure",FW_TEST_tick);
+   m_flow = 0;
+   m_p[PS0] = cur_p;
+   m_p[PS1] = cur_p;
+   m_p[PS2] = cur_p;
 }
 
 void
@@ -106,17 +143,18 @@ mvm_fw_unit_test_pflow::m_evolve(qtl_tick_t tf)
 
   // Just a crude finite-difference evolution to establish
   // a plausible interplay between the simulated quantities.
+  double in_p, out_p, mask_p;
   for (qtl_tick_t t = m_last_tick+1; t<=tf; ++t)
    {
-    double in_p = FW_TEST_qtl_double.value("input_line_pressure",t);
-    double out_p = FW_TEST_qtl_double.value("env_pressure",t);
-    double mask_p = FW_TEST_qtl_double.value("mask_pressure",t);
+    in_p = FW_TEST_qtl_double.value("input_line_pressure",t);
+    out_p = FW_TEST_qtl_double.value("env_pressure",t);
+    mask_p = FW_TEST_qtl_double.value("mask_pressure",t);
     
     // admit some volume if input valve open 
     double pv1_open_fraction = FW_TEST_gdevs.get_pv1_fraction();
     if ((pv1_open_fraction > 0) && (in_p > m_p[PS0]))
      {
-      double inlet = (m_volume/m_capacity)*((in_p-m_p[PS0])/m_v_resistance)*
+      double inlet = (1/m_capacity)*((in_p-m_p[PS0])/m_v_resistance)*
                       (FW_TEST_gdevs.get_pv1_fraction());
       m_volume += inlet;
       net_flow += inlet; 
@@ -125,12 +163,12 @@ mvm_fw_unit_test_pflow::m_evolve(qtl_tick_t tf)
     // Valve FALSE is open and TRUE is closed...
     if ((!FW_TEST_gdevs[mvm_fw_gpio_devs::OUT_VALVE]) && (m_p[PS0] > out_p))
      {
-      m_volume -= (m_volume/m_capacity)*((m_p[PS0]-out_p)/m_v_resistance);
+      m_volume -= ((m_p[PS0]-out_p)/m_v_resistance);
      }
     // deal with autonomous breathing, if present 
     if (!std::isnan(mask_p))
      {
-      m_volume += (m_volume/m_capacity)*((mask_p - m_p[PS0])/m_m_resistance);
+      m_volume += ((mask_p - m_p[PS0])/m_m_resistance);
      }
     if (m_volume < 0)
      {
@@ -140,7 +178,7 @@ mvm_fw_unit_test_pflow::m_evolve(qtl_tick_t tf)
      }
     
     m_p[PS0] = m_volume/m_capacity + out_p;
-    if (FW_TEST_gdevs[mvm_fw_gpio_devs::BREATHE])
+    if (pv1_open_fraction>0)
      {
       m_p[PS1] = (m_p[PS0] - in_p)*m_ps2_fraction;
      }
@@ -148,12 +186,13 @@ mvm_fw_unit_test_pflow::m_evolve(qtl_tick_t tf)
     if (m_p[PS1] > m_overpressure)
      {
       // Overpressure valve kicking in
-      double overv = (m_volume/m_capacity)*((m_p[PS1]-out_p)/m_v_resistance);
+      double overv = ((m_p[PS1]-out_p)/m_v_resistance);
       net_flow -= overv;
      }
 
-    if (FW_TEST_gdevs[mvm_fw_gpio_devs::OUT_VALVE])
+    if (!(FW_TEST_gdevs[mvm_fw_gpio_devs::OUT_VALVE])) 
      {
+      // Valve open.
       m_p[PS2] = (m_p[PS0] - out_p)*m_ps2_fraction;
      }
     else
@@ -162,10 +201,14 @@ mvm_fw_unit_test_pflow::m_evolve(qtl_tick_t tf)
      }
    }
 
-  if (tf > m_last_tick)
-   {
-    m_flow = net_flow / static_cast<double>(tf - m_last_tick);
-   }
+  m_flow = net_flow / static_cast<double>(tf - m_last_tick) * 1000; // cm**3
+
+#ifdef DEBUG
+  std::cerr << "DEBUG: tck:" << FW_TEST_tick << ", pin:" << in_p 
+            << ", p0:" << m_p[PS0] << ", p1:" 
+            << m_p[PS1] << ", p2:" << m_p[PS2] << ", pout:" << out_p
+            << " flow:" << m_flow << std::endl;
+#endif
 
   m_last_tick = tf;
 }

@@ -629,7 +629,7 @@ mvm_fw_unit_test_Supervisor::handle_command(uint8_t cmd,
       if (rlength < 2) ret = I2C_DEVICE_INSUFFICIENT_READ_BUFFER;
       else
        {
-        val = (m_pwall ? 1 : 0);
+        val = (m_pwall ? 0 : 1); // The logic is reversed in the HW module
         rbuffer[1] = ((val&0xff00)>>8); rbuffer[0] = (val&0xff);
         ret = 2;
        }

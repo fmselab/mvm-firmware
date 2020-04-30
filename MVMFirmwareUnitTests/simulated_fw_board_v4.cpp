@@ -46,7 +46,7 @@ HW_V4::Init()
    {
     DebugIface.Init(static_cast<verbose_level>(FW_TEST_debug_level), this);
    }
-  else DebugIface.Init(DBG_ERROR, this);
+  else DebugIface.Init(DBG_NONE, this); // Default value
   sim_i2c_devaddr dadd;
   dadd.muxport = 0; dadd.address = 0x76;
   FW_TEST_hardware.insert(std::make_pair(dadd,
@@ -92,7 +92,7 @@ HW_V4::Init()
   for (int i = 0; i < 8; i++)
    {
     i2c_MuxSelect(i);
-    Serial.println("SCAN I2C BUS: " + String(i));
+    //Serial.println("SCAN I2C BUS: " + String(i));
     __service_i2c_detect();
    }
 
@@ -294,7 +294,7 @@ void HW_V4::Tick()
 
     //reset supervisor watchdog
     WriteSupervisor(0x00, 0);
-    Serial.println("Battery: " + String(currentBatteryCharge) + " PWALL: " + String (pWall));
+    //Serial.println("Battery: " + String(currentBatteryCharge) + " PWALL: " + String (pWall));
    }
 
   return;
@@ -339,27 +339,27 @@ void HW_V4::__service_i2c_detect()
   /* No state change ? Just a diagnostics printout, it would seem. */
   uint8_t error, address;
   int nDevices = 0;
-  Serial.println("Scanning... I2C");
+  //Serial.println("Scanning... I2C");
   nDevices = 0;
   for (address = 1; address < 127; address++)
    {
     sim_i2c_devaddr dad(address, current_muxpos);
     if (m_sim_devs.alive(dad))
      {
-      Serial.print("I2C device found at address 0x");
-      if (address < 16)
-       {
-        Serial.print("0");
-       }
-      Serial.println(address, HEX);
+//      Serial.print("I2C device found at address 0x");
+//      if (address < 16)
+//       {
+//        Serial.print("0");
+//       }
+//      Serial.println(address, HEX);
       nDevices++;
      }
    }
 
-  if (nDevices == 0)
-   {
-    Serial.println("No I2C devices found\n");
-   }
+//  if (nDevices == 0)
+//   {
+//    Serial.println("No I2C devices found\n");
+//   }
 }
 
 
@@ -462,7 +462,7 @@ size_t
 SerialImpl::println(const char str[])
 {
   if (m_ttys == 0) return -1;
-  int ret = ::fprintf(m_ttys, "%s\n", str);
+  int ret = ::fprintf(m_ttys, "%s\r\n", str);
   ::fflush(m_ttys);
   return ret;
 }

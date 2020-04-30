@@ -27,6 +27,13 @@
 mvm_fw_unit_test_config    FW_TEST_main_config;
 quantity_timelines<double> FW_TEST_qtl_double;
 qtl_tick_t                 FW_TEST_tick;
+mvm_fw_test_cmds_t         FW_TEST_command_timeline;
+
+#ifdef WITH_POSIX_PTS
+#include <cstdlib>
+#include <fcntl.h>
+#include <unistd.h>
+#endif
 
 // The following can go away when all leftover references disappear from
 // the firmware code.
@@ -81,16 +88,39 @@ int
 main (int argc, char *argv[]) 
 {
   std::ostringstream usage_string;
-  usage_string << "Usage: " << argv[0] << " [-d debug_level]  <JSON config>"
+  usage_string << "Usage: " << argv[0] 
+#ifdef WITH_POSIX_PTS
+               << " [-p]"
+#endif
+               << " [-d debug_level]  <JSON config>"
                << std::endl;
   if (argc < 2)
    {
     std::cerr << usage_string.str() << std::endl;
     return 1;
    }
+  int darg = 1;
+#ifdef WITH_POSIX_PTS
+  int ptfd = -1;
+  int ptret;
+  if (std::string(argv[1]) == "-p")
+   {
+    ptfd = posix_openpt(O_RDWR);
+    if (ptfd >= 0)
+     {
+      ptret = grantpt(ptfd);
+      if (ptret >= 0) ptret = unlockpt(ptfd);
+      if (ptret < 0) 
+       {
+        ::close(ptfd);
+        ptfd = -1;
+       }
+     }
+   }
+#endif
   if (std::string(argv[1]) == "-d")
    {
-    if (argc < 4)
+    if (argc < (3 + darg))
      {
       std::cerr << usage_string.str() << std::endl;
      }
@@ -138,7 +168,26 @@ main (int argc, char *argv[])
     return 4;
    }
 
-  FILE *ttys = ::fopen(serial_tty.c_str(), "w+");
+  FILE *ttys = 0;
+#ifdef WITH_POSIX_PTS
+  if (ptfd >= 0)
+   {
+    ttys = fdopen(ptfd, "w+");
+    if (ttys == 0)
+     {
+      std::cerr << argv[0] << ": Error. Could not open master PTS:" 
+                << system_error()
+                << ". Skipping." << std::endl;
+     }
+    else
+     {
+      std::cerr << argv[0] << ": Successfully connected to PTS " 
+                << ptsname(ptfd) << ". Waiting for 10 seconds." << std::endl;
+      sleep(10);
+     }
+   }
+#endif
+  if (ttys == 0) ttys = ::fopen(serial_tty.c_str(), "w+");
   if (ttys == 0)
    {
     std::cerr << argv[0] << ": Error. Could not open TTY file " 
@@ -174,6 +223,10 @@ main (int argc, char *argv[])
               << ". Using default value: " << end_tick << "." << std::endl;
    }
 
+  int n_cmds = FW_TEST_main_config.load_command_timeline(FW_TEST_command_timeline);
+  mvm_fw_test_cmds_t::const_iterator cit  = FW_TEST_command_timeline.begin();
+  mvm_fw_test_cmds_t::const_iterator cend = FW_TEST_command_timeline.end();
+
   MVMCore the_mvm;
   the_mvm.Init(); // Should check for errors - where ?
 
@@ -181,6 +234,11 @@ main (int argc, char *argv[])
   for (FW_TEST_tick = start_tick; FW_TEST_tick <= end_tick ; ++FW_TEST_tick)
    {
     the_mvm.Tick();
+    if ((cit != cend) && (FW_TEST_tick == cit->first))
+     {
+      send_command_to_mvm(String(cit->second.c_str()), the_mvm);
+      ++cit;
+     }
     if (Serial.available())
      {
       String line = Serial.readStringUntil('\n');
@@ -195,6 +253,8 @@ main (int argc, char *argv[])
       ::nanosleep(&wait, NULL);
      }
    }
+
+  if (ttys != 0) ::fclose(ttys);
 
   return 0;
 }

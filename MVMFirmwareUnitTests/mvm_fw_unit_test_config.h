@@ -5,6 +5,7 @@
 //
 // Revision history:
 // 24-Apr-2020 Initial version.
+// 29-Apr-2020 Timeline of text commands added.
 //
 // Description:
 // Moved here the methods to access the JSON configuration file,
@@ -47,6 +48,10 @@ const std::string MVM_FM_confattr_SerialTTY("SerialTTY");
 const std::string MVM_FM_confattr_SerialPollTimeout("serial_port_timeout");
 const std::string MVM_FM_confattr_StartTick("start_tick");
 const std::string MVM_FM_confattr_EndTick("end_tick");
+const std::string MVM_FM_confattr_CmdTimeline("command_timeline");
+
+typedef std::map<qtl_tick_t, std::string> mvm_fw_test_cmds_t;
+extern mvm_fw_test_cmds_t FW_TEST_command_timeline;
 
 class mvm_fw_unit_test_config
 {
@@ -159,6 +164,9 @@ class mvm_fw_unit_test_config
 
     const std::string &get_error_string() const { return m_error_string; }
 
+    int load_command_timeline(mvm_fw_test_cmds_t &ctl,
+                              const std::string &name=MVM_FM_confattr_CmdTimeline);
+
   private: 
 
     std::string m_conf_file;
@@ -169,6 +177,7 @@ class mvm_fw_unit_test_config
 
 extern quantity_timelines<double> FW_TEST_qtl_double;
 extern qtl_tick_t                 FW_TEST_tick;
+
 
 class 
 mvm_fw_gpio_devs
@@ -290,7 +299,7 @@ mvm_fw_unit_test_pflow
 {
   public:
     mvm_fw_unit_test_pflow() { m_init(); }
-    ~mvm_fw_unit_test_pflow() { m_init(); }
+    ~mvm_fw_unit_test_pflow() {}
 
     double p_value(const std::string &name, qtl_tick_t t);
     double f_value(qtl_tick_t t);

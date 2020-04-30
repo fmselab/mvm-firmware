@@ -39,11 +39,16 @@ simulate_i2c_devices
                      uint8_t *rbuffer, int rlength, bool stop)
      {
       if (m_devs.size() <= 0) return I2C_DEVICE_SIMUL_NOT_FOUND;
+
       sim_i2c_devaddr addr(address, muxport);
       simulated_i2c_devices_t::iterator dit;
       dit = m_devs.find(addr);
       if (dit != m_devs.end())
        {
+        double enable = FW_TEST_qtl_double.value(
+                        std::string(dit->second->get_name())+"_enable",
+                        FW_TEST_tick);
+        if (enable == 0) return I2C_DEVICE_NOT_ENABLED;
         return dit->second->exchange_message(wbuffer, wlength,
                                             rbuffer, rlength, stop);
        }

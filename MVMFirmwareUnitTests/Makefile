@@ -50,7 +50,7 @@ MVM_FW_TEST_EXECUTABLES = mvm_fw_unit_test_run
 all: $(MVM_FIRMWARE_OBJECTS) $(MWM_FW_TEST_OBJECTS) $(MVM_FW_TEST_EXECUTABLES) ;
 
 mvm_fw_unit_test_run.o: mvm_fw_unit_test_run.cpp quantity_timelines.hpp ;\
-   $(COMPILE.C) -c mvm_fw_unit_test_run.cpp
+   $(COMPILE.C) -D WITH_POSIX_PTS -c mvm_fw_unit_test_run.cpp
 
 
 mvm_fw_unit_test_run: $(MWM_FW_TEST_OBJECTS) $(MVM_FIRMWARE_OBJECTS); \
