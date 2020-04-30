@@ -32,6 +32,7 @@ mvm_fw_test_cmds_t         FW_TEST_command_timeline;
 #ifdef WITH_POSIX_PTS
 #include <cstdlib>
 #include <fcntl.h>
+#include <termios.h>
 #include <unistd.h>
 #endif
 
@@ -46,11 +47,20 @@ SerialImpl Serial;
 int
 send_command_to_mvm(String sline, MVMCore &mvm)
 {
-  std::istringstream ils(sline.c_str());
 
+  timespec now;
+  ::clock_gettime(CLOCK_REALTIME, &now);
+  std::ostringstream msg;
+  msg << now.tv_sec << ":" << now.tv_nsec/1000000 << " - tick:"
+      << FW_TEST_tick << " - SENDING COMMAND - " << sline;
+
+  DebugIface.DbgPrint(DBG_CODE, DBG_INFO, msg.str().c_str());
+
+  std::istringstream ils(sline.c_str());
   std::string command;
   std::string param;
   std::string value;
+
   ils >> command;
   if (command == "get")
    {
@@ -81,6 +91,7 @@ send_command_to_mvm(String sline, MVMCore &mvm)
        }
      }
    }
+  else mvm.WriteUART0("valore=ERROR:Parse error");
   return -1;
 }
 
@@ -197,8 +208,30 @@ main (int argc, char *argv[])
     return 5;
    }
 
-  // Would probably need to set up the TTY here. We go via named
-  // pipes for the time being.
+#ifdef WITH_POSIX_PTS
+  // Set up the TTY
+  ::termios cur_term, new_term;
+  if (::tcgetattr(::fileno(ttys), &cur_term) >= 0)
+   {
+    ::memset(&new_term,0,sizeof(new_term));
+    // Try 115200 N-8-1 for real serial terms.,
+    new_term.c_cflag |= CS8;
+    ::cfsetispeed (&new_term, B115200);
+    ::cfsetospeed (&new_term, B115200);
+    new_term.c_cflag |= CLOCAL;
+    new_term.c_cflag |= CREAD;
+    new_term.c_iflag |= IGNCR;
+    new_term.c_oflag |= (OPOST|ONLCR);
+    new_term.c_lflag |= (ICANON);
+
+    if (::tcsetattr(::fileno(ttys), TCSANOW, &new_term) < 0)
+     {
+      std::cerr << argv[0] << ": Warning. Could not set attributes  " 
+                << "in terminal file " << serial_tty << ":"
+                << system_error() << "." << std::endl;
+     }
+   }
+#endif
 
   Serial.set_ttys(ttys);
   FW_TEST_main_config.get_number<int>(MVM_FM_confattr_SerialPollTimeout,
@@ -245,7 +278,6 @@ main (int argc, char *argv[])
     if (Serial.available())
      {
       String line = Serial.readStringUntil('\n');
-      std::cerr << "DEBUG: line==<" << line.c_str() << ">" << std::endl;
       if (line.length() > 0)
        {
         send_command_to_mvm(line, the_mvm);

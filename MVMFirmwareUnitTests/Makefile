@@ -16,8 +16,10 @@ MVM_FW_INCLUDES := -I . -I $(MVM_FW_ROOT) -I rapidjson/include -I exprtk
 
 DEBUG = -g 
 
+GCOV_OPTS = -fprofile-arcs  -ftest-coverage -g 
+
 CPPFLAGS := $(MVM_FW_INCLUDES) $(CPPFLAGS)
-CXXFLAGS := $(DEBUG) $(CXXFLAGS)
+CXXFLAGS := $(GCOV_OPTS) $(DEBUG) $(CXXFLAGS)
 
                        
 MVM_FIRMWARE_OBJECTS = HAL.o \

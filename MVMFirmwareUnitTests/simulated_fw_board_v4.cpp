@@ -443,7 +443,7 @@ SerialImpl::available()
   spfd.events = POLLIN|POLLERR|POLLHUP|POLLNVAL;
   spfd.revents = 0;
   int rpoll = ::poll(&spfd, 1, FW_TEST_serial_poll_timeout);
-  if ((rpoll >= 1) && (spfd.revents & POLLIN)) return true;
+  if ((rpoll >= 1) && (spfd.revents == POLLIN)) return true;
 
   return false;
 }
