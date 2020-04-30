@@ -230,6 +230,9 @@ main (int argc, char *argv[])
   MVMCore the_mvm;
   the_mvm.Init(); // Should check for errors - where ?
 
+  bool valve_out_save = false;
+  uint16_t valve_in_save = 0;
+
   // Main ticker loop 
   for (FW_TEST_tick = start_tick; FW_TEST_tick <= end_tick ; ++FW_TEST_tick)
    {
@@ -242,6 +245,7 @@ main (int argc, char *argv[])
     if (Serial.available())
      {
       String line = Serial.readStringUntil('\n');
+      std::cerr << "DEBUG: line==<" << line.c_str() << ">" << std::endl;
       if (line.length() > 0)
        {
         send_command_to_mvm(line, the_mvm);
@@ -251,6 +255,38 @@ main (int argc, char *argv[])
      {
       timespec wait = {0, 100000};
       ::nanosleep(&wait, NULL);
+     }
+    // Valve status check
+    uint16_t valve_in = FW_TEST_gdevs.get_pv1();
+    if (FW_TEST_gdevs[mvm_fw_gpio_devs::OUT_VALVE] &&
+        valve_in >= 0x8000) // More than half closed
+     {
+      if ((!valve_out_save) && (valve_in != valve_in_save))
+       {
+        timespec now;
+        ::clock_gettime(CLOCK_REALTIME, &now);
+        std::ostringstream msg;
+        msg << now.tv_sec << ":" << now.tv_nsec/1000000 << " - tick:"
+            << FW_TEST_tick << " - VALVES CLOSED - PV1:" << valve_in
+            << std::endl;
+        valve_in_save = valve_in;
+        valve_out_save = true;
+        if (logf.good()) logf << msg.str();
+        else std::cerr << argv[0] << ": " << msg.str();
+       }
+     }
+    else if (valve_out_save)
+     {
+      timespec now;
+      ::clock_gettime(CLOCK_REALTIME, &now);
+      std::ostringstream msg;
+      msg << now.tv_sec << ":" << now.tv_nsec/1000000 << " - tick:"
+            << FW_TEST_tick << " - VALVES OK - PV1:" << valve_in
+            << std::endl;
+      valve_out_save = false;
+      valve_in_save = 0;
+      if (logf.good()) logf << msg.str();
+      else std::cerr << argv[0] << ": " << msg.str();
      }
    }
 

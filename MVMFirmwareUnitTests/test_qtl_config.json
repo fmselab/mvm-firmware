@@ -11,7 +11,7 @@
   },
   { "depth": 100, "name": "env_pressure",
     "start": 0, "end": 10,
-    "expr": "10. + 80.*cos(t/318.)", "repeat": true
+    "expr": "10. + 1.*cos(t/318.)", "repeat": true
   },
   { "depth": 100, "name": "input_line_pressure",
     "start": 0, "end": 0, 
@@ -22,7 +22,7 @@
     "expr": "70. - 0.005*t"
   },
   { "depth": 90, "name": "wall_power",
-    "start": 10000, "end": 20000,
+    "start": 0, "end": 200000,
     "value": 0
   },
   { "depth": 100, "name": "wall_power",
