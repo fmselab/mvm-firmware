@@ -82,21 +82,6 @@
 	<storageModule moduleId="cdtBuildSystem" version="4.0.0">
 		<project id="fmselab-mvm-firmware.cdt.managedbuild.target.gnu.cygwin.exe.2002940168" name="Executable" projectType="cdt.managedbuild.target.gnu.cygwin.exe"/>
 	</storageModule>
-	<storageModule moduleId="scannerConfiguration">
-		<autodiscovery enabled="true" problemReportingEnabled="true" selectedProfileId=""/>
-		<scannerConfigBuildInfo instanceId="cdt.managedbuild.config.gnu.cygwin.exe.debug.1887167646;cdt.managedbuild.config.gnu.cygwin.exe.debug.1887167646.;cdt.managedbuild.tool.gnu.cpp.compiler.cygwin.exe.debug.1978822016;cdt.managedbuild.tool.gnu.cpp.compiler.input.cygwin.2113459844">
-			<autodiscovery enabled="true" problemReportingEnabled="true" selectedProfileId=""/>
-		</scannerConfigBuildInfo>
-		<scannerConfigBuildInfo instanceId="cdt.managedbuild.config.gnu.cygwin.exe.debug.1887167646;cdt.managedbuild.config.gnu.cygwin.exe.debug.1887167646.;cdt.managedbuild.tool.gnu.c.compiler.cygwin.exe.debug.1539625767;cdt.managedbuild.tool.gnu.c.compiler.input.cygwin.391279174">
-			<autodiscovery enabled="true" problemReportingEnabled="true" selectedProfileId=""/>
-		</scannerConfigBuildInfo>
-		<scannerConfigBuildInfo instanceId="cdt.managedbuild.config.gnu.cygwin.exe.release.1560333864;cdt.managedbuild.config.gnu.cygwin.exe.release.1560333864.;cdt.managedbuild.tool.gnu.cpp.compiler.cygwin.exe.release.171765541;cdt.managedbuild.tool.gnu.cpp.compiler.input.cygwin.1441593666">
-			<autodiscovery enabled="true" problemReportingEnabled="true" selectedProfileId=""/>
-		</scannerConfigBuildInfo>
-		<scannerConfigBuildInfo instanceId="cdt.managedbuild.config.gnu.cygwin.exe.release.1560333864;cdt.managedbuild.config.gnu.cygwin.exe.release.1560333864.;cdt.managedbuild.tool.gnu.c.compiler.cygwin.exe.release.1376480729;cdt.managedbuild.tool.gnu.c.compiler.input.cygwin.761921345">
-			<autodiscovery enabled="true" problemReportingEnabled="true" selectedProfileId=""/>
-		</scannerConfigBuildInfo>
-	</storageModule>
 	<storageModule moduleId="org.eclipse.cdt.core.LanguageSettingsProviders"/>
 	<storageModule moduleId="org.eclipse.cdt.make.core.buildtargets"/>
 	<storageModule moduleId="refreshScope" versionNumber="2">
@@ -106,5 +91,26 @@
 		<configuration configurationName="Release">
 			<resource resourceType="PROJECT" workspacePath="/fmselab-mvm-firmware"/>
 		</configuration>
+	</storageModule>
+	<storageModule moduleId="scannerConfiguration">
+		<autodiscovery enabled="true" problemReportingEnabled="true" selectedProfileId=""/>
+		<scannerConfigBuildInfo instanceId="cdt.managedbuild.config.gnu.cygwin.exe.debug.1887167646;cdt.managedbuild.config.gnu.cygwin.exe.debug.1887167646.;cdt.managedbuild.tool.gnu.cpp.compiler.cygwin.exe.debug.1978822016;cdt.managedbuild.tool.gnu.cpp.compiler.input.cygwin.2113459844">
+			<autodiscovery enabled="true" problemReportingEnabled="true" selectedProfileId=""/>
+		</scannerConfigBuildInfo>
+		<scannerConfigBuildInfo instanceId="cdt.managedbuild.config.gnu.cygwin.exe.debug.1887167646;cdt.managedbuild.config.gnu.cygwin.exe.debug.1887167646.;cdt.managedbuild.tool.gnu.c.compiler.cygwin.exe.debug.1539625767;cdt.managedbuild.tool.gnu.c.compiler.input.cygwin.391279174">
+			<autodiscovery enabled="true" problemReportingEnabled="true" selectedProfileId=""/>
+		</scannerConfigBuildInfo>
+		<scannerConfigBuildInfo instanceId="cdt.managedbuild.config.gnu.cygwin.exe.debug.1887167646;cdt.managedbuild.config.gnu.cygwin.exe.debug.1887167646.;cdt.managedbuild.tool.gnu.c.compiler.mingw.base.1805853995;cdt.managedbuild.tool.gnu.c.compiler.input.434987285">
+			<autodiscovery enabled="true" problemReportingEnabled="true" selectedProfileId=""/>
+		</scannerConfigBuildInfo>
+		<scannerConfigBuildInfo instanceId="cdt.managedbuild.config.gnu.cygwin.exe.release.1560333864;cdt.managedbuild.config.gnu.cygwin.exe.release.1560333864.;cdt.managedbuild.tool.gnu.cpp.compiler.cygwin.exe.release.171765541;cdt.managedbuild.tool.gnu.cpp.compiler.input.cygwin.1441593666">
+			<autodiscovery enabled="true" problemReportingEnabled="true" selectedProfileId=""/>
+		</scannerConfigBuildInfo>
+		<scannerConfigBuildInfo instanceId="cdt.managedbuild.config.gnu.cygwin.exe.release.1560333864;cdt.managedbuild.config.gnu.cygwin.exe.release.1560333864.;cdt.managedbuild.tool.gnu.c.compiler.cygwin.exe.release.1376480729;cdt.managedbuild.tool.gnu.c.compiler.input.cygwin.761921345">
+			<autodiscovery enabled="true" problemReportingEnabled="true" selectedProfileId=""/>
+		</scannerConfigBuildInfo>
+		<scannerConfigBuildInfo instanceId="cdt.managedbuild.config.gnu.cygwin.exe.debug.1887167646;cdt.managedbuild.config.gnu.cygwin.exe.debug.1887167646.;cdt.managedbuild.tool.gnu.cpp.compiler.mingw.base.1747447021;cdt.managedbuild.tool.gnu.cpp.compiler.input.2095862858">
+			<autodiscovery enabled="true" problemReportingEnabled="true" selectedProfileId=""/>
+		</scannerConfigBuildInfo>
 	</storageModule>
 </cproject>
