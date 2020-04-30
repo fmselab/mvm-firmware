@@ -7,7 +7,7 @@
 // 23-Apr-2020 Initial version.
 //
 // Description:
-// Base class to describe simulated I2C devices
+// Base class to describe simulated I2C devices.
 //
 
 #ifndef _I2C_DEVICE_SIMUL_H
@@ -23,9 +23,15 @@ const int I2C_DEVICE_SIMUL_NOT_FOUND=-1;
 const int I2C_DEVICE_SIMUL_NO_CMD=-2;
 const int I2C_DEVICE_SIMUL_UNKNOWN_CMD=-3;
 const int I2C_DEVICE_SIMUL_DEAD=-4;
+const int I2C_DEVICE_INSUFFICIENT_READ_BUFFER=-5;
+const int I2C_DEVICE_NOT_ACTIVE=-6;
+const int I2C_DEVICE_NOT_ENABLED=-7;
+const int I2C_DEVICE_BUSY=-8;
+
 const std::string I2C_DEVICE_module_name("I2C SIMULATION");
 
 #include "DebugIface.h"
+#include "mvm_fw_unit_test_config.h"
 
 struct sim_i2c_devaddr
 {
@@ -35,9 +41,8 @@ struct sim_i2c_devaddr
   int8_t muxport; //-1 indicates ANY
   bool operator< (const sim_i2c_devaddr &other) const
    {
-    if (this->muxport < other.muxport) return true;
-    if (this->address < other.address) return true;
-    return false;
+    if (this->muxport == other.muxport) return (this->address < other.address);
+    else return (this->muxport < other.muxport);
    }
 };
 
@@ -47,11 +52,19 @@ class simulated_i2c_device
     typedef std::function<int (uint8_t* a1, int a2, uint8_t* a3, int a4)> simulated_i2c_cmd_handler_t;
     typedef std::map<uint8_t, simulated_i2c_cmd_handler_t> simulated_i2c_cmd_handler_container_t;
 
-    simulated_i2c_device(const std::string &name, DebugIfaceClass &dbg); 
-    simulated_i2c_device(const char *name, DebugIfaceClass &dbg);
+    simulated_i2c_device(const std::string &name, DebugIfaceClass &dbg) :
+      m_dbg(dbg), m_name(name) {}
+    simulated_i2c_device(const char *name, DebugIfaceClass &dbg) :
+      m_dbg(dbg), m_name(name) {}
     virtual ~simulated_i2c_device() {}
 
     void set_alive_attr(const std::string &attr) { m_alive_attr = attr; }
+    // The device name will be used as a prefix for retrieving timeline
+    // attributes unless the following is set:
+    void set_timeline_prefix(const std::string &prefix)
+     {
+      m_timeline_prefix = prefix;
+     }
 
     int exchange_message(uint8_t* wbuffer, int wlength,
                          uint8_t *rbuffer, int rlength, bool stop)
@@ -68,13 +81,13 @@ class simulated_i2c_device
       uint8_t cmd = 0;
       if (wbuffer != NULL)
        {
-        cmd = wbuffer[0]&0x7f;
+        cmd = wbuffer[0];
         ++wbuffer;
        }
       return handle_command(cmd, wbuffer, wlength-1, rbuffer, rlength);
      }
 
-    void add_command_handler(uint8_t cmd, simulated_i2c_cmd_handler_t &hnd)
+    void add_command_handler(uint8_t cmd, simulated_i2c_cmd_handler_t hnd)
      {
       simulated_i2c_cmd_handler_container_t::iterator cmdp;
       cmdp = m_cmd_handlers.find(cmd);
@@ -101,14 +114,15 @@ class simulated_i2c_device
        {
         std::ostringstream err;
         err << I2C_DEVICE_module_name << ": No handler in device '"
-            << m_name << "' for command"
-            << std::hex << std::showbase << cmd << ".";
+            << m_name << "' for command "
+            << std::hex << std::showbase << static_cast<int>(cmd) << ".";
         m_dbg.DbgPrint(DBG_CODE, DBG_INFO, err.str().c_str());
         return I2C_DEVICE_SIMUL_UNKNOWN_CMD;
        }
      }
 
   const std::string &get_name() const { return m_name; }
+  DebugIfaceClass &get_dbg() const { return m_dbg; }
 
   bool alive()
    {
@@ -120,12 +134,11 @@ class simulated_i2c_device
   protected:
     DebugIfaceClass &m_dbg;
     simulated_i2c_cmd_handler_container_t m_cmd_handlers; 
-
-  private:
     std::string m_name;
     std::string m_alive_attr;
+    std::string m_timeline_prefix;
 };
 
-typedef std::map<sim_i2c_devaddr, simulated_i2c_device> simulated_i2c_devices_t;
+typedef std::map<sim_i2c_devaddr, simulated_i2c_device *> simulated_i2c_devices_t;
 
 #endif /* defined _I2C_DEVICE_SIMUL_H */

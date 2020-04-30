@@ -13,9 +13,6 @@
 #ifndef _FW_BOARD_SIMUL_h
 #define _FW_BOARD_SIMUL_h
 
-// Make sure we don't include the definition in the firmware code.
-#define _FW_BOARD_NI_V4_h
-
 #if defined(ARDUINO) && ARDUINO >= 100
 	#include "Arduino.h"
 #else
@@ -28,15 +25,14 @@
 
 #include <map>
 
-#define IIC_COUNT 8
 
+#define IIC_COUNT 8
 #define PLOOP_MODEL     GS_05
 #define PPATIENT_MODEL  DS_01
 #define PVENTURI        DS_01
 
 class HW_V4 : public HW {
 public:
-
 
     bool Init();
     bool I2CWrite(t_i2cdevices device, uint8_t* wbuffer, int wlength, bool stop);

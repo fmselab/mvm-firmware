@@ -515,7 +515,9 @@ quantity_timelines<TNUM>::initialize(const rapidjson::Document &d, const char *h
        {
         const rapidjson::Value& enam(m["end"]);
         if (enam.IsNumber()) end = enam.Get<qtl_tick_t>();
-        ++end; // Upper boundary is not included in the interval.
+        if (end != start) ++end; // Upper boundary is not included
+                                 // in the interval. But equal values
+                                 // mean forever. 
        }
       if (m.HasMember("repeat"))
        {

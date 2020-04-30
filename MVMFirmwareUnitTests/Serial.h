@@ -4,7 +4,7 @@
 #ifndef _MVM_FW_TEST_SERIAL_H
 #define _MVM_FW_TEST_SERIAL_H
 
-#include <iostream>
+#include <cstdio>
 #include <stdint.h>
 
 #include "WString.h"
@@ -16,7 +16,7 @@
 class SerialImpl
 {
   public:
-  SerialImpl(std::iostream &ttys) : m_ttys(ttys) {}
+  SerialImpl() : m_ttys(0) {}
   ~SerialImpl() {}
 
   bool available();
@@ -29,10 +29,12 @@ class SerialImpl
   size_t print(const char[]);
   size_t print(const String &);
 
+  void set_ttys(FILE *ttys) { m_ttys = ttys; }
+
   String readStringUntil(char end);
 
   private:
-    std::iostream &m_ttys;
+    FILE *m_ttys;
 };
 
 extern SerialImpl Serial;

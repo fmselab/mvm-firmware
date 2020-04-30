@@ -16,8 +16,10 @@ MVM_FW_INCLUDES := -I . -I $(MVM_FW_ROOT) -I rapidjson/include -I exprtk
 
 DEBUG = -g 
 
+GCOV_OPTS = -fprofile-arcs  -ftest-coverage -g 
+
 CPPFLAGS := $(MVM_FW_INCLUDES) $(CPPFLAGS)
-CXXFLAGS := $(DEBUG) $(CXXFLAGS)
+CXXFLAGS := $(GCOV_OPTS) $(DEBUG) $(CXXFLAGS)
 
                        
 MVM_FIRMWARE_OBJECTS = HAL.o \
@@ -40,6 +42,7 @@ MVM_FIRMWARE_OBJECTS = HAL.o \
                        stdlib_noniso.o WString.o
 
 MWM_FW_TEST_OBJECTS =  simulated_fw_board_v4.o \
+                       i2c_device_library.o \
                        simulate_i2c_devices.o \
                        mvm_fw_unit_test_config.o \
                        mvm_fw_unit_test_run.o
@@ -48,14 +51,20 @@ MVM_FW_TEST_EXECUTABLES = mvm_fw_unit_test_run
 
 all: $(MVM_FIRMWARE_OBJECTS) $(MWM_FW_TEST_OBJECTS) $(MVM_FW_TEST_EXECUTABLES) ;
 
-mvm_fw_unit_test_run.o: mvm_fw_unit_test_run.cpp quantity_timelines.hpp ;\
-   $(COMPILE.C) -c mvm_fw_unit_test_run.cpp
+mvm_fw_unit_test_run.o: mvm_fw_unit_test_run.cpp quantity_timelines.hpp \
+                        fw_board_ni_v4.h ;\
+   $(COMPILE.C) -D WITH_POSIX_PTS mvm_fw_unit_test_run.cpp
+
+fw_board_ni_v4.h: simulated_fw_board_v4.h ;\
+   /bin/ln simulated_fw_board_v4.h fw_board_ni_v4.h; \
+   /bin/mv $(MVM_FW_ROOT)/fw_board_ni_v4.h \
+           $(MVM_FW_ROOT)/fw_board_ni_v4.h.STASH_OUT_OF_THE_WAY
 
 
 mvm_fw_unit_test_run: $(MWM_FW_TEST_OBJECTS) $(MVM_FIRMWARE_OBJECTS); \
     $(LINK.C) -o $@ $(MWM_FW_TEST_OBJECTS) $(MVM_FIRMWARE_OBJECTS)
 
 %.o: $(MVM_FW_ROOT)/%.cpp ;\
-   $(COMPILE.C) -c $< $(MVM_FW_INCLUDES)
+   $(COMPILE.C) $<
 
 clean: ; /bin/rm -f *.o $(MVM_FW_TEST_EXECUTABLES);

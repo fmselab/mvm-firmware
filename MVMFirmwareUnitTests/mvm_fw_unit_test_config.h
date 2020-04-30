@@ -5,6 +5,7 @@
 //
 // Revision history:
 // 24-Apr-2020 Initial version.
+// 29-Apr-2020 Timeline of text commands added.
 //
 // Description:
 // Moved here the methods to access the JSON configuration file,
@@ -26,6 +27,7 @@
 #include <cstring> // strerror()
 
 #include "quantity_timelines.hpp"
+struct sim_i2c_devaddr;
 
 class system_error
 {
@@ -43,8 +45,13 @@ std::ostream& operator<< (std::ostream &os, const system_error &serr);
 
 const std::string MVM_FM_confattr_LogFile("LogFile");
 const std::string MVM_FM_confattr_SerialTTY("SerialTTY");
+const std::string MVM_FM_confattr_SerialPollTimeout("serial_port_timeout");
 const std::string MVM_FM_confattr_StartTick("start_tick");
 const std::string MVM_FM_confattr_EndTick("end_tick");
+const std::string MVM_FM_confattr_CmdTimeline("command_timeline");
+
+typedef std::map<qtl_tick_t, std::string> mvm_fw_test_cmds_t;
+extern mvm_fw_test_cmds_t FW_TEST_command_timeline;
 
 class mvm_fw_unit_test_config
 {
@@ -81,10 +88,58 @@ class mvm_fw_unit_test_config
       const char *cname=name.c_str();
       if (m_conf.HasMember(cname))
        {
-        TNUM ret;
         const rapidjson::Value& v(m_conf[cname]);
         if (!v.IsNumber()) return false;
         value = v.Get<TNUM>();
+        return true;
+       }
+      return false;
+     }
+
+    template<typename TNUM>
+    bool get_num_array(const std::string &name, TNUM *value, int size)
+     {
+      if (!m_valid) return false;
+      const char *cname=name.c_str();
+      if (m_conf.HasMember(cname))
+       {
+        const rapidjson::Value& a(m_conf[cname]);
+        if (!a.IsArray()) return false;
+        for (rapidjson::SizeType i = 0; ((i < a.Size())&&(i < size)); i++)
+         {
+          const rapidjson::Value& v(a[i]);
+          if (!(v.IsNumber()))
+           {
+            value[i] = 0;
+            continue;
+           }
+          value[i] = v.Get<TNUM>();
+         }
+        return true;
+       }
+      return false;
+     }
+
+    bool get_ushort_array(const std::string &name, uint16_t *value, int size)
+     {
+      // It seems that  no template classes can be instantiated for
+      // uint16_t's.
+      if (!m_valid) return false;
+      const char *cname=name.c_str();
+      if (m_conf.HasMember(cname))
+       {
+        const rapidjson::Value& a(m_conf[cname]);
+        if (!a.IsArray()) return false;
+        for (rapidjson::SizeType i = 0; ((i < a.Size())&&(i < size)); i++)
+         {
+          const rapidjson::Value& v(a[i]);
+          if (!(v.IsNumber()))
+           {
+            value[i] = 0;
+            continue;
+           }
+          value[i] = static_cast<uint16_t>(v.GetInt());
+         }
         return true;
        }
       return false;
@@ -109,6 +164,9 @@ class mvm_fw_unit_test_config
 
     const std::string &get_error_string() const { return m_error_string; }
 
+    int load_command_timeline(mvm_fw_test_cmds_t &ctl,
+                              const std::string &name=MVM_FM_confattr_CmdTimeline);
+
   private: 
 
     std::string m_conf_file;
@@ -117,9 +175,175 @@ class mvm_fw_unit_test_config
     mvm_fw_test_config_t m_conf;
 };
 
-extern mvm_fw_unit_test_config FW_TEST_main_config;
-
 extern quantity_timelines<double> FW_TEST_qtl_double;
 extern qtl_tick_t                 FW_TEST_tick;
+
+
+class 
+mvm_fw_gpio_devs
+{
+  public:
+    enum
+    mvm_fw_bool_regs
+     {
+      BREATHE, 
+      OUT_VALVE,
+      BUZZER,
+      ALARM_LED,
+      ALARM_RELAY,
+      LAST_REG
+     };
+
+    bool set(mvm_fw_bool_regs dev, bool value)
+     {
+      double enable;
+      bool ret = false;
+      enable = FW_TEST_qtl_double.value(std::string(m_names[dev])+"_enable",
+                                        FW_TEST_tick);
+      timespec now;
+      ::clock_gettime(CLOCK_REALTIME, &now);
+      bool old_value = m_devs[dev];
+      m_msg.str("");
+      m_msg.clear();
+      m_msg << "GPIO_DEVS" << " - " << m_names[dev] << " - "
+      << now.tv_sec << ":" << now.tv_nsec/1000000 << " - tick:"
+      << FW_TEST_tick << " - ";
+
+      if (std::isnan(enable) || 
+          (!std::isnan(enable) && (enable != 0)))
+       {
+        m_devs[dev] = value;
+        m_msg << "value set to " << value;
+        ret = true;
+        if (m_devs[dev] == old_value)
+         {
+          // Don't log too verbosely.
+          m_msg.str("");
+          m_msg.clear();
+         }
+       }
+      else
+       {
+        m_msg << "device disabled in config. NOT set to " << value
+              << " - current value is " << m_devs[dev];
+       }
+      if (m_msg.str().length() > 0) m_msg << std::endl;
+      return ret;
+     }
+
+    bool set_pv1(uint16_t value)
+     {
+      double enable;
+      bool ret = false;
+      enable = FW_TEST_qtl_double.value("PV1_enable", FW_TEST_tick);
+      timespec now;
+      ::clock_gettime(CLOCK_REALTIME, &now);
+      uint16_t old_pv1_value = m_pv1_value;
+      m_msg.str("");
+      m_msg.clear();
+      m_msg << "GPIO_DEVS" << " - PV1 - "
+      << now.tv_sec << ":" << now.tv_nsec/1000000 << " - tick:"
+      << FW_TEST_tick << " - ";
+
+      if (std::isnan(enable) || 
+          (!std::isnan(enable) && (enable != 0)))
+       {
+        m_pv1_value = value;
+        m_msg << "value set to " << value;
+        ret = true;
+        if (m_pv1_value == old_pv1_value)
+         {
+          // Don't log too verbosely.
+          m_msg.str("");
+          m_msg.clear();
+         }
+       }
+      else
+       {
+        m_msg << "device disabled in config. NOT set to " << value
+              << " - current value is " << m_pv1_value;
+       }
+      if (m_msg.str().length() > 0) m_msg << std::endl;
+      return ret;
+     }
+
+    const std::string &get_error_msg()
+     {
+      m_msg_str = m_msg.str();
+      return m_msg_str;
+     }
+
+    bool operator[](mvm_fw_bool_regs dev) const { return m_devs[dev]; }
+
+    uint16_t get_pv1() const { return m_pv1_value; }
+    double get_pv1_fraction() const
+     {
+      // Fraction of *opening* of the valve. If the 'pipe open' value is
+      // zero, hopefully it works in this way. CHECKME
+      return (1.-(static_cast<double>(m_pv1_value) / 0xffff));
+     }
+
+  private:
+    bool m_devs[LAST_REG];
+    std::ostringstream m_msg;
+    std::string m_msg_str;
+    uint16_t m_pv1_value;
+    const char *m_names[LAST_REG] = { "BREATHE", "OUT_VALVE", "BUZZER",
+                                      "ALARM_LED", "ALARM_RELAY" };
+};
+
+extern mvm_fw_gpio_devs FW_TEST_gdevs;
+
+class
+mvm_fw_unit_test_pflow
+{
+  public:
+    mvm_fw_unit_test_pflow() { m_init(); }
+    ~mvm_fw_unit_test_pflow() {}
+
+    double p_value(const std::string &name, qtl_tick_t t);
+    double f_value(qtl_tick_t t);
+
+    enum p_sensors
+     {
+      PS0,
+      PS1,
+      PS2,
+      LAST_PS
+     };
+
+  private:
+    qtl_tick_t m_last_tick;
+    void m_init();
+    void m_evolve(qtl_tick_t t);
+    double m_m_resistance, m_v_resistance;
+    double m_ps1_fraction, m_ps2_fraction;
+    double m_overpressure;
+    double m_capacity;
+    double m_volume;
+    double m_flow;
+    double m_p[LAST_PS];
+};
+
+extern mvm_fw_unit_test_pflow FW_TEST_pflow;
+
+/* Hardware map */
+
+enum FW_TEST_devices
+{
+  TEST_TE_MS5525DSO,
+  TEST_SENSIRION_SFM3019,
+  TEST_TI_ADS1115,
+  TEST_TCA_I2C_MULTIPLEXER,
+  TEST_XXX_SUPERVISOR
+};
+
+typedef std::map<sim_i2c_devaddr, std::pair<FW_TEST_devices, std::string> > test_hardware_t;
+extern test_hardware_t FW_TEST_hardware;
+extern qtl_tick_t FW_TEST_last_watchdog_reset;
+
+extern mvm_fw_unit_test_config FW_TEST_main_config;
+extern int FW_TEST_debug_level;
+extern int FW_TEST_serial_poll_timeout;
 
 #endif /* defined _MVM_FW_TEST_CONFIG_H */

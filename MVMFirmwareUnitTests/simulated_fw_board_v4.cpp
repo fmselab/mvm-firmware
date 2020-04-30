@@ -13,6 +13,16 @@
 #include <ctime>
 #include <sstream>
 
+#include "mvm_fw_unit_test_config.h"
+#include "DebugIface.h"
+test_hardware_t FW_TEST_hardware;
+mvm_fw_gpio_devs FW_TEST_gdevs;
+mvm_fw_unit_test_pflow FW_TEST_pflow;
+qtl_tick_t FW_TEST_last_watchdog_reset;
+DebugIfaceClass DebugIface;
+int FW_TEST_debug_level = -1;
+int FW_TEST_serial_poll_timeout = 0;
+
 #include "simulated_fw_board_v4.h"
 
 unsigned long millis()
@@ -33,30 +43,87 @@ bool
 HW_V4::Init()
 
 {
-  m_dev_addrs.insert(std::make_pair(IIC_PS_0,  sim_i2c_devaddr(0, 0x76)));
-  m_dev_addrs.insert(std::make_pair(IIC_PS_1,  sim_i2c_devaddr(0, 0x77)));
-  m_dev_addrs.insert(std::make_pair(IIC_PS_2,  sim_i2c_devaddr(1, 0x76)));
-  m_dev_addrs.insert(std::make_pair(IIC_FLOW1, sim_i2c_devaddr(1, 0x2E)));
-  m_dev_addrs.insert(std::make_pair(IIC_ADC_0, sim_i2c_devaddr(4, 0x48)));
-  m_dev_addrs.insert(std::make_pair(IIC_SUPERVISOR,
-                                               sim_i2c_devaddr(3, 0x22)));
-  m_dev_addrs.insert(std::make_pair(IIC_MUX,   sim_i2c_devaddr(-1, 0x70)));
-  m_dev_addrs.insert(std::make_pair(IIC_GENERAL_CALL_SENSIRION,
-                                               sim_i2c_devaddr(1, 0x00)));
+  if (FW_TEST_debug_level >= 0)
+   {
+    DebugIface.Init(static_cast<verbose_level>(FW_TEST_debug_level), this);
+   }
+  else DebugIface.Init(DBG_NONE, this); // Default value
+  sim_i2c_devaddr dadd;
+  dadd.muxport = 0; dadd.address = 0x76;
+  FW_TEST_hardware.insert(std::make_pair(dadd,
+                          std::make_pair(TEST_TE_MS5525DSO, "PS0")));
+  m_dev_addrs.insert(std::make_pair(IIC_PS_0, dadd));
+
+  dadd.muxport = 0; dadd.address = 0x77;
+  FW_TEST_hardware.insert(std::make_pair(dadd,
+                          std::make_pair(TEST_TE_MS5525DSO, "PS1")));
+  m_dev_addrs.insert(std::make_pair(IIC_PS_1, dadd));
+
+  dadd.muxport = 1; dadd.address = 0x76;
+  FW_TEST_hardware.insert(std::make_pair(dadd,
+                          std::make_pair(TEST_TE_MS5525DSO, "PS2")));
+  m_dev_addrs.insert(std::make_pair(IIC_PS_2, dadd));
+
+  dadd.muxport = 1; dadd.address = 0x2e;
+  FW_TEST_hardware.insert(std::make_pair(dadd,
+                          std::make_pair(TEST_SENSIRION_SFM3019, "FLOW1")));
+  m_dev_addrs.insert(std::make_pair(IIC_FLOW1, dadd));
+
+  dadd.muxport = 4; dadd.address = 0x48;
+  FW_TEST_hardware.insert(std::make_pair(dadd,
+                          std::make_pair(TEST_TI_ADS1115, "ADC0")));
+  m_dev_addrs.insert(std::make_pair(IIC_ADC_0, dadd));
+
+  dadd.muxport = 3; dadd.address = 0x22;
+  FW_TEST_hardware.insert(std::make_pair(dadd, 
+                          std::make_pair(TEST_XXX_SUPERVISOR, "SUPER")));
+  m_dev_addrs.insert(std::make_pair(IIC_SUPERVISOR, dadd));
+
+  dadd.muxport = -1; dadd.address = 0x70;
+  FW_TEST_hardware.insert(std::make_pair(dadd,
+                          std::make_pair(TEST_TCA_I2C_MULTIPLEXER, "MUX0")));
+  m_dev_addrs.insert(std::make_pair(IIC_MUX, dadd));
+
+  /* Broadcast address */
+  dadd.muxport = 1; dadd.address = 0x00;
+  m_dev_addrs.insert(std::make_pair(IIC_GENERAL_CALL_SENSIRION, dadd));
+
+  m_sim_devs.init_hw(FW_TEST_hardware);
 
   for (int i = 0; i < 8; i++)
    {
     i2c_MuxSelect(i);
-    Serial.println("SCAN I2C BUS: " + String(i));
+    //Serial.println("SCAN I2C BUS: " + String(i));
     __service_i2c_detect();
    }
 
   batteryStatus_reading_LT = GetMillis();
 
   currentBatteryCharge = 100;
+
+  FW_TEST_gdevs.set_pv1(0);
+  std::string err = FW_TEST_gdevs.get_error_msg();
+  if (err.length() > 0) DebugIface.DbgPrint(DBG_CODE, DBG_INFO, err.c_str());
+  FW_TEST_gdevs.set(mvm_fw_gpio_devs::BREATHE, false);
+  err = FW_TEST_gdevs.get_error_msg();
+  if (err.length() > 0) DebugIface.DbgPrint(DBG_CODE, DBG_INFO, err.c_str());
+  FW_TEST_gdevs.set(mvm_fw_gpio_devs::OUT_VALVE, false);
+  err = FW_TEST_gdevs.get_error_msg();
+  if (err.length() > 0) DebugIface.DbgPrint(DBG_CODE, DBG_INFO, err.c_str());
+  FW_TEST_gdevs.set(mvm_fw_gpio_devs::BUZZER, false);
+  err = FW_TEST_gdevs.get_error_msg();
+  if (err.length() > 0) DebugIface.DbgPrint(DBG_CODE, DBG_INFO, err.c_str());
+  FW_TEST_gdevs.set(mvm_fw_gpio_devs::ALARM_LED, false);
+  err = FW_TEST_gdevs.get_error_msg();
+  if (err.length() > 0) DebugIface.DbgPrint(DBG_CODE, DBG_INFO, err.c_str());
+  FW_TEST_gdevs.set(mvm_fw_gpio_devs::ALARM_RELAY, false);
+  err = FW_TEST_gdevs.get_error_msg();
+  if (err.length() > 0) DebugIface.DbgPrint(DBG_CODE, DBG_INFO, err.c_str());
+
   pWall=true;
   pIN=3;
   BoardTemperature=25;
+  HW_AlarmsFlags=0;
   //init supervisor watchdog
   WriteSupervisor(0x00, 0);  //REMOVE COMMENT BEFORE RELEASE
 
@@ -107,20 +174,26 @@ HW_V4::I2CRead(t_i2cdevices device, uint8_t* rbuffer, int rlength, bool stop)
 bool
 HW_V4::PWMSet(hw_pwm id, float value)
 {
-
   if ((value < 0) || (value > 100.0)) return false;
 
-	switch (id)
-	{
-	case PWM_PV1:
-		uint32_t v = (uint32_t)value * 4095.0 / 100.0;
-		//ledcWrite(0, v);
-		if (v > 0)
-		//	digitalWrite(BREETHE, HIGH);
-		break;
+  std::string err;
 
-	}
-
+  switch (id)
+   {
+    case PWM_PV1:
+      FW_TEST_gdevs.set_pv1((value * 4095.0) / 100.0);
+      err = FW_TEST_gdevs.get_error_msg();
+      if (err.length() > 0) DebugIface.DbgPrint(DBG_CODE, DBG_INFO, err.c_str());
+      if (value > 0)
+       {
+        FW_TEST_gdevs.set(mvm_fw_gpio_devs::BREATHE, true);
+        err = FW_TEST_gdevs.get_error_msg();
+        if (err.length() > 0) DebugIface.DbgPrint(DBG_CODE, DBG_INFO, err.c_str());
+       }
+      break;
+    default:
+      break;
+   }
 
   return true;
 }
@@ -128,26 +201,42 @@ HW_V4::PWMSet(hw_pwm id, float value)
 bool
 HW_V4::IOSet(hw_gpio id, bool value)
 {
-	switch (id)
-	{
-	case GPIO_PV2:
-		//digitalWrite(VALVE_OUT_PIN, value ? HIGH : LOW);
-		if (value==LOW)
-			//digitalWrite(BREETHE, LOW);
-		break;
-	case GPIO_BUZZER:
-		//digitalWrite(BUZZER, value ? HIGH : LOW);
-		break;
-	case GPIO_LED:
-		//digitalWrite(ALARM_LED, value ? HIGH : LOW);
-		break;
-	case GPIO_RELEALLARM:
-		//digitalWrite(ALARM_RELE, value ? HIGH : LOW);
-		break;
-	default:
-		return false;
-		break;
-	}
+  std::ostringstream msg;
+
+  std::string err;
+
+  switch (id)
+   {
+    case GPIO_PV2:
+      FW_TEST_gdevs.set(mvm_fw_gpio_devs::OUT_VALVE, value);
+      err = FW_TEST_gdevs.get_error_msg();
+      if (err.length() > 0) DebugIface.DbgPrint(DBG_CODE, DBG_INFO, err.c_str());
+      if (!value)
+       {
+        FW_TEST_gdevs.set(mvm_fw_gpio_devs::BREATHE, false);
+        err = FW_TEST_gdevs.get_error_msg();
+        if (err.length() > 0) DebugIface.DbgPrint(DBG_CODE, DBG_INFO, err.c_str());
+       }
+      break;
+    case GPIO_BUZZER:
+      FW_TEST_gdevs.set(mvm_fw_gpio_devs::BUZZER, value);
+      err = FW_TEST_gdevs.get_error_msg();
+      if (err.length() > 0) DebugIface.DbgPrint(DBG_CODE, DBG_INFO, err.c_str());
+      break;
+    case GPIO_LED:
+      FW_TEST_gdevs.set(mvm_fw_gpio_devs::ALARM_LED, value);
+      err = FW_TEST_gdevs.get_error_msg();
+      if (err.length() > 0) DebugIface.DbgPrint(DBG_CODE, DBG_INFO, err.c_str());
+      break;
+    case GPIO_RELEALLARM:
+      FW_TEST_gdevs.set(mvm_fw_gpio_devs::ALARM_RELAY, value);
+      err = FW_TEST_gdevs.get_error_msg();
+      if (err.length() > 0) DebugIface.DbgPrint(DBG_CODE, DBG_INFO, err.c_str());
+      break;
+    default:
+      return false;
+      break;
+   }
   return true;
 }
 
@@ -157,16 +246,16 @@ HW_V4::IOGet(hw_gpio id, bool* value)
 	switch (id)
 	{
 	case GPIO_PV2:
-		//*value = digitalRead(VALVE_OUT_PIN);
+		*value = FW_TEST_gdevs[mvm_fw_gpio_devs::OUT_VALVE];
 		break;
 	case GPIO_BUZZER:
-		//*value = digitalRead(BUZZER);
+		*value = FW_TEST_gdevs[mvm_fw_gpio_devs::BUZZER];
 		break;
 	case GPIO_LED:
-		//*value = digitalRead(ALARM_LED);
+		*value = FW_TEST_gdevs[mvm_fw_gpio_devs::ALARM_LED];
 		break;
 	case GPIO_RELEALLARM:
-		//*value = digitalRead(ALARM_RELE);
+		*value = FW_TEST_gdevs[mvm_fw_gpio_devs::ALARM_RELAY];
 		break;
 	default:
 		return false;
@@ -178,36 +267,39 @@ HW_V4::IOGet(hw_gpio id, bool* value)
 void
 HW_V4::__delay_blocking_ms(uint32_t ms)
 {
-	delay(ms);
+  delay(ms);
 }
 
 void
 HW_V4::PrintDebugConsole(String s)
 {
+  Serial.print(s);
 }
 
 void HW_V4::PrintLineDebugConsole(String s)
 {
+  Serial.println(s);
 }
 
 void HW_V4::Tick()
 {
-	if (Get_dT_millis(batteryStatus_reading_LT)>1000)
-	{
-		batteryStatus_reading_LT = GetMillis();
-		currentBatteryCharge = 0; /* XXX */
-		pWall = false; /* XXX */
-		pIN = 0; /* XXX */
-		BoardTemperature = 30; /* XXX */
-		HW_AlarmsFlags = (uint16_t)0; /* XXX */
+  if (Get_dT_millis(batteryStatus_reading_LT)>1000)
+   {
+    batteryStatus_reading_LT = GetMillis();
+    currentBatteryCharge = (float)ReadSupervisor(0x51);
+    currentBatteryCharge = currentBatteryCharge < 0 ? 0 : currentBatteryCharge;
+    currentBatteryCharge = currentBatteryCharge > 100 ? 100 : currentBatteryCharge;
+    pWall = ReadSupervisor(0x52) >0 ? false : true ;
+    pIN = ((float)ReadSupervisor(0x50));
+    BoardTemperature = ((float)ReadSupervisor(0x56)/10.0);
+    HW_AlarmsFlags = (uint16_t)ReadSupervisor(0x57);
 
-		//reset supervisor watchdog
- 		//WriteSupervisor(0x00, 0);
-		//Serial.println("Battery: " + String(currentBatteryCharge) + " PWALL: " + String (pWall));
-	}
-	
+    //reset supervisor watchdog
+    WriteSupervisor(0x00, 0);
+    //Serial.println("Battery: " + String(currentBatteryCharge) + " PWALL: " + String (pWall));
+   }
 
-	return;
+  return;
 }
 void HW_V4::GetPowerStatus(bool* batteryPowered, float* charge)
 {
@@ -216,28 +308,28 @@ void HW_V4::GetPowerStatus(bool* batteryPowered, float* charge)
 
 }
 
-
-
 bool HW_V4::DataAvailableOnUART0()
 {
-	return false;
+  return Serial.available();
 }
 
 bool HW_V4::WriteUART0(String s)
 {
-	return true;
+  Serial.println(s);
+  return true;
 }
+
 String HW_V4::ReadUART0UntilEOL()
 {
-	//PERICOLO. SE IL \n NON VIENE INVIATO TUTTO STALLA!!!!
-	//return Serial.readStringUntil('\n');
-        return String("");
+  //Sic: PERICOLO. SE IL \n NON VIENE INVIATO TUTTO STALLA!!!!
+  return Serial.readStringUntil('\n');
 }
 
 uint64_t HW_V4::GetMillis()
 {
 	return (uint64_t)millis();
 }
+
 int64_t HW_V4::Get_dT_millis(uint64_t ms)
 {
 	return (int64_t)(millis() - ms);
@@ -249,100 +341,113 @@ void HW_V4::__service_i2c_detect()
   /* No state change ? Just a diagnostics printout, it would seem. */
   uint8_t error, address;
   int nDevices = 0;
-  Serial.println("Scanning... I2C");
+  //Serial.println("Scanning... I2C");
   nDevices = 0;
   for (address = 1; address < 127; address++)
    {
-    sim_i2c_devaddr dad(current_muxpos, address);
+    sim_i2c_devaddr dad(address, current_muxpos);
     if (m_sim_devs.alive(dad))
      {
-      Serial.print("I2C device found at address 0x");
-      if (address < 16)
-       {
-        Serial.print("0");
-       }
-      Serial.println(address, HEX);
+//      Serial.print("I2C device found at address 0x");
+//      if (address < 16)
+//       {
+//        Serial.print("0");
+//       }
+//      Serial.println(address, HEX);
       nDevices++;
      }
    }
 
-  if (nDevices == 0)
-   {
-    Serial.println("No I2C devices found\n");
-   }
+//  if (nDevices == 0)
+//   {
+//    Serial.println("No I2C devices found\n");
+//   }
 }
 
 
 void HW_V4::i2c_MuxSelect(uint8_t i)
 {
-	if (i > 7)
-		return;
+  if (i > 7)
+    return;
 
-	if (i < 0)
-		return;
+  if (i < 0)
+    return;
 
-	if (current_muxpos == i) return;
+  if (current_muxpos == i) return;
 
-	current_muxpos = i;
+  current_muxpos = i;
 }
 
 t_i2cdev HW_V4::GetIICDevice(t_i2cdevices device)
 {
-	for (int i = 0; i < IIC_COUNT; i++)
-	{
-		if (iic_devs[i].t_device == device)
-		{
-			return iic_devs[i];
-		}
-	}
-   t_i2cdev ret = { IIC_INVALID, 0, 0};
-   return ret;
+  for (int i = 0; i < IIC_COUNT; i++)
+   {
+    if (iic_devs[i].t_device == device)
+     {
+      return iic_devs[i];
+     }
+   }
+  t_i2cdev ret = { IIC_INVALID, 0, 0};
+  return ret;
 }
-
-
 
 uint16_t HW_V4::ReadSupervisor(uint8_t i_address)
 {
-	uint8_t wbuffer[4];
-	uint8_t rbuffer[4];
-        uint16_t a;
+  uint8_t wbuffer[4];
+  uint8_t rbuffer[4];
+  uint16_t a;
 		
-	wbuffer[0] = i_address;
-
-	a = (rbuffer [1]<< 8) | rbuffer[0];
-	return a;
+  wbuffer[0] = i_address;
+  if (I2CRead(IIC_SUPERVISOR, wbuffer, 1, rbuffer, sizeof(rbuffer), true))
+   {
+    a = (static_cast<uint16_t>(rbuffer [1])<< 8) | rbuffer[0];
+   }
+  return a;
 }
-
 
 void HW_V4::WriteSupervisor( uint8_t i_address, uint16_t write_data)
 {
-	uint8_t wbuffer[4];
-	wbuffer[0] = i_address;
-	wbuffer[1] = write_data & 0xFF;
-	wbuffer[2] = (write_data >> 8) & 0xFF;
+  uint8_t wbuffer[4];
+  wbuffer[0] = i_address;
+  wbuffer[1] = write_data & 0xFF;
+  wbuffer[2] = (write_data >> 8) & 0xFF;
+  I2CWrite(IIC_SUPERVISOR, wbuffer, 3, true);
 }
 
 float HW_V4::GetPIN()
 {
-	return pIN;
+  return pIN;
 }
 
 float HW_V4::GetBoardTemperature()
 {
-	return BoardTemperature;
+  return BoardTemperature;
 }
 
 uint16_t HW_V4::GetSupervisorAlarms()
 {
-	return HW_AlarmsFlags;
+  return HW_AlarmsFlags;
 }
 
 #include <sstream>
 #include <iomanip>
-#include "Serial.h"
+#include <cstdio>
+#include <poll.h>
+
 
 bool
-SerialImpl::available() { return true; }
+SerialImpl::available()
+{
+  if (m_ttys == 0) return false;
+  pollfd spfd;
+  spfd.fd = ::fileno(m_ttys);
+  spfd.events = POLLIN|POLLERR|POLLHUP|POLLNVAL;
+  spfd.revents = 0;
+  int rpoll = ::poll(&spfd, 1, FW_TEST_serial_poll_timeout);
+  if ((rpoll >= 1) && (spfd.revents == POLLIN)) return true;
+
+  return false;
+}
 
 void
 SerialImpl::begin(unsigned long baud, uint32_t config, int8_t rxPin,
@@ -358,11 +463,10 @@ SerialImpl::println(const String &str)
 size_t
 SerialImpl::println(const char str[])
 {
-  std::streampos before(m_ttys.tellp());
-  m_ttys << str << std::endl << std::flush; 
-  std::streampos after(m_ttys.tellp());
-  if(m_ttys.good()) return (after - before);
-  return -1;
+  if (m_ttys == 0) return -1;
+  int ret = ::fprintf(m_ttys, "%s\n", str);
+  ::fflush(m_ttys);
+  return ret;
 }
 
 size_t
@@ -382,19 +486,24 @@ SerialImpl::print(const String &str)
 size_t
 SerialImpl::print(const char str[])
 {
-  std::streampos before(m_ttys.tellp());
-  m_ttys << str << std::endl << std::flush; 
-  std::streampos after(m_ttys.tellp());
-  if(m_ttys.good()) return (after - before);
-  return -1;
+  if (m_ttys == 0) return -1;
+  int ret = ::fprintf(m_ttys, "%s", str);
+  ::fflush(m_ttys);
+  return ret;
 }
 
 String
 SerialImpl::readStringUntil(char end)
 {
-  std::string result;
-  std::getline(m_ttys, result, end);
-  if(m_ttys.good()) return String(result.c_str());
-  return String("");
+  char *result = NULL;
+  size_t len = 0;
+  String sres;
+  int ret = ::getdelim(&result, &len, end, m_ttys);
+  if ((ret >= 0) && (result != NULL))
+   {
+    sres = result;
+   }
+  if (result != NULL) ::free(result);
+  return sres;
 }
 
