@@ -9,8 +9,12 @@
 #include <chrono>
 #include <iostream>
 #include <thread>
+#include "scaledtime.h"
+#include <string>
+#include <iomanip>
 
-using namespace std::chrono;
+using namespace std;
+
 /*HAL::HAL() {
  // TODO Auto-generated constructor stub
 
@@ -20,36 +24,23 @@ using namespace std::chrono;
  // TODO Auto-generated destructor stub
  }
  */
+// use only in the debug
 class HW_mock: public HW {
 public:
 	void PrintDebugConsole(String s) {
 		std::cout << s << std::endl;
 	}
-	virtual bool Init() {
-	}
-	virtual bool I2CWrite(t_i2cdevices device, uint8_t *wbuffer, int wlength,
-			bool stop) {
-	}
-	virtual bool I2CRead(t_i2cdevices device, uint8_t *wbuffer, int wlength,
-			uint8_t *rbuffer, int rlength, bool stop) {
-	}
-	virtual bool I2CRead(t_i2cdevices device, uint8_t *rbuffer, int rlength,
-			bool stop) {
-	}
-	virtual bool PWMSet(hw_pwm id, float value) {
-	}
-	virtual bool IOSet(hw_gpio id, bool value) {
-	}
-	virtual bool IOGet(hw_gpio id, bool *value) {
-	}
-	virtual void __delay_blocking_ms(uint32_t ms) {
-	}
-	virtual void PrintLineDebugConsole(String s) {
-	}
-	virtual void Tick() {
-	}
-	virtual uint64_t GetMillis() {
-	}
+	virtual bool Init() {}
+	virtual bool I2CWrite(t_i2cdevices device, uint8_t *wbuffer, int wlength,bool stop) {throw std::runtime_error("not implemented!");}
+	virtual bool I2CRead(t_i2cdevices device, uint8_t *wbuffer, int wlength,uint8_t *rbuffer, int rlength, bool stop) {throw std::runtime_error("not implemented!");}
+	virtual bool I2CRead(t_i2cdevices device, uint8_t *rbuffer, int rlength, bool stop) {}
+	virtual bool PWMSet(hw_pwm id, float value) {}
+	virtual bool IOSet(hw_gpio id, bool value) {}
+	virtual bool IOGet(hw_gpio id, bool *value) {}
+	virtual void __delay_blocking_ms(uint32_t ms) {}
+	virtual void PrintLineDebugConsole(String s) {}
+	virtual void Tick() {throw std::runtime_error("not implemented!");}
+	virtual uint64_t GetMillis() {}
 	virtual int64_t Get_dT_millis(uint64_t ms) {
 	}
 	virtual bool DataAvailableOnUART0() {
@@ -70,7 +61,11 @@ public:
 
 static HW_mock myHW;
 
+//////////////////
+
+
 void HAL::Init() {
+	startScaledTime();
 	std::cout << "init hal" << std::endl;
 	dbg.Init(DBG_ALL, &myHW);
 	dbg.DbgPrint(DBG_CODE, DBG_INFO,
@@ -99,14 +94,40 @@ float HAL::GetPVenturi(int32_t Delay) {
 	throw std::runtime_error("3not implemented!");
 }
 void HAL::SetInputValve(float value) {
+	static long startphase = 0;
+	// TODO this should go to the real HAL to avoid double setting the valve output
+	if (this->InputValve == value) return;
+	if (value >0  && this->InputValve == 0){
+		// open -> start expiration
+		printstate("start inspiration");
+	} else if (value == 0  && this->InputValve > 0) {
+		//closed --> end expiration
+		printstate("end inspiration");
+	}
 	this->InputValve = value;
+	// start new phase
+	startphase = getScaledMillisec();
 	if (value > 0 && OutputValve)
 		std::runtime_error("valve both opens");
 }
+
+void HAL::printstate(char* s){
+	std::cout << "[" << fixed<< std::setprecision(1) << getScaledMillisecfromInit()/1000.0 << "] ";
+	cout << s << "  -- valves (in,out) (" + std::to_string(InputValve) + "," + std::to_string(OutputValve) + ")" << std::endl;
+}
+
 float HAL::GetInputValve() {
 	return this->InputValve;
 }
 void HAL::SetOutputValve(bool value) {
+	if (value == this->OutputValve) return;
+	if (value && !this->OutputValve){
+		// open -> start expiration
+		printstate("start expiration");
+	} else if (!value && this->OutputValve){
+		//closed --> end expiration
+		printstate("end expiration");
+	}
 	this->OutputValve = value;
 }
 float HAL::GetOutputValve() {
@@ -152,13 +173,11 @@ void HAL::GetInputValvePID(float *pid_slow, float *pid_fast) {
 }
 
 uint64_t HAL::GetMillis() {
-	return std::chrono::duration_cast<std::chrono::milliseconds>(
-			std::chrono::high_resolution_clock::now().time_since_epoch()).count();
+	return getScaledMillisec();
 }
 // used in Alarm
 unsigned long millis() {
-	return std::chrono::duration_cast<std::chrono::milliseconds>(
-			std::chrono::high_resolution_clock::now().time_since_epoch()).count();
+	return getScaledMillisec();
 }
 
 int64_t HAL::Get_dT_millis(uint64_t ms) {
@@ -174,11 +193,12 @@ void HAL::SetZeroPressureSensor(t_pressure_sensor ps, float value) {
 }
 
 void HAL::CorrectZeroPressureSensor(t_pressure_sensor ps, float value) {
-	throw std::runtime_error("22 not implemented!");
+	// nothing to do throw std::runtime_error("22 not implemented!");
 }
 void HAL::ConfigureInputValvePID(float P, float I, float D, float P2, float I2,
 		float D2, float pid_limit) {
-	throw std::runtime_error("23 not implemented!");
+	//throw std::runtime_error("23 not implemented!");
+	// do nothing
 }
 
 void HAL::delay_ms(float ms) {
