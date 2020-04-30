@@ -1,4 +1,3 @@
-
 #
 # CPPFLAGS = -DLIBVNCSERVER_HAVE_LIBZ -DLIBVNCSERVER_HAVE_LIBJPEG
 
@@ -6,9 +5,9 @@
 CXXFLAGS  = -Wall -O0 -g3
 #
 # firmware objects
-WRAPPER_ROOT := ./MVMFirmwareUnitTests
+WRAPPER_ROOT := ../MVMFirmwareUnitTests
 
-MVM_FW_ROOT := ./MVMFirmwareCpp/MVMFirmwareCore
+MVM_FW_ROOT := ../MVMFirmwareCpp/MVMFirmwareCore
 MVM_FW_INCLUDES := -I $(MVM_FW_ROOT) -I $(WRAPPER_ROOT)
 MVM_FIRMWARE_OBJECTS = Alarms.o \
                        CircularBuffer.o \
@@ -35,13 +34,14 @@ MVM_FIRMWARE_OBJECTS = Alarms.o \
 %.o: $(MVM_FW_ROOT)/%.cpp ;\
    $(CXX)  $(CXXFLAGS) -c $< $(MVM_FW_INCLUDES)
 
-
 # test objects
 
-TEST_ROOT := ./test
-TEST_INCLUDES := -I $(MVM_FW_ROOT) -I $(WRAPPER_ROOT) -I $(WRAPPER_ROOT)/rapidjson/include -I $(WRAPPER_ROOT)/exprtk
+TEST_ROOT := .
 
-TEST_OBJECTS =  testStatemachine.o 
+TEST_OBJECTS =  testMVM.o 
+
+TEST_INCLUDES := -I $(MVM_FW_ROOT) -I $(WRAPPER_ROOT)
+
 
 %.o: $(TEST_ROOT)/%.cpp ;\
    $(CXX) $(CXXFLAGS) -c $< $(TEST_INCLUDES)

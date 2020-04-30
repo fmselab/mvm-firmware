@@ -1,4 +1,4 @@
-#define CATCH_CONFIG_RUNNER
+//#define CATCH_CONFIG_RUNNER
 #include "catch.hpp"
 
 #undef  HARDWARE_TARGET_PLATFORM_V3
