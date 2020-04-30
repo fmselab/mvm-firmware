@@ -12,6 +12,4 @@ void delay(uint32_t);
 
 #include "Serial.h"
 
-// Make sure we don't include the definition in the firmware code.
-#define _FW_BOARD_NI_V4_h
 

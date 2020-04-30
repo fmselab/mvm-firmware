@@ -462,7 +462,7 @@ size_t
 SerialImpl::println(const char str[])
 {
   if (m_ttys == 0) return -1;
-  int ret = ::fprintf(m_ttys, "%s\r\n", str);
+  int ret = ::fprintf(m_ttys, "%s\n", str);
   ::fflush(m_ttys);
   return ret;
 }
