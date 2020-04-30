@@ -41,7 +41,8 @@ MVM_FIRMWARE_OBJECTS = HAL.o \
                        hw.o \
                        stdlib_noniso.o WString.o
 
-MWM_FW_TEST_OBJECTS =  simulated_fw_board_v4.o \
+MWM_FW_TEST_OBJECTS =  SerialImpl.o \
+                       simulated_fw_board_v4.o \
                        i2c_device_library.o \
                        simulate_i2c_devices.o \
                        mvm_fw_unit_test_config.o \
