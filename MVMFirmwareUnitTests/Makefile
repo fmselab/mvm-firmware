@@ -19,7 +19,7 @@ DEBUG = -g
 GCOV_OPTS = -fprofile-arcs  -ftest-coverage -g 
 
 CPPFLAGS := $(MVM_FW_INCLUDES) $(CPPFLAGS)
-CXXFLAGS := $(GCOV_OPTS) $(DEBUG) $(CXXFLAGS)
+CXXFLAGS := --std=c++11 $(GCOV_OPTS) $(DEBUG) $(CXXFLAGS)
 
                        
 MVM_FIRMWARE_OBJECTS = HAL.o \

@@ -4,7 +4,7 @@
 #ifndef _MVM_FW_TEST_WIRE_H
 #define _MVM_FW_TEST_WIRE_H
 
-#include <cstdint>
+#include <stdint.h> // cstdint is c++11
 
 class WireImpl
 {
