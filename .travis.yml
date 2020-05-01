@@ -14,5 +14,6 @@ deploy:
   secret_access_key: "Shb8jXu2A0pw92yVp9CgSV4ypfow4m40BmAe6Xs3"
   endpoint: https://rgw.fisica.unimi.it
   bucket: "fwtartifacts"
-  glob: "mvm_fw_unit_test_run"
- 
+  file:
+    - "mvm_fw_unit_test_run"
+
