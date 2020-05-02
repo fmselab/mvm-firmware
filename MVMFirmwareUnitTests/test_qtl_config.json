@@ -17,7 +17,7 @@
     "expr": "10. + 1.*cos(t/318.)", "repeat": true
   },
   { "depth": 100, "name": "input_line_pressure",
-    "start": 0, "end": 0, 
+    "start": 0, "end": 0,
     "value": 50
   },
   { "depth": 100, "name": "o2_concentration",
@@ -25,7 +25,7 @@
     "expr": "70. - 0.005*t"
   },
   { "depth": 90, "name": "wall_power",
-    "start": 0, "end": 200000,
+    "start": 0, "end": 20000,
     "value": 0
   },
   { "depth": 100, "name": "wall_power",
@@ -54,13 +54,15 @@
   }
  ],
  "command_timeline": [
-  { "t": 10000, "c": "set run 1" }, 
-  { "t": 11000, "c": "get pressure" }, 
-  { "t": 12000, "c": "get pressure" }, 
-  { "t": 13000, "c": "get pressure" }, 
-  { "t": 18000, "c": "get battery" }, 
-  { "t": 19000, "c": "get battery" }, 
-  { "t": 20000, "c": "get battery" }, 
+  { "t": 1000, "c": "set rate 10" },
+  { "t": 1100, "c": "set ratio 0.7" },
+  { "t": 1200, "c": "set run 1" },
+  { "t": 1500, "c": "get pressure" },
+  { "t": 1800, "c": "get battery" },
+  { "t": 2000, "c": "get pressure" },
+  { "t": 4000, "c": "get pressure" },
+  { "t": 1900, "c": "get battery" },
+  { "t": 20000, "c": "get battery" },
   { "t": 90000, "c": "set run 0" }
  ]
 }

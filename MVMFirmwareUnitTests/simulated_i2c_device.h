@@ -127,7 +127,7 @@ class simulated_i2c_device
   bool alive()
    {
     if (m_alive_attr.length() <= 0) return true;
-    if (FW_TEST_qtl_double.value(m_alive_attr,FW_TEST_tick)) return true;
+    if (FW_TEST_qtl_double.value(m_alive_attr,FW_TEST_ms)) return true;
     return false;
    }
 

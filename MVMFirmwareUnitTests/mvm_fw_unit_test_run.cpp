@@ -52,10 +52,11 @@ send_command_to_mvm(String sline, MVMCore &mvm)
   timespec now;
   ::clock_gettime(CLOCK_REALTIME, &now);
   std::ostringstream msg;
-  msg << now.tv_sec << ":" << now.tv_nsec/1000000
-      << " - ms (scaled) : " << FW_TEST_main_config.get_scaled_ms()
-      << " - tick:" << FW_TEST_tick
-      << " - SENDING COMMAND - " << sline.c_str();
+  msg << "MAIN PROGRAM - SENDING COMMAND - " 
+      << sline.c_str() << " - "
+      << now.tv_sec << ":" << now.tv_nsec/1000000
+      << " - ms (scaled):" << FW_TEST_main_config.get_scaled_ms()
+      << " - tick:" << FW_TEST_tick;
 
   DebugIface.DbgPrint(DBG_CODE, DBG_INFO, msg.str().c_str());
 
@@ -289,18 +290,18 @@ main (int argc, char *argv[])
      }
    }
 
-  int ms_wait_per_tick;
-  if (!FW_TEST_main_config.get_number<int>(MVM_FM_confattr_MsWaitPerTick,
-                                           ms_wait_per_tick))
+  int us_wait_per_tick;
+  if (!FW_TEST_main_config.get_number<int>(MVM_FM_confattr_UsWaitPerTick,
+                                           us_wait_per_tick))
    {
-    ms_wait_per_tick = 100;
+    us_wait_per_tick = 1000;
    }
 
   double ms_scale_factor;
   if (FW_TEST_main_config.get_number<double>(MVM_FM_confattr_MsScaleFactor,
                                               ms_scale_factor))
    {
-    ms_wait_per_tick /= ms_scale_factor; 
+    us_wait_per_tick /= ms_scale_factor; 
    }
 
   int n_cmds = FW_TEST_main_config.load_command_timeline(FW_TEST_command_timeline);
@@ -335,13 +336,6 @@ main (int argc, char *argv[])
         send_command_to_mvm(line, the_mvm);
        }
      }
-    else
-     {
-      timespec wait;
-      wait.tv_sec = ms_wait_per_tick/1000;
-      wait.tv_nsec = (ms_wait_per_tick%1000)*1000000;
-      ::nanosleep(&wait, NULL);
-     }
     // Valve status check
     uint16_t valve_in = FW_TEST_gdevs.get_pv1();
     if (FW_TEST_gdevs[mvm_fw_gpio_devs::OUT_VALVE] &&
@@ -353,7 +347,7 @@ main (int argc, char *argv[])
         ::clock_gettime(CLOCK_REALTIME, &now);
         std::ostringstream msg;
         msg << now.tv_sec << ":" << now.tv_nsec/1000000 
-            << " - ms (scaled) : " << FW_TEST_main_config.get_scaled_ms()
+            << " - ms (scaled):" << FW_TEST_main_config.get_scaled_ms()
             << " - tick:" << FW_TEST_tick
             << " - VALVES CLOSED - PV1:" << valve_in
             << std::endl;
@@ -369,7 +363,7 @@ main (int argc, char *argv[])
       ::clock_gettime(CLOCK_REALTIME, &now);
       std::ostringstream msg;
       msg << now.tv_sec << ":" << now.tv_nsec/1000000
-          << " - ms (scaled) : " << FW_TEST_main_config.get_scaled_ms()
+          << " - ms (scaled):" << FW_TEST_main_config.get_scaled_ms()
           << " - tick:" << FW_TEST_tick
           << " - VALVES OK - PV1:" << valve_in << std::endl;
       valve_out_save = false;
@@ -377,6 +371,10 @@ main (int argc, char *argv[])
       if (logf.good()) logf << msg.str();
       else std::cerr << argv[0] << ": " << msg.str();
      }
+    timespec wait;
+    wait.tv_sec = us_wait_per_tick/1000000;
+    wait.tv_nsec = (us_wait_per_tick%1000000)*1000;
+    ::nanosleep(&wait, NULL);
    }
 
   if (ttys != 0) ::fclose(ttys);

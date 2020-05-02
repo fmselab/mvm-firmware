@@ -12,7 +12,7 @@
 // with a static instance of the config handle, as this seems so fashionable
 // around this project.
 //
- 
+
 #ifndef _MVM_FW_TEST_CONFIG_H
 #define _MVM_FW_TEST_CONFIG_H
 
@@ -51,7 +51,7 @@ const std::string MVM_FM_confattr_EndTick("end_tick");
 const std::string MVM_FM_confattr_EndMs("end_ms");
 const std::string MVM_FM_confattr_CmdTimeline("command_timeline");
 const std::string MVM_FM_confattr_MsScaleFactor("ms_scale_factor");
-const std::string MVM_FM_confattr_MsWaitPerTick("ms_wait_per_tick");
+const std::string MVM_FM_confattr_UsWaitPerTick("us_wait_per_tick");
 const std::string MVM_FM_confattr_DebugLevel("debug_level");
 
 typedef std::map<qtl_tick_t, std::string> mvm_fw_test_cmds_t;
@@ -59,7 +59,7 @@ extern mvm_fw_test_cmds_t FW_TEST_command_timeline;
 
 class mvm_fw_unit_test_config
 {
-  public: 
+  public:
 
     typedef rapidjson::Document mvm_fw_test_config_t;
 
@@ -188,7 +188,7 @@ class mvm_fw_unit_test_config
       timespec now, ret;
       ::clock_gettime(CLOCK_REALTIME, &now);
       if (!m_time_started) return now;
-      ret.tv_sec = now.tv_sec - m_start_time.tv_sec; 
+      ret.tv_sec = now.tv_sec - m_start_time.tv_sec;
       int nsec_d = now.tv_nsec - m_start_time.tv_nsec;
       if (nsec_d < 0)
        {
@@ -207,7 +207,7 @@ class mvm_fw_unit_test_config
       return ret;
      }
 
-  private: 
+  private:
 
     std::string m_conf_file;
     std::string m_error_string;
@@ -223,14 +223,14 @@ extern qtl_tick_t                 FW_TEST_tick;
 extern qtl_ms_t                   FW_TEST_ms;
 
 
-class 
+class
 mvm_fw_gpio_devs
 {
   public:
     enum
     mvm_fw_bool_regs
      {
-      BREATHE, 
+      BREATHE,
       OUT_VALVE,
       BUZZER,
       ALARM_LED,
@@ -243,17 +243,18 @@ mvm_fw_gpio_devs
       double enable;
       bool ret = false;
       enable = FW_TEST_qtl_double.value(std::string(m_names[dev])+"_enable",
-                                        FW_TEST_tick);
+                                        FW_TEST_ms);
       timespec now;
       ::clock_gettime(CLOCK_REALTIME, &now);
       bool old_value = m_devs[dev];
       m_msg.str("");
       m_msg.clear();
-      m_msg << "GPIO_DEVS" << " - " << m_names[dev] << " - "
-      << now.tv_sec << ":" << now.tv_nsec/1000000 << " - tick:"
-      << FW_TEST_tick << " - ";
+      m_msg << "GPIO - DEVS" << " - " << m_names[dev] << " - "
+      << now.tv_sec << ":" << now.tv_nsec/1000000
+      << " - ms (scaled):" << FW_TEST_ms
+      << " - tick:" << FW_TEST_tick << " - ";
 
-      if (std::isnan(enable) || 
+      if (std::isnan(enable) ||
           (!std::isnan(enable) && (enable != 0)))
        {
         m_devs[dev] = value;
@@ -279,17 +280,18 @@ mvm_fw_gpio_devs
      {
       double enable;
       bool ret = false;
-      enable = FW_TEST_qtl_double.value("PV1_enable", FW_TEST_tick);
+      enable = FW_TEST_qtl_double.value("PV1_enable", FW_TEST_ms);
       timespec now;
       ::clock_gettime(CLOCK_REALTIME, &now);
       uint16_t old_pv1_value = m_pv1_value;
       m_msg.str("");
       m_msg.clear();
-      m_msg << "GPIO_DEVS" << " - PV1 - "
-      << now.tv_sec << ":" << now.tv_nsec/1000000 << " - tick:"
-      << FW_TEST_tick << " - ";
+      m_msg << "GPIO - DEVS - PV1 - "
+      << now.tv_sec << ":" << now.tv_nsec/1000000
+      << " - ms (scaled):" << FW_TEST_ms
+      << " - tick:" << FW_TEST_tick << " - ";
 
-      if (std::isnan(enable) || 
+      if (std::isnan(enable) ||
           (!std::isnan(enable) && (enable != 0)))
        {
         m_pv1_value = value;

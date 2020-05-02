@@ -99,8 +99,8 @@ mvm_fw_unit_test_TE_MS5525DSO::handle_command(uint8_t cmd,
   ::clock_gettime(CLOCK_REALTIME, &now);
   std::ostringstream msg;
   msg << I2C_DEVICE_module_name << " - MS5525DSO - " << m_name << " - "
-      << now.tv_sec << ":" << now.tv_nsec/1000000 
-      << " - ms (scaled) : " << FW_TEST_main_config.get_scaled_ms()  
+      << now.tv_sec << ":" << now.tv_nsec/1000000
+      << " - ms (scaled):" << FW_TEST_main_config.get_scaled_ms()
       << " - tick:" << FW_TEST_tick << " - ";
 
   if ((cmd >= 0xa0) && (cmd <= 0xae))
@@ -244,7 +244,7 @@ mvm_fw_unit_test_SENSIRION_SFM3019::handle_command(uint8_t cmd,
   std::ostringstream msg;
   msg << I2C_DEVICE_module_name << " - SFM3019 - " << m_name << " - "
       << now.tv_sec << ":" << now.tv_nsec/1000000
-      << " - ms (scaled) : " << FW_TEST_main_config.get_scaled_ms()
+      << " - ms (scaled):" << FW_TEST_main_config.get_scaled_ms()
       << " - tick:" << FW_TEST_tick << " - ";
 
   if ((wlength <= 0) && ((m_retc.size()*3) >= rlength))
@@ -454,8 +454,8 @@ mvm_fw_unit_test_TI_ADS1115::handle_command(uint8_t cmd,
   ::clock_gettime(CLOCK_REALTIME, &now);
   std::ostringstream msg;
   msg << I2C_DEVICE_module_name << " - ADS1115 - " << m_name << " - "
-      << now.tv_sec << ":" << now.tv_nsec/1000000 
-      << " - ms (scaled) : " << FW_TEST_main_config.get_scaled_ms()
+      << now.tv_sec << ":" << now.tv_nsec/1000000
+      << " - ms (scaled):" << FW_TEST_main_config.get_scaled_ms()
       << " - tick:" << FW_TEST_tick << " - ";
 
   if ((cmd >= 0) && (cmd <= 3))
@@ -599,7 +599,7 @@ mvm_fw_unit_test_Supervisor::handle_command(uint8_t cmd,
   std::ostringstream msg;
   msg << I2C_DEVICE_module_name << " - SUPER - "
     << now.tv_sec << ":" << now.tv_nsec/1000000
-    << " - ms (scaled) : " << FW_TEST_main_config.get_scaled_ms()
+    << " - ms (scaled):" << FW_TEST_main_config.get_scaled_ms()
     << " - tick:" << FW_TEST_tick << " - command: "
     << std::hex << std::showbase << static_cast<int>(cmd);
 
