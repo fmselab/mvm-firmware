@@ -31,6 +31,9 @@
 *.out
 *.app
 *.gcno
+*.gcda
 
 # eclipse
 .settings
+MVMFirmwareUnitTests/fw_board_ni_v4.h
+MVMFirmwareUnitTests/mvm_fw_unit_test_run
