@@ -19,15 +19,15 @@ RUN apt-get update && apt-get install -y wget git xz-utils sudo \
 
 WORKDIR "/root"
 
-RUN wget -O arduino.tar.xz\
+RUN wget --quiet -O arduino.tar.xz\
       "https://www.arduino.cc/download.php?f=/arduino-1.8.12-linux64.tar.xz";\
     xzcat arduino.tar.xz | tar -C /usr/local -xf -
 RUN /usr/local/arduino-1.8.12/install.sh; rm -f arduino.tar.xz;\
-    wget -O arduino-cli.tar.gz\
+    wget --quiet -O arduino-cli.tar.gz\
       "https://downloads.arduino.cc/arduino-cli/arduino-cli_latest_Linux_64bit.tar.gz";\
     tar -C /usr/local/bin -zxvf arduino-cli.tar.gz arduino-cli;\
     chmod +x /usr/local/bin/arduino-cli;\
-    chmod +x /usr/local/bin/mwm_fw_build.sh;\
+    chmod +x /usr/local/bin/mvm_fw_build.sh;\
     rm -f arduino-cli.tar.gz
 RUN /usr/local/bin/arduino-cli core --additional-urls\
       "https://dl.espressif.com/dl/package_esp32_index.json" update-index;\
