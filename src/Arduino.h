@@ -1,1 +1,0 @@
-/* Include file stub for standalone compilation */
