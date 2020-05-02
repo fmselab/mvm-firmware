@@ -95,7 +95,7 @@ mvm_fw_unit_test_pflow::m_init()
 {
   m_volume = 0.; // Zero volume is atmospheric pressure.
   m_flow = 0.;
-  m_last_tick = FW_TEST_tick;
+  m_last_ms = FW_TEST_ms;
 
   if (!FW_TEST_main_config.get_number<double>("pflow_capacity",
                                               m_capacity))
@@ -128,7 +128,7 @@ mvm_fw_unit_test_pflow::m_init()
    {
     m_ps2_fraction = 0.1; // trying to estimate the pressure fall at PS2
    }
-   double cur_p = FW_TEST_qtl_double.value("env_pressure",FW_TEST_tick);
+   double cur_p = FW_TEST_qtl_double.value("env_pressure",FW_TEST_ms);
    m_flow = 0;
    m_p[PS0] = cur_p;
    m_p[PS1] = cur_p;
@@ -136,15 +136,15 @@ mvm_fw_unit_test_pflow::m_init()
 }
 
 void
-mvm_fw_unit_test_pflow::m_evolve(qtl_tick_t tf)
+mvm_fw_unit_test_pflow::m_evolve(qtl_ms_t tf)
 {
   double net_flow = 0.;
-  if (tf <= m_last_tick) return;
+  if (tf <= m_last_ms) return;
 
   // Just a crude finite-difference evolution to establish
   // a plausible interplay between the simulated quantities.
   double in_p, out_p, mask_p;
-  for (qtl_tick_t t = m_last_tick+1; t<=tf; ++t)
+  for (qtl_ms_t t = m_last_ms+1; t<=tf; ++t)
    {
     in_p = FW_TEST_qtl_double.value("input_line_pressure",t);
     out_p = FW_TEST_qtl_double.value("env_pressure",t);
@@ -201,7 +201,7 @@ mvm_fw_unit_test_pflow::m_evolve(qtl_tick_t tf)
      }
    }
 
-  m_flow = net_flow / static_cast<double>(tf - m_last_tick) * 1000; // cm**3
+  m_flow = net_flow / static_cast<double>(tf - m_last_ms) * 1000; // cm**3
 
 #ifdef DEBUG
   std::cerr << "DEBUG: tck:" << FW_TEST_tick << ", pin:" << in_p 
@@ -210,14 +210,14 @@ mvm_fw_unit_test_pflow::m_evolve(qtl_tick_t tf)
             << " flow:" << m_flow << std::endl;
 #endif
 
-  m_last_tick = tf;
+  m_last_ms = tf;
 }
 
 double
-mvm_fw_unit_test_pflow::p_value(const std::string &name, qtl_tick_t t)
+mvm_fw_unit_test_pflow::p_value(const std::string &name, qtl_ms_t t)
 {
   m_evolve(t);
-  if (m_last_tick < t) return std::nan("");
+  if (m_last_ms < t) return std::nan("");
   if (name == "PS0") return m_p[PS0];
   else if (name == "PS1") return m_p[PS1];
   else if (name == "PS2") return m_p[PS2];
@@ -225,10 +225,10 @@ mvm_fw_unit_test_pflow::p_value(const std::string &name, qtl_tick_t t)
 }
 
 double
-mvm_fw_unit_test_pflow::f_value(qtl_tick_t t)
+mvm_fw_unit_test_pflow::f_value(qtl_ms_t t)
 {
   m_evolve(t);
-  if (m_last_tick < t) return std::nan("");
+  if (m_last_ms < t) return std::nan("");
   return m_flow;
 }
 

@@ -234,7 +234,7 @@ mvm_fw_unit_test_Supervisor: public simulated_i2c_device
   private:
     void m_init()
      {
-      m_last_update_tick = FW_TEST_tick;
+      m_last_update_ms = FW_TEST_ms;
       if (!FW_TEST_main_config.get_number<double>("initial_battery_charge", m_charge))
        {
         m_charge = 100.;
@@ -242,7 +242,7 @@ mvm_fw_unit_test_Supervisor: public simulated_i2c_device
      }
     void m_update();
 
-    qtl_tick_t m_last_update_tick;
+    qtl_ms_t m_last_update_ms;
     bool m_pwall;
     float m_pin;
     double m_temp;

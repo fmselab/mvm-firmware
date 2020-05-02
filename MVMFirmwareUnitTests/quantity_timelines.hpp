@@ -30,6 +30,7 @@
 #include <exprtk.hpp>
 
 typedef int64_t qtl_tick_t; 
+typedef int64_t qtl_ms_t; 
 
 template<typename TNUM>
 class qtl_config_blob: public exprtk::ifunction<TNUM>
@@ -50,11 +51,11 @@ class qtl_config_blob: public exprtk::ifunction<TNUM>
     const TNUM inval = static_cast<TNUM>(std::nan(""));
     typedef std::unordered_map<std::string, qtl_config_blob<TNUM> > function_map_t;
 
-    bool initialize(qtl_tick_t start, 
+    bool initialize(qtl_ms_t start, 
                     std::vector<TNUM> &data,
                     int depth = 0,
                     bool should_repeat = false,
-                    qtl_tick_t rep_start=0, qtl_tick_t rep_end=0)
+                    qtl_ms_t rep_start=0, qtl_ms_t rep_end=0)
      {
       m_tick_start = start;
       m_tick_end   = start + data.size();
@@ -67,11 +68,11 @@ class qtl_config_blob: public exprtk::ifunction<TNUM>
       return m_valid;
      }
 
-    bool initialize(qtl_tick_t start, 
+    bool initialize(qtl_ms_t start, 
                     const char *data, const char *delimiter=",",
                     int depth = 0,
                     bool should_repeat = false,
-                    qtl_tick_t rep_start=0, qtl_tick_t rep_end=0)
+                    qtl_ms_t rep_start=0, qtl_ms_t rep_end=0)
      {
       char *saveptr;
       char *spt = ::strtok_r(data, delimiter, &saveptr);
@@ -84,7 +85,7 @@ class qtl_config_blob: public exprtk::ifunction<TNUM>
       return m_valid;
      }
 
-    bool initialize(qtl_tick_t start, qtl_tick_t end,
+    bool initialize(qtl_ms_t start, qtl_ms_t end,
                     TNUM const_val,
                     int depth = 0)
      {
@@ -97,21 +98,21 @@ class qtl_config_blob: public exprtk::ifunction<TNUM>
       return m_valid;
      }
 
-    bool initialize(qtl_tick_t start, 
+    bool initialize(qtl_ms_t start, 
                     std::string data, const char *delimiter=",",
                     int depth = 0,
                     bool should_repeat = false,
-                    qtl_tick_t rep_start=0, qtl_tick_t rep_end=0)
+                    qtl_ms_t rep_start=0, qtl_ms_t rep_end=0)
      {
       return initialize(start, should_repeat, rep_start, rep_end,
                         data.c_str(), delimiter);
      }
 
     /* Generic initialization */
-    void set_data(qtl_tick_t start, 
+    void set_data(qtl_ms_t start, 
                   int depth = 0,
                   bool should_repeat = false,
-                  qtl_tick_t rep_start=0, qtl_tick_t rep_end=0)
+                  qtl_ms_t rep_start=0, qtl_ms_t rep_end=0)
      {
       m_tick_start = m_tick_end = start;
       m_depth = depth;
@@ -146,11 +147,11 @@ class qtl_config_blob: public exprtk::ifunction<TNUM>
      }
 
     /* Initialize from expr */
-    bool initialize(qtl_tick_t start, qtl_tick_t end,
+    bool initialize(qtl_ms_t start, qtl_ms_t end,
                  const std::string &expr,
                  int depth = 0,
                  bool should_repeat = false,
-                 qtl_tick_t rep_start=0, qtl_tick_t rep_end=0);
+                 qtl_ms_t rep_start=0, qtl_ms_t rep_end=0);
 
 
     bool resolve(function_map_t &mfun);
@@ -167,7 +168,7 @@ class qtl_config_blob: public exprtk::ifunction<TNUM>
       other_blobs.push_back(newb);
      }
 
-    inline TNUM evaluate(qtl_tick_t t) const
+    inline TNUM evaluate(qtl_ms_t t) const
      {
       if (! m_valid) return inval;
       if (m_is_constant)
@@ -178,10 +179,10 @@ class qtl_config_blob: public exprtk::ifunction<TNUM>
        }
 
       bool valid = true;
-      qtl_tick_t idx;
+      qtl_ms_t idx;
       if (m_should_repeat)
        {
-        qtl_tick_t rept;
+        qtl_ms_t rept;
         if (m_repeat_start != m_repeat_end)
          {
           rept = (t - m_repeat_start);
@@ -215,10 +216,10 @@ class qtl_config_blob: public exprtk::ifunction<TNUM>
 
     TNUM operator()(const TNUM &t) 
      {
-      return evaluate(static_cast<qtl_tick_t>(t));
+      return evaluate(static_cast<qtl_ms_t>(t));
      }
 
-    TNUM operator()(qtl_tick_t t) const
+    TNUM operator()(qtl_ms_t t) const
      {
       return evaluate(t);
      }
@@ -227,9 +228,9 @@ class qtl_config_blob: public exprtk::ifunction<TNUM>
     std::string m_name; 
     int         m_depth;
     bool        m_valid;
-    qtl_tick_t  m_tick_start, m_tick_end;
+    qtl_ms_t  m_tick_start, m_tick_end;
     bool        m_should_repeat;
-    qtl_tick_t  m_repeat_start, m_repeat_end;
+    qtl_ms_t  m_repeat_start, m_repeat_end;
     bool        m_is_constant;
     TNUM        m_const_value;
     std::vector<TNUM> m_values;
@@ -261,12 +262,12 @@ class qtl_config_blob: public exprtk::ifunction<TNUM>
 
 template<typename TNUM>
 bool
-qtl_config_blob<TNUM>::initialize(qtl_tick_t start, qtl_tick_t end,
+qtl_config_blob<TNUM>::initialize(qtl_ms_t start, qtl_ms_t end,
                                   const std::string &expr_str,
                                   int depth,
                                   bool should_repeat,
-                                  qtl_tick_t rep_start,
-                                  qtl_tick_t rep_end)
+                                  qtl_ms_t rep_start,
+                                  qtl_ms_t rep_end)
 {
   m_tick_start = start;
   m_tick_end = end;
@@ -371,7 +372,7 @@ qtl_config_blob<TNUM>::resolve(function_map_t &mfun)
   
      if (parser.compile(m_expr,expr))
       {
-       for (qtl_tick_t t=m_tick_start; t<=m_tick_end; ++t)
+       for (qtl_ms_t t=m_tick_start; t<=m_tick_end; ++t)
         {
          tt = static_cast<TNUM>(t);
          m_values.push_back(expr.value());
@@ -416,7 +417,7 @@ class quantity_timelines
     bool parse_ok() const { return m_parse_ok; }
     int  count() const { return m_count; }
 
-    TNUM value(const std::string &name, qtl_tick_t t)
+    TNUM value(const std::string &name, qtl_ms_t t)
      {
       TNUM res = inval;
       if (!m_parse_ok) return res;
@@ -503,9 +504,9 @@ quantity_timelines<TNUM>::initialize(const rapidjson::Document &d, const char *h
       qtl_config_blob<TNUM> newblob(vnam.GetString());
       int depth = 0;
       bool repeat = false;
-      qtl_tick_t start, end, repeat_start, repeat_end;
+      qtl_ms_t start, end, repeat_start, repeat_end;
       start = end = repeat_start = repeat_end = 0;
-      start = sstart.Get<qtl_tick_t>();
+      start = sstart.Get<qtl_ms_t>();
       if (m.HasMember("depth"))
        {
         const rapidjson::Value& dnam(m["depth"]);
@@ -514,7 +515,7 @@ quantity_timelines<TNUM>::initialize(const rapidjson::Document &d, const char *h
       if (m.HasMember("end"))
        {
         const rapidjson::Value& enam(m["end"]);
-        if (enam.IsNumber()) end = enam.Get<qtl_tick_t>();
+        if (enam.IsNumber()) end = enam.Get<qtl_ms_t>();
         if (end != start) ++end; // Upper boundary is not included
                                  // in the interval. But equal values
                                  // mean forever. 
@@ -527,12 +528,12 @@ quantity_timelines<TNUM>::initialize(const rapidjson::Document &d, const char *h
       if (m.HasMember("repeat_start"))
        {
         const rapidjson::Value& snam(m["repeat_start"]);
-        if (snam.IsNumber()) repeat_start = snam.Get<qtl_tick_t>();
+        if (snam.IsNumber()) repeat_start = snam.Get<qtl_ms_t>();
        }
       if (m.HasMember("repeat_end"))
        {
         const rapidjson::Value& enam(m["repeat_end"]);
-        if (enam.IsNumber()) repeat_end = enam.Get<qtl_tick_t>();
+        if (enam.IsNumber()) repeat_end = enam.Get<qtl_ms_t>();
        }
       if (m.HasMember("value"))
        {

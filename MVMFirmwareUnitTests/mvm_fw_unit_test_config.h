@@ -48,7 +48,10 @@ const std::string MVM_FM_confattr_SerialTTY("SerialTTY");
 const std::string MVM_FM_confattr_SerialPollTimeout("serial_port_timeout");
 const std::string MVM_FM_confattr_StartTick("start_tick");
 const std::string MVM_FM_confattr_EndTick("end_tick");
+const std::string MVM_FM_confattr_EndMs("end_ms");
 const std::string MVM_FM_confattr_CmdTimeline("command_timeline");
+const std::string MVM_FM_confattr_MsScaleFactor("ms_scale_factor");
+const std::string MVM_FM_confattr_DebugLevel("debug_level");
 
 typedef std::map<qtl_tick_t, std::string> mvm_fw_test_cmds_t;
 extern mvm_fw_test_cmds_t FW_TEST_command_timeline;
@@ -59,8 +62,9 @@ class mvm_fw_unit_test_config
 
     typedef rapidjson::Document mvm_fw_test_config_t;
 
-    mvm_fw_unit_test_config(): m_valid(false) {}
-    mvm_fw_unit_test_config(const std::string &conf_file): m_valid(false)
+    mvm_fw_unit_test_config(): m_valid(false), m_time_started(false) {}
+    mvm_fw_unit_test_config(const std::string &conf_file): m_valid(false),
+                                                    m_time_started(false)
      {
       load_config(conf_file);
      }
@@ -167,16 +171,55 @@ class mvm_fw_unit_test_config
     int load_command_timeline(mvm_fw_test_cmds_t &ctl,
                               const std::string &name=MVM_FM_confattr_CmdTimeline);
 
+    void start_time()
+     {
+      if (!get_number<double>(MVM_FM_confattr_MsScaleFactor,
+                              m_time_scale))
+       {
+        m_time_scale = 1.;
+       }
+      ::clock_gettime(CLOCK_REALTIME, &m_start_time);
+      m_time_started = true;
+     }
+
+    timespec get_current_rt()
+     {
+      timespec now, ret;
+      ::clock_gettime(CLOCK_REALTIME, &now);
+      if (!m_time_started) return now;
+      ret.tv_sec = now.tv_sec - m_start_time.tv_sec; 
+      int nsec_d = now.tv_nsec - m_start_time.tv_nsec;
+      if (nsec_d < 0)
+       {
+        --(ret.tv_nsec);
+        ret.tv_nsec = nsec_d + 1000000000;
+       }
+      else ret.tv_nsec = nsec_d;
+      return ret;
+     }
+
+    qtl_ms_t get_scaled_ms()
+     {
+      timespec cr=get_current_rt();
+      qtl_ms_t ret = (cr.tv_sec * 1000) + (cr.tv_nsec/1000000);
+      ret *= m_time_scale;
+      return ret;
+     }
+
   private: 
 
     std::string m_conf_file;
     std::string m_error_string;
     bool m_valid;
     mvm_fw_test_config_t m_conf;
+    bool m_time_started;
+    double m_time_scale;
+    timespec m_start_time;
 };
 
 extern quantity_timelines<double> FW_TEST_qtl_double;
 extern qtl_tick_t                 FW_TEST_tick;
+extern qtl_ms_t                   FW_TEST_ms;
 
 
 class 
@@ -313,7 +356,7 @@ mvm_fw_unit_test_pflow
      };
 
   private:
-    qtl_tick_t m_last_tick;
+    qtl_ms_t m_last_ms;
     void m_init();
     void m_evolve(qtl_tick_t t);
     double m_m_resistance, m_v_resistance;

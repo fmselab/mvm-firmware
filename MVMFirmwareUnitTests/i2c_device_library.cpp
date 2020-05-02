@@ -199,10 +199,10 @@ mvm_fw_unit_test_TE_MS5525DSO::handle_command(uint8_t cmd,
       case 0x54:
       case 0x56:
       case 0x58:
-        m_treading = FW_TEST_qtl_double.value(m_name + "_temperature",FW_TEST_tick);
+        m_treading = FW_TEST_qtl_double.value(m_name + "_temperature",FW_TEST_ms);
         if (std::isnan(m_treading))
          {
-          m_treading = FW_TEST_qtl_double.value("env_temperature",FW_TEST_tick);
+          m_treading = FW_TEST_qtl_double.value("env_temperature",FW_TEST_ms);
          }
         got_treading = true;
         if (!read_pressure)
@@ -418,10 +418,10 @@ mvm_fw_unit_test_SENSIRION_SFM3019::m_update_measurement()
     m_flow_val = static_cast<uint16_t>(freading);
    }
 
-  double treading = FW_TEST_qtl_double.value(m_name + "_temperature",FW_TEST_tick);
+  double treading = FW_TEST_qtl_double.value(m_name + "_temperature",FW_TEST_ms);
   if (std::isnan(treading))
    {
-    treading = FW_TEST_qtl_double.value("env_temperature",FW_TEST_tick);
+    treading = FW_TEST_qtl_double.value("env_temperature",FW_TEST_ms);
    }
 
   if (!std::isnan(treading))
@@ -470,14 +470,14 @@ mvm_fw_unit_test_TI_ADS1115::handle_command(uint8_t cmd,
         m_reg[CONVERSION_REG] = 0;
         if (m_cur_mux == 4)
          {
-          m_o2_concentration = FW_TEST_qtl_double.value("o2_concentration",FW_TEST_tick);
+          m_o2_concentration = FW_TEST_qtl_double.value("o2_concentration",FW_TEST_ms);
           m_reg[CONVERSION_REG] = (m_o2_concentration - m_o2_sensor_calib_m)/
                                   m_o2_sensor_calib_q;
           msg << "O2 concentration: " << m_o2_concentration << "%";
          }
         else if ((m_cur_mux >= 5) && (m_cur_mux <= 7))
          {
-          m_voltage_ref = FW_TEST_qtl_double.value("voltage_ref",FW_TEST_tick);
+          m_voltage_ref = FW_TEST_qtl_double.value("voltage_ref",FW_TEST_ms);
           uint16_t vrefs;
           if (m_voltage_ref <= 0) vrefs = 0;
           else if (m_voltage_ref > m_vmax) vrefs = 0xffff;
@@ -486,13 +486,13 @@ mvm_fw_unit_test_TI_ADS1115::handle_command(uint8_t cmd,
 
           if (m_cur_mux == 6)
            {
-            m_voltage_12v = FW_TEST_qtl_double.value("voltage_12v",FW_TEST_tick);
+            m_voltage_12v = FW_TEST_qtl_double.value("voltage_12v",FW_TEST_ms);
             msg << " 12V voltage: " << m_voltage_12v << " V";
             m_reg[CONVERSION_REG] = (m_voltage_12v/(2.5*5.)) * vrefs;
            }
           else if (m_cur_mux == 7)
            {
-            m_voltage_5v = FW_TEST_qtl_double.value("voltage_5v",FW_TEST_tick);
+            m_voltage_5v = FW_TEST_qtl_double.value("voltage_5v",FW_TEST_ms);
             msg << " 5V voltage: " << m_voltage_5v << " V";
             m_reg[CONVERSION_REG] = (m_voltage_5v/(2.5*2.)) * vrefs;
            }
@@ -528,12 +528,12 @@ mvm_fw_unit_test_TI_ADS1115::handle_command(uint8_t cmd,
 void
 mvm_fw_unit_test_Supervisor::m_update()
 {
-  if ( FW_TEST_tick <= m_last_update_tick ) return;
+  if ( FW_TEST_ms <= m_last_update_ms ) return;
 
-  m_temp = FW_TEST_qtl_double.value("supervisor_temperature",FW_TEST_tick);
+  m_temp = FW_TEST_qtl_double.value("supervisor_temperature",FW_TEST_ms);
   if (std::isnan(m_temp))
    {
-    m_temp = FW_TEST_qtl_double.value("env_temperature",FW_TEST_tick);
+    m_temp = FW_TEST_qtl_double.value("env_temperature",FW_TEST_ms);
    }
   if (std::isnan(m_temp))
    {
@@ -541,21 +541,21 @@ mvm_fw_unit_test_Supervisor::m_update()
    }
 
   double cval;
-  cval = FW_TEST_qtl_double.value("supervisor_pin",FW_TEST_tick);
+  cval = FW_TEST_qtl_double.value("supervisor_pin",FW_TEST_ms);
   if (!std::isnan(cval))
    {
     m_pin = static_cast<float>(cval);
    }
   else m_pin = 0.;
 
-  cval = FW_TEST_qtl_double.value("supervisor_alarms",FW_TEST_tick);
+  cval = FW_TEST_qtl_double.value("supervisor_alarms",FW_TEST_ms);
   if (!std::isnan(cval))
    {
     m_alarmsflags = static_cast<uint16_t>(cval);
    }
   else m_alarmsflags = 0;
 
-  cval = FW_TEST_qtl_double.value("wall_power",FW_TEST_tick);
+  cval = FW_TEST_qtl_double.value("wall_power",FW_TEST_ms);
   if (!std::isnan(cval))
    {
     if (cval != 0) m_pwall = true;
@@ -565,18 +565,18 @@ mvm_fw_unit_test_Supervisor::m_update()
 
   if (m_pwall)
    {
-    cval = FW_TEST_qtl_double.value("charge_current",FW_TEST_tick);
-    m_charge += cval * 0.001 * (FW_TEST_tick - m_last_update_tick);
+    cval = FW_TEST_qtl_double.value("charge_current",FW_TEST_ms);
+    m_charge += cval * 0.001 * (FW_TEST_ms - m_last_update_ms);
    }
   else
    {
-    cval = FW_TEST_qtl_double.value("discharge_current",FW_TEST_tick);
-    m_charge += cval * 0.001 * (FW_TEST_tick - m_last_update_tick);
+    cval = FW_TEST_qtl_double.value("discharge_current",FW_TEST_ms);
+    m_charge += cval * 0.001 * (FW_TEST_ms - m_last_update_ms);
    }
   if (m_charge < 0.) m_charge = 0.;
   if (m_charge > 100.) m_charge = 100.;
 
-  m_last_update_tick = FW_TEST_tick;
+  m_last_update_ms = FW_TEST_ms;
 }
 
 int

@@ -27,6 +27,7 @@
 mvm_fw_unit_test_config    FW_TEST_main_config;
 quantity_timelines<double> FW_TEST_qtl_double;
 qtl_tick_t                 FW_TEST_tick;
+qtl_ms_t                   FW_TEST_ms;
 mvm_fw_test_cmds_t         FW_TEST_command_timeline;
 
 #ifdef WITH_POSIX_PTS
@@ -110,12 +111,14 @@ main (int argc, char *argv[])
     std::cerr << usage_string.str() << std::endl;
     return 1;
    }
+  int cmdline_debug_level = -1;
   int darg = 1;
 #ifdef WITH_POSIX_PTS
   int ptfd = -1;
   int ptret;
   if (std::string(argv[1]) == "-p")
    {
+    ++darg;
     ptfd = posix_openpt(O_RDWR);
     if (ptfd >= 0)
      {
@@ -129,14 +132,27 @@ main (int argc, char *argv[])
      }
    }
 #endif
-  if (std::string(argv[1]) == "-d")
+  if (std::string(argv[darg]) == "-d")
    {
-    if (argc < (3 + darg))
+    if (argc >= (3 + darg))
+     {
+      std::istringstream dis(argv[darg+1]);
+      dis >> cmdline_debug_level;
+     }
+    else if (argc >= (2 + darg))
+     {
+      std::istringstream dis(argv[darg]+2);
+      dis >> cmdline_debug_level;
+      if (!dis)
+       {
+        std::cerr << usage_string.str() << std::endl;
+       }
+     }
+    else
      {
       std::cerr << usage_string.str() << std::endl;
+      return -1;
      }
-    std::istringstream dis(argv[2]);
-    dis >> FW_TEST_debug_level;
    } 
   const char *json_conf = argv[argc - 1];
 
@@ -237,7 +253,15 @@ main (int argc, char *argv[])
   FW_TEST_main_config.get_number<int>(MVM_FM_confattr_SerialPollTimeout,
                                       FW_TEST_serial_poll_timeout);
 
-  qtl_tick_t start_tick, end_tick;
+  if (!FW_TEST_main_config.get_number<int>(MVM_FM_confattr_DebugLevel,
+                                      FW_TEST_debug_level))
+   {
+    // Command line takes precedence over JSON config file value
+    FW_TEST_debug_level = cmdline_debug_level;
+   }
+
+  qtl_tick_t start_tick, end_tick = -1;
+  qtl_ms_t end_ms = -1;
   if (!FW_TEST_main_config.get_number<qtl_tick_t>(MVM_FM_confattr_StartTick,
                                                   start_tick))
    {
@@ -250,10 +274,17 @@ main (int argc, char *argv[])
   if (!FW_TEST_main_config.get_number<qtl_tick_t>(MVM_FM_confattr_EndTick,
                                                   end_tick))
    {
-    std::cerr << argv[0] << ": Warning. Could not find any  " 
-              << MVM_FM_confattr_EndTick
-              << " attribute in " << json_conf 
-              << ". Using default value: " << end_tick << "." << std::endl;
+    if (!FW_TEST_main_config.get_number<qtl_tick_t>(MVM_FM_confattr_EndMs,
+                                                    end_ms))
+     {
+      end_tick = 1000000;
+      std::cerr << argv[0] << ": Warning. Could not find either the " 
+                << MVM_FM_confattr_EndTick << " or the "
+                << MVM_FM_confattr_EndMs
+                << " attribute in " << json_conf 
+               << ". Using default value: end_tick == "
+                << end_tick << "." << std::endl;
+     }
    }
 
   int n_cmds = FW_TEST_main_config.load_command_timeline(FW_TEST_command_timeline);
@@ -267,8 +298,13 @@ main (int argc, char *argv[])
   uint16_t valve_in_save = 0;
 
   // Main ticker loop 
+  FW_TEST_main_config.start_time();
   for (FW_TEST_tick = start_tick; FW_TEST_tick <= end_tick ; ++FW_TEST_tick)
-   {
+   { 
+    FW_TEST_ms = FW_TEST_main_config.get_scaled_ms();
+    if ((end_tick >= 0) && (FW_TEST_tick > end_tick)) break; 
+    if ((end_ms >= 0) && (FW_TEST_ms > end_ms)) break;
+
     the_mvm.Tick();
     if ((cit != cend) && (FW_TEST_tick == cit->first))
      {
