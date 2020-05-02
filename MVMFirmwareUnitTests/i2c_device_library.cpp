@@ -99,8 +99,9 @@ mvm_fw_unit_test_TE_MS5525DSO::handle_command(uint8_t cmd,
   ::clock_gettime(CLOCK_REALTIME, &now);
   std::ostringstream msg;
   msg << I2C_DEVICE_module_name << " - MS5525DSO - " << m_name << " - "
-      << now.tv_sec << ":" << now.tv_nsec/1000000 << " - tick:"
-      << FW_TEST_tick << " - ";
+      << now.tv_sec << ":" << now.tv_nsec/1000000 
+      << " - ms (scaled) : " << FW_TEST_main_config.get_scaled_ms()  
+      << " - tick:" << FW_TEST_tick << " - ";
 
   if ((cmd >= 0xa0) && (cmd <= 0xae))
    {
@@ -175,6 +176,8 @@ mvm_fw_unit_test_TE_MS5525DSO::handle_command(uint8_t cmd,
       case 0x0:
         m_cmd_0_in = true;
         ret = 0;
+        msg.str("");
+        msg.clear(); // No need to log the cmd setup phase
         break;
       case 0x1e:
         msg << "RESET (" << std::hex << std::showbase << static_cast<int>(cmd)
@@ -186,7 +189,7 @@ mvm_fw_unit_test_TE_MS5525DSO::handle_command(uint8_t cmd,
       case 0x44:
       case 0x46:
       case 0x48:
-        m_preading = FW_TEST_pflow.p_value(m_name,FW_TEST_tick);
+        m_preading = FW_TEST_pflow.p_value(m_name,FW_TEST_main_config.get_scaled_ms());
         m_want_to_read_pressure = true;
         msg << "D1 Setup (" << std::hex << std::showbase << static_cast<int>(cmd)
             << ") command received. Pressure == " << std::dec
@@ -223,7 +226,10 @@ mvm_fw_unit_test_TE_MS5525DSO::handle_command(uint8_t cmd,
         break;
      }
    }
-  m_dbg.DbgPrint(DBG_CODE, DBG_VALUE, msg.str().c_str());
+  if (msg.str().length() > 0)
+   {
+    m_dbg.DbgPrint(DBG_CODE, DBG_VALUE, msg.str().c_str());
+   }
   return ret;
 };
 
@@ -237,8 +243,9 @@ mvm_fw_unit_test_SENSIRION_SFM3019::handle_command(uint8_t cmd,
   ::clock_gettime(CLOCK_REALTIME, &now);
   std::ostringstream msg;
   msg << I2C_DEVICE_module_name << " - SFM3019 - " << m_name << " - "
-      << now.tv_sec << ":" << now.tv_nsec/1000000 << " - tick:"
-      << FW_TEST_tick << " - ";
+      << now.tv_sec << ":" << now.tv_nsec/1000000
+      << " - ms (scaled) : " << FW_TEST_main_config.get_scaled_ms()
+      << " - tick:" << FW_TEST_tick << " - ";
 
   if ((wlength <= 0) && ((m_retc.size()*3) >= rlength))
    {
@@ -405,7 +412,7 @@ mvm_fw_unit_test_SENSIRION_SFM3019::m_update_measurement()
   if (m_last_mtick >= FW_TEST_tick) return true;
 
   int ret = true;
-  double freading = FW_TEST_pflow.f_value(FW_TEST_tick);
+  double freading = FW_TEST_pflow.f_value(FW_TEST_main_config.get_scaled_ms());
   if (std::isnan(freading))
    {
     m_flow_val = 0xffff;
@@ -447,8 +454,9 @@ mvm_fw_unit_test_TI_ADS1115::handle_command(uint8_t cmd,
   ::clock_gettime(CLOCK_REALTIME, &now);
   std::ostringstream msg;
   msg << I2C_DEVICE_module_name << " - ADS1115 - " << m_name << " - "
-      << now.tv_sec << ":" << now.tv_nsec/1000000 << " - tick:"
-      << FW_TEST_tick << " - ";
+      << now.tv_sec << ":" << now.tv_nsec/1000000 
+      << " - ms (scaled) : " << FW_TEST_main_config.get_scaled_ms()
+      << " - tick:" << FW_TEST_tick << " - ";
 
   if ((cmd >= 0) && (cmd <= 3))
    {
@@ -590,9 +598,10 @@ mvm_fw_unit_test_Supervisor::handle_command(uint8_t cmd,
   ::clock_gettime(CLOCK_REALTIME, &now);
   std::ostringstream msg;
   msg << I2C_DEVICE_module_name << " - SUPER - "
-    << now.tv_sec << ":" << now.tv_nsec/1000000 << " - tick:"
-    << FW_TEST_tick << " - command: " << std::hex << std::showbase
-    << static_cast<int>(cmd);
+    << now.tv_sec << ":" << now.tv_nsec/1000000
+    << " - ms (scaled) : " << FW_TEST_main_config.get_scaled_ms()
+    << " - tick:" << FW_TEST_tick << " - command: "
+    << std::hex << std::showbase << static_cast<int>(cmd);
 
   uint16_t val;
 

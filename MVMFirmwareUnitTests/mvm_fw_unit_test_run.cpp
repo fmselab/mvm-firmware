@@ -52,8 +52,10 @@ send_command_to_mvm(String sline, MVMCore &mvm)
   timespec now;
   ::clock_gettime(CLOCK_REALTIME, &now);
   std::ostringstream msg;
-  msg << now.tv_sec << ":" << now.tv_nsec/1000000 << " - tick:"
-      << FW_TEST_tick << " - SENDING COMMAND - " << sline;
+  msg << now.tv_sec << ":" << now.tv_nsec/1000000
+      << " - ms (scaled) : " << FW_TEST_main_config.get_scaled_ms()
+      << " - tick:" << FW_TEST_tick
+      << " - SENDING COMMAND - " << sline.c_str();
 
   DebugIface.DbgPrint(DBG_CODE, DBG_INFO, msg.str().c_str());
 
@@ -287,6 +289,20 @@ main (int argc, char *argv[])
      }
    }
 
+  int ms_wait_per_tick;
+  if (!FW_TEST_main_config.get_number<int>(MVM_FM_confattr_MsWaitPerTick,
+                                           ms_wait_per_tick))
+   {
+    ms_wait_per_tick = 100;
+   }
+
+  double ms_scale_factor;
+  if (FW_TEST_main_config.get_number<double>(MVM_FM_confattr_MsScaleFactor,
+                                              ms_scale_factor))
+   {
+    ms_wait_per_tick /= ms_scale_factor; 
+   }
+
   int n_cmds = FW_TEST_main_config.load_command_timeline(FW_TEST_command_timeline);
   mvm_fw_test_cmds_t::const_iterator cit  = FW_TEST_command_timeline.begin();
   mvm_fw_test_cmds_t::const_iterator cend = FW_TEST_command_timeline.end();
@@ -299,14 +315,14 @@ main (int argc, char *argv[])
 
   // Main ticker loop 
   FW_TEST_main_config.start_time();
-  for (FW_TEST_tick = start_tick; FW_TEST_tick <= end_tick ; ++FW_TEST_tick)
+  for (FW_TEST_tick = start_tick; ; ++FW_TEST_tick)
    { 
     FW_TEST_ms = FW_TEST_main_config.get_scaled_ms();
     if ((end_tick >= 0) && (FW_TEST_tick > end_tick)) break; 
     if ((end_ms >= 0) && (FW_TEST_ms > end_ms)) break;
 
     the_mvm.Tick();
-    if ((cit != cend) && (FW_TEST_tick == cit->first))
+    while ((cit != cend) && (cit->first <= FW_TEST_ms))
      {
       send_command_to_mvm(String(cit->second.c_str()), the_mvm);
       ++cit;
@@ -321,7 +337,9 @@ main (int argc, char *argv[])
      }
     else
      {
-      timespec wait = {0, 100000};
+      timespec wait;
+      wait.tv_sec = ms_wait_per_tick/1000;
+      wait.tv_nsec = (ms_wait_per_tick%1000)*1000000;
       ::nanosleep(&wait, NULL);
      }
     // Valve status check
@@ -334,8 +352,10 @@ main (int argc, char *argv[])
         timespec now;
         ::clock_gettime(CLOCK_REALTIME, &now);
         std::ostringstream msg;
-        msg << now.tv_sec << ":" << now.tv_nsec/1000000 << " - tick:"
-            << FW_TEST_tick << " - VALVES CLOSED - PV1:" << valve_in
+        msg << now.tv_sec << ":" << now.tv_nsec/1000000 
+            << " - ms (scaled) : " << FW_TEST_main_config.get_scaled_ms()
+            << " - tick:" << FW_TEST_tick
+            << " - VALVES CLOSED - PV1:" << valve_in
             << std::endl;
         valve_in_save = valve_in;
         valve_out_save = true;
@@ -348,9 +368,10 @@ main (int argc, char *argv[])
       timespec now;
       ::clock_gettime(CLOCK_REALTIME, &now);
       std::ostringstream msg;
-      msg << now.tv_sec << ":" << now.tv_nsec/1000000 << " - tick:"
-            << FW_TEST_tick << " - VALVES OK - PV1:" << valve_in
-            << std::endl;
+      msg << now.tv_sec << ":" << now.tv_nsec/1000000
+          << " - ms (scaled) : " << FW_TEST_main_config.get_scaled_ms()
+          << " - tick:" << FW_TEST_tick
+          << " - VALVES OK - PV1:" << valve_in << std::endl;
       valve_out_save = false;
       valve_in_save = 0;
       if (logf.good()) logf << msg.str();

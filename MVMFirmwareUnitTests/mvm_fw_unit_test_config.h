@@ -51,6 +51,7 @@ const std::string MVM_FM_confattr_EndTick("end_tick");
 const std::string MVM_FM_confattr_EndMs("end_ms");
 const std::string MVM_FM_confattr_CmdTimeline("command_timeline");
 const std::string MVM_FM_confattr_MsScaleFactor("ms_scale_factor");
+const std::string MVM_FM_confattr_MsWaitPerTick("ms_wait_per_tick");
 const std::string MVM_FM_confattr_DebugLevel("debug_level");
 
 typedef std::map<qtl_tick_t, std::string> mvm_fw_test_cmds_t;

@@ -2,7 +2,10 @@
  "SerialTTY": "/dev/pts/22",
  "LogFile": "/tmp/mvm_fw_ut.log",
  "start_tick": 0,
- "end_tick": 500000,
+ "debug_level": 0,
+ "ms_scale_factor": 1.0,
+ "ms_wait_per_tick": 20,
+ "end_ms": 100000,
  "initial_battery_charge": 90.0,
  "qtl_timelines" : [
   { "depth": 100, "name": "env_temperature",
