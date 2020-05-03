@@ -1,0 +1,81 @@
+{
+ "SerialTTY": "/dev/pts/22",
+ "LogFile": "/tmp/mvm_fw_ut.log",
+ "start_tick": 0,
+ "debug_level": 0,
+ "ms_scale_factor": 1.0,
+ "ms_wait_per_tick": 20,
+ "end_ms": 100000,
+ "initial_battery_charge": 90.0,
+ "qtl_timelines" : [
+  { "depth": 100, "name": "env_temperature",
+    "start": 0, "end": 1000,
+    "expr": "21. + 6*sin(t/318.)", "repeat": true
+  },
+  { "depth": 100, "name": "env_pressure",
+    "start": 0, "end": 10,
+    "expr": "10. + 1.*cos(t/318.)", "repeat": true
+  },
+  { "depth": 100, "name": "input_line_pressure",
+    "start": 0, "end": 0, 
+    "value": 40
+  },
+  { "depth": 100, "name": "o2_concentration",
+    "start": 0, "end": 10000,
+    "expr": "70. - 0.005*t"
+  },
+  { "depth": 90, "name": "wall_power",
+    "start": 0, "end": 20000,
+    "value": 0
+  },
+  { "depth": 100, "name": "wall_power",
+    "start": 0, "end": 0,
+    "value": 1
+  },
+  { "depth": 100, "name": "charge_current",
+    "start": 0, "end": 0,
+    "value": 0.05
+  },
+  { "depth": 100, "name": "discharge_current",
+    "start": 0, "end": 0,
+    "value": -0.01
+  },
+  { "depth": 100, "name": "voltage_ref",
+    "start": 0, "end": 100,
+    "expr": "2. + 0.2*cos(t/31.8)", "repeat": true
+  },
+  { "depth": 100, "name": "voltage_12v",
+    "start": 0, "end": 100,
+    "expr": "12. + 0.15*cos(t/31.8)", "repeat": true
+  },
+  { "depth": 100, "name": "voltage_5v",
+    "start": 0, "end": 100,
+    "expr": "5. + 0.1*sin(t/31.8)", "repeat": true
+  },
+  { "depth": 100, "name": "peep_p1",
+    "start": 0, "end": 3000,
+    "value": 15
+  },
+  { "depth": 100, "name": "peep_p2",
+    "start": 0, "end": 500,
+    "expr": "15 + (55/500)*t"
+  },
+  { "depth": 100, "name": "peep_p3",
+    "start": 0, "end": 500,
+    "expr": "50 + 20*exp(-(t/50.))"
+  },
+  { "depth": 100, "name": "peep_p4",
+    "start": 0, "end": 1000,
+    "value": 50
+  },
+  { "depth": 100, "name": "peep_p5",
+    "start": 0, "end": 500,
+    "expr": "15 + 35*exp(-(t/50))"
+  },
+  { "depth": 100, "name": "mask_pressure",
+    "start": 0, 
+    "compose": [ "peep_p1", "peep_p2", "peep_p3", "peep_p4", "peep_p5" ],
+    "repeat": true
+  }
+ ]
+}
