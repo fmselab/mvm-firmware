@@ -26,6 +26,8 @@
 #include <cerrno>
 #include <cstring> // strerror()
 
+#include "SystemStatus.h"
+
 #include "quantity_timelines.hpp"
 struct sim_i2c_devaddr;
 
@@ -222,6 +224,7 @@ extern quantity_timelines<double> FW_TEST_qtl_double;
 extern qtl_tick_t                 FW_TEST_tick;
 extern qtl_ms_t                   FW_TEST_ms;
 
+extern t_SystemStatus            *FW_TEST_peek_system_status;
 
 class
 mvm_fw_gpio_devs
@@ -250,9 +253,12 @@ mvm_fw_gpio_devs
       m_msg.str("");
       m_msg.clear();
       m_msg << "GPIO - DEVS" << " - " << m_names[dev] << " - "
-      << now.tv_sec << ":" << now.tv_nsec/1000000
-      << " - ms (scaled):" << FW_TEST_ms
-      << " - tick:" << FW_TEST_tick << " - ";
+            << now.tv_sec << ":" << now.tv_nsec/1000000
+            << " - ms (scaled):" << FW_TEST_ms
+            << " - tick:" << FW_TEST_tick << " - Alarms: "
+            << std::hex << std::showbase 
+            << FW_TEST_peek_system_status->ALARM_FLAG << " - Warnings: "
+            << FW_TEST_peek_system_status->WARNING_FLAG << " - ";
 
       if (std::isnan(enable) ||
           (!std::isnan(enable) && (enable != 0)))

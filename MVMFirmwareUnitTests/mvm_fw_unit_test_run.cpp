@@ -29,6 +29,7 @@ quantity_timelines<double> FW_TEST_qtl_double;
 qtl_tick_t                 FW_TEST_tick;
 qtl_ms_t                   FW_TEST_ms;
 mvm_fw_test_cmds_t         FW_TEST_command_timeline;
+t_SystemStatus            *FW_TEST_peek_system_status;
 
 #ifdef WITH_POSIX_PTS
 #include <cstdlib>
@@ -308,7 +309,18 @@ main (int argc, char *argv[])
   mvm_fw_test_cmds_t::const_iterator cit  = FW_TEST_command_timeline.begin();
   mvm_fw_test_cmds_t::const_iterator cend = FW_TEST_command_timeline.end();
 
+  FW_TEST_peek_system_status = 0;
+
   MVMCore the_mvm;
+
+  // Very crude way to inspect the private scoped MVM system status to get
+  // e.g. the alarm status. This will have to change manually whenever
+  // the order of the first three members of the MVMCore class changes
+
+  FW_TEST_peek_system_status = reinterpret_cast<t_SystemStatus *>(
+                       reinterpret_cast<unsigned char *>(&the_mvm)
+                     + sizeof(HAL) + sizeof(ConfigManagerClass));
+
   the_mvm.Init(); // Should check for errors - where ?
 
   bool valve_out_save = false;
