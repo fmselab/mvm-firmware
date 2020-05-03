@@ -201,6 +201,8 @@ class mvm_fw_unit_test_config
       return ret;
      }
 
+    double get_scale_factor() const { return m_time_scale; }
+
     qtl_ms_t get_scaled_ms()
      {
       timespec cr=get_current_rt();

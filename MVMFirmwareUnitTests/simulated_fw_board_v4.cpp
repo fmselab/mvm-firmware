@@ -26,15 +26,13 @@ int FW_TEST_serial_poll_timeout = 0;
 
 unsigned long millis()
 {
-  timespec res;
-  ::clock_gettime(CLOCK_REALTIME, &res);
-  unsigned long ret = (res.tv_sec * 1000) + (res.tv_nsec / 1000000);
-  return ret;
+  return FW_TEST_main_config.get_scaled_ms();
 }
 
 void delay(uint32_t ms_wait)
 {
-  timespec res = { ms_wait/1000, (ms_wait % 1000) * 1000000 };
+  uint32_t real_wait = ms_wait/FW_TEST_main_config.get_scale_factor();
+  timespec res = { real_wait/1000, (real_wait % 1000) * 1000000 };
   ::nanosleep(&res, NULL);
 }
 
