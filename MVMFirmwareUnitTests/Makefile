@@ -68,4 +68,7 @@ mvm_fw_unit_test_run: $(MWM_FW_TEST_OBJECTS) $(MVM_FIRMWARE_OBJECTS); \
 %.o: $(MVM_FW_ROOT)/%.cpp ;\
    $(COMPILE.C) $<
 
+test_qtl: test_qtl.o; \
+    $(LINK.C) -o $@ test_qtl.o
+
 clean: ; /bin/rm -f *.o $(MVM_FW_TEST_EXECUTABLES);
