@@ -178,7 +178,15 @@ mvm_fw_unit_test_pflow::m_evolve(qtl_ms_t tf)
       m_volume = 0;
      }
     
-    m_p[PS0] = m_volume/m_capacity + out_p;
+    if (!std::isnan(mask_p))
+     {
+      m_p[PS0] = mask_p;
+     }
+    else
+     {
+      m_p[PS0] = m_volume/m_capacity + out_p;
+     }
+
     if (pv1_open_fraction>0)
      {
       m_p[PS1] = (in_p - m_p[PS0])*m_ps1_fraction + out_p;
