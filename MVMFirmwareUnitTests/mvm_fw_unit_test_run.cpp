@@ -321,6 +321,7 @@ main (int argc, char *argv[])
                        reinterpret_cast<unsigned char *>(&the_mvm)
                      + sizeof(HAL) + sizeof(ConfigManagerClass));
 
+  FW_TEST_pflow.init();
   the_mvm.Init(); // Should check for errors - where ?
 
   bool valve_out_save = false;

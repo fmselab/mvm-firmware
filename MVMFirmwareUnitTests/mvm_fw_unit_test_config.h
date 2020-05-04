@@ -352,9 +352,10 @@ class
 mvm_fw_unit_test_pflow
 {
   public:
-    mvm_fw_unit_test_pflow() { m_init(); }
+    mvm_fw_unit_test_pflow(): m_inited(false) {} 
     ~mvm_fw_unit_test_pflow() {}
 
+    void   init();
     double p_value(const std::string &name, qtl_tick_t t);
     double f_value(qtl_tick_t t);
 
@@ -367,8 +368,8 @@ mvm_fw_unit_test_pflow
      };
 
   private:
+    bool m_inited;
     qtl_ms_t m_last_ms;
-    void m_init();
     void m_evolve(qtl_tick_t t);
     double m_m_resistance, m_v_resistance;
     double m_ps1_fraction, m_ps2_fraction;

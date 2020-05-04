@@ -91,7 +91,7 @@ mvm_fw_unit_test_config::load_command_timeline(mvm_fw_test_cmds_t &ctl,
 }
 
 void
-mvm_fw_unit_test_pflow::m_init()
+mvm_fw_unit_test_pflow::init()
 {
   m_volume = 0.; // Zero volume is atmospheric pressure.
   m_flow = 0.;
@@ -133,6 +133,7 @@ mvm_fw_unit_test_pflow::m_init()
    m_p[PS0] = cur_p;
    m_p[PS1] = cur_p;
    m_p[PS2] = cur_p;
+   m_inited = true;
 }
 
 void
@@ -216,6 +217,7 @@ mvm_fw_unit_test_pflow::m_evolve(qtl_ms_t tf)
 double
 mvm_fw_unit_test_pflow::p_value(const std::string &name, qtl_ms_t t)
 {
+  if (!m_inited) return std::nan("");
   m_evolve(t);
   if (m_last_ms < t) return std::nan("");
   if (name == "PS0") return m_p[PS0];
@@ -227,6 +229,7 @@ mvm_fw_unit_test_pflow::p_value(const std::string &name, qtl_ms_t t)
 double
 mvm_fw_unit_test_pflow::f_value(qtl_ms_t t)
 {
+  if (!m_inited) return std::nan("");
   m_evolve(t);
   if (m_last_ms < t) return std::nan("");
   return m_flow;

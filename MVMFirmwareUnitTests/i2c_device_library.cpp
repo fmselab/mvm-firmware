@@ -106,7 +106,7 @@ mvm_fw_unit_test_TE_MS5525DSO::handle_command(uint8_t cmd,
   if ((cmd >= 0xa0) && (cmd <= 0xae))
    {
     if (rlength < 2) return I2C_DEVICE_INSUFFICIENT_READ_BUFFER;
-    uint16_t pval = m_prom[cmd - 0xa0];
+    uint16_t pval = m_prom[(cmd - 0xa0)>>1];
     // big-endian response
     rbuffer[0] = (pval & 0xff00) >> 8;
     rbuffer[1] =  pval & 0xff;
@@ -129,7 +129,9 @@ mvm_fw_unit_test_TE_MS5525DSO::handle_command(uint8_t cmd,
   if ((cmd == 0) && m_cmd_0_in && (rlength > 0))
    {
     m_cmd_0_in = false;
+    // dt = (temp[hundredths of C])-2000)/C6*2^Q6:
     dt = ((m_treading*100.) - 2000.)/m_prom[6]*(1<<m_q[5]);
+    // d2 = dt + C5*2^Q5
     d2 =  dt + m_prom[5]*(1<<m_q[4]);
 
     // Here we invert this datasheet recipe:
@@ -146,19 +148,22 @@ mvm_fw_unit_test_TE_MS5525DSO::handle_command(uint8_t cmd,
     //P=D1*SENS-OFF=(D1*SENS/2^21 -OFF)/2^15
 
     psim = m_preading*(CMH2O_TO_PSI*10000);
-    off = m_prom[1]*(1<<m_q[1]) + (m_prom[4] * dt)/(1<<m_q[3]);
-    sens = m_prom[1]*(1<<m_q[0]) + (m_prom[3] * dt)/(1<<m_q[2]);
-    d1 = (psim*(1<<15) + off) * (1<<21)/sens;
+    off = static_cast<int64_t>(m_prom[2])*(1<<m_q[1]) +
+          (static_cast<int64_t>(m_prom[4]) * dt)/(1<<m_q[3]);
+    sens = static_cast<int64_t>(m_prom[1])*(1<<m_q[0]) +
+          (static_cast<int64_t>(m_prom[3]) * dt)/(1<<m_q[2]);
+    // d1 = ((p * 2^15) + off) * 2^21/SENS
+    d1 = (static_cast<uint64_t>(psim)*(1<<15) + off) * (1<<21)/sens;
     if (rlength < 3) return I2C_DEVICE_INSUFFICIENT_READ_BUFFER;
     if (m_want_to_read_pressure)
      {
       rbuffer[0] = (d1&0xff0000) >> 16;
       rbuffer[1] = (d1&0xff00) >> 8;
-      rbuffer[2] = (d1&0xf) >> 8;
+      rbuffer[2] = (d1&0xff);
      } else {
       rbuffer[0] = (d2&0xff0000) >> 16;
       rbuffer[1] = (d2&0xff00) >> 8;
-      rbuffer[2] = (d2&0xf) >> 8;
+      rbuffer[2] = (d2&0xff);
      }
     msg << "Read " << (m_want_to_read_pressure ? "pressure" : "temperature")
         << " ADC "  << std::hex << std::showbase << static_cast<int>(cmd)
