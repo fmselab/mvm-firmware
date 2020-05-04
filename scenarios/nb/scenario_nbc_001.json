@@ -2,7 +2,10 @@
  "SerialTTY": "scenario_nbc_001.out",
  "LogFile": "/tmp/mvm_fw_ut.log",
  "start_tick": 0,
- "end_tick": 50000,
+ "debug_level": 4,
+ "ms_scale_factor": 2.0,
+ "ms_wait_per_tick": 20,
+ "end_ms": 100000,
  "initial_battery_charge": 90.0,
  "qtl_timelines" : [
   { "depth": 100, "name": "env_temperature",
@@ -51,7 +54,7 @@
   }
  ],
  "command_timeline": [
-  { "t": 9000, "c": "set rate 12" }, 
+  { "t": 9000, "c": "set rate 20" }, 
   { "t": 9500, "c": "set ratio 0.5" }, 
   { "t": 10000, "c": "set run 1" }, 
   { "t": 11000, "c": "get mode" }, 
