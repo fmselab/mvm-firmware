@@ -57,8 +57,8 @@ class qtl_config_blob: public exprtk::ifunction<TNUM>
                     bool should_repeat = false,
                     qtl_ms_t rep_start=0, qtl_ms_t rep_end=0)
      {
-      m_tick_start = start;
-      m_tick_end   = start + data.size();
+      m_ms_start = start;
+      m_ms_end   = start + data.size();
       m_depth = depth;
       m_values = data; 
       m_should_repeat = should_repeat;
@@ -76,7 +76,7 @@ class qtl_config_blob: public exprtk::ifunction<TNUM>
      {
       char *saveptr;
       char *spt = ::strtok_r(data, delimiter, &saveptr);
-      m_tick_start = m_tick_end = start;
+      m_ms_start = m_ms_end = start;
       m_depth = depth;
       m_should_repeat = should_repeat;
       m_repeat_start = rep_start;
@@ -89,8 +89,8 @@ class qtl_config_blob: public exprtk::ifunction<TNUM>
                     TNUM const_val,
                     int depth = 0)
      {
-      m_tick_start = start;
-      m_tick_end   = end;
+      m_ms_start = start;
+      m_ms_end   = end;
       m_depth = depth;
       m_is_constant = true;
       m_const_value = const_val; 
@@ -114,7 +114,7 @@ class qtl_config_blob: public exprtk::ifunction<TNUM>
                   bool should_repeat = false,
                   qtl_ms_t rep_start=0, qtl_ms_t rep_end=0)
      {
-      m_tick_start = m_tick_end = start;
+      m_ms_start = m_ms_end = start;
       m_depth = depth;
       m_should_repeat = should_repeat;
       m_repeat_start = rep_start;
@@ -146,6 +146,19 @@ class qtl_config_blob: public exprtk::ifunction<TNUM>
       return m_values;
      }
 
+    bool is_constant() const
+     {
+      if (m_valid) return m_is_constant;
+      else return false;
+     }
+
+    qtl_ms_t get_const_value(TNUM &val) const
+     {
+      if (!m_valid) return 0;
+      val = m_const_value;
+      return (m_ms_end - m_ms_start);
+     }
+
     /* Initialize from expr */
     bool initialize(qtl_ms_t start, qtl_ms_t end,
                  const std::string &expr,
@@ -173,8 +186,8 @@ class qtl_config_blob: public exprtk::ifunction<TNUM>
       if (! m_valid) return inval;
       if (m_is_constant)
        { 
-        if ((m_tick_start == m_tick_end) ||
-            ((t >= m_tick_start) && (t < m_tick_end))) return m_const_value;
+        if ((m_ms_start == m_ms_end) ||
+            ((t >= m_ms_start) && (t < m_ms_end))) return m_const_value;
         else return inval;
        }
 
@@ -187,19 +200,19 @@ class qtl_config_blob: public exprtk::ifunction<TNUM>
          {
           rept = (t - m_repeat_start);
           if ((t < m_repeat_start) || (t >= m_repeat_end)) valid = false;
-          else idx = rept%(m_tick_end - m_tick_start);
+          else idx = rept%(m_ms_end - m_ms_start);
          }
         else
          {
           rept = t;
          }
-        idx = rept%(m_tick_end - m_tick_start);
-        if (rept < 0) { idx += (m_tick_end - m_tick_start); }
+        idx = rept%(m_ms_end - m_ms_start);
+        if (rept < 0) { idx += (m_ms_end - m_ms_start); }
        }
       else
        {
-        if ((t < m_tick_start) || (t >= m_tick_end)) valid = false;
-        else idx = (t - m_tick_start);
+        if ((t < m_ms_start) || (t >= m_ms_end)) valid = false;
+        else idx = (t - m_ms_start);
        }
       if (valid && (idx >= m_values.size())) valid = false;
       if (valid) return m_values[idx];
@@ -228,7 +241,7 @@ class qtl_config_blob: public exprtk::ifunction<TNUM>
     std::string m_name; 
     int         m_depth;
     bool        m_valid;
-    qtl_ms_t  m_tick_start, m_tick_end;
+    qtl_ms_t  m_ms_start, m_ms_end;
     bool        m_should_repeat;
     qtl_ms_t  m_repeat_start, m_repeat_end;
     bool        m_is_constant;
@@ -251,7 +264,7 @@ class qtl_config_blob: public exprtk::ifunction<TNUM>
         if (ivs.good())
          {
           m_values.push_back(dat);
-          ++m_tick_end; 
+          ++m_ms_end; 
          }
         spt = ::strtok_r(data, delimiter, &saveptr);
        }
@@ -269,8 +282,8 @@ qtl_config_blob<TNUM>::initialize(qtl_ms_t start, qtl_ms_t end,
                                   qtl_ms_t rep_start,
                                   qtl_ms_t rep_end)
 {
-  m_tick_start = start;
-  m_tick_end = end;
+  m_ms_start = start;
+  m_ms_end = end;
   m_depth = depth;
   m_should_repeat = should_repeat;
   m_repeat_start = rep_start;
@@ -339,9 +352,18 @@ qtl_config_blob<TNUM>::resolve(function_map_t &mfun)
       bfnd = mfun.find(*it);
       if (bfnd != fbend) 
        {
-        m_values.insert(m_values.end(),
-          bfnd->second.get_values().begin(), bfnd->second.get_values().end());
-        m_tick_end = m_tick_start + m_values.size();
+        if (bfnd->second.is_constant())
+         {
+          TNUM value;
+          qtl_ms_t size = bfnd->second.get_const_value(value);
+          m_values.insert(m_values.end(), size, value);
+         }
+        else
+         {
+          m_values.insert(m_values.end(),
+            bfnd->second.get_values().begin(), bfnd->second.get_values().end());
+         }
+        m_ms_end = m_ms_start + m_values.size();
         m_valid = true;
        }
      }
@@ -372,7 +394,7 @@ qtl_config_blob<TNUM>::resolve(function_map_t &mfun)
   
      if (parser.compile(m_expr,expr))
       {
-       for (qtl_ms_t t=m_tick_start; t<=m_tick_end; ++t)
+       for (qtl_ms_t t=m_ms_start; t<=m_ms_end; ++t)
         {
          tt = static_cast<TNUM>(t);
          m_values.push_back(expr.value());
