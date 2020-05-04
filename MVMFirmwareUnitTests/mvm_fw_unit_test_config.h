@@ -372,7 +372,7 @@ mvm_fw_unit_test_pflow
     qtl_ms_t m_last_ms;
     void m_evolve(qtl_tick_t t);
     double m_m_resistance, m_v_resistance;
-    double m_ps1_fraction, m_ps2_fraction;
+    double m_ps0_fraction, m_ps2_fraction;
     double m_overpressure;
     double m_capacity;
     double m_volume;

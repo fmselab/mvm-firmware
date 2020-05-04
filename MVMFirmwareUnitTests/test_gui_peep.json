@@ -18,7 +18,7 @@
   },
   { "depth": 100, "name": "input_line_pressure",
     "start": 0, "end": 0, 
-    "value": 40
+    "value": 30
   },
   { "depth": 100, "name": "o2_concentration",
     "start": 0, "end": 10000,
@@ -54,23 +54,23 @@
   },
   { "depth": 100, "name": "peep_p1",
     "start": 0, "end": 3000,
-    "value": 15
+    "value": 12
   },
   { "depth": 100, "name": "peep_p2",
     "start": 0, "end": 500,
-    "expr": "15 + (55/500)*t"
+    "expr": "12 + (23/500)*t"
   },
   { "depth": 100, "name": "peep_p3",
     "start": 0, "end": 500,
-    "expr": "50 + 20*exp(-(t/50.))"
+    "expr": "25 + 10*exp(-(t/50.))"
   },
   { "depth": 100, "name": "peep_p4",
     "start": 0, "end": 1000,
-    "value": 50
+    "value": 25
   },
   { "depth": 100, "name": "peep_p5",
     "start": 0, "end": 500,
-    "expr": "15 + 35*exp(-(t/50))"
+    "expr": "12 + 13*exp(-(t/50))"
   },
   { "depth": 100, "name": "mask_pressure",
     "start": 0, 

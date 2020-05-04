@@ -118,10 +118,10 @@ mvm_fw_unit_test_pflow::init()
    {
     m_overpressure = 100.; // arbitrary default - FIXME
    }
-  if (!FW_TEST_main_config.get_number<double>("ps1_fraction",
-                                               m_ps1_fraction))
+  if (!FW_TEST_main_config.get_number<double>("ps0_fraction",
+                                               m_ps0_fraction))
    {
-    m_ps1_fraction = 0.8; // trying to estimate the pressure fall at PS1
+    m_ps0_fraction = 0.8; // trying to estimate the pressure fall at PS0
    }
   if (!FW_TEST_main_config.get_number<double>("ps2_fraction",
                                                m_ps2_fraction))
@@ -169,7 +169,7 @@ mvm_fw_unit_test_pflow::m_evolve(qtl_ms_t tf)
     // deal with autonomous breathing, if present 
     if (!std::isnan(mask_p))
      {
-      m_volume += ((mask_p - m_p[PS0])/m_m_resistance);
+      m_volume += ((mask_p - m_p[PS1])/m_m_resistance);
      }
     if (m_volume < 0)
      {
@@ -180,33 +180,33 @@ mvm_fw_unit_test_pflow::m_evolve(qtl_ms_t tf)
     
     if (!std::isnan(mask_p))
      {
-      m_p[PS0] = mask_p;
+      m_p[PS1] = mask_p;
      }
     else
      {
-      m_p[PS0] = m_volume/m_capacity + out_p;
+      m_p[PS1] = m_volume/m_capacity + out_p;
      }
 
     if (pv1_open_fraction>0)
      {
-      m_p[PS1] = (in_p - m_p[PS0])*m_ps1_fraction + out_p;
+      m_p[PS0] = (in_p - m_p[PS1])*m_ps0_fraction + out_p;
      }
-    else m_p[PS1] = m_p[PS0]; // Should not be so abrupt, really.
-    if (m_p[PS1] > m_overpressure)
+    else m_p[PS0] = m_p[PS1]; // Should not be so abrupt, really.
+    if (m_p[PS0] > m_overpressure)
      {
       // Overpressure valve kicking in
-      double overv = ((m_p[PS1]-out_p)/m_v_resistance);
+      double overv = ((m_p[PS0]-out_p)/m_v_resistance);
       net_flow -= overv;
      }
 
     if (!(FW_TEST_gdevs[mvm_fw_gpio_devs::OUT_VALVE])) 
      {
       // Valve open.
-      m_p[PS2] = (m_p[PS0] - out_p)*m_ps2_fraction + out_p;
+      m_p[PS2] = (m_p[PS1] - out_p)*m_ps2_fraction + out_p;
      }
     else
      {
-      m_p[PS2] = m_p[PS0]; // Should not be so abrupt, really.
+      m_p[PS2] = m_p[PS1]; // Should not be so abrupt, really.
      }
    }
 
