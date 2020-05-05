@@ -269,10 +269,7 @@ main (int argc, char *argv[])
   if (!FW_TEST_main_config.get_number<qtl_tick_t>(MVM_FM_confattr_StartTick,
                                                   start_tick))
    {
-    std::cerr << argv[0] << ": Warning. Could not find any  " 
-              << MVM_FM_confattr_StartTick
-              << " attribute in " << json_conf 
-              << ". Using default value: " << start_tick << "." << std::endl;
+    start_tick = 0;
    }
 
   if (!FW_TEST_main_config.get_number<qtl_tick_t>(MVM_FM_confattr_EndTick,
