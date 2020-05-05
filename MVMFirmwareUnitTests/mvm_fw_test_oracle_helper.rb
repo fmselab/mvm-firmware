@@ -158,6 +158,8 @@ class Mvm_Fw_Test_Log_Event
         return @t_alarms
       when "warnings"
         return @t_warnings
+      when "failed"
+        return @t_failed
       when "commands"
         return @t_command
       else
@@ -172,19 +174,19 @@ class Mvm_Fw_Test_Log_Event
       case @t_command
         when "all"
           vals = line.split(',')
-          @g_ppatient       = vals[0].to_f  if (vals.size > 0)
-          @g_flux           = vals[1].to_f  if (vals.size > 1)
-          @g_o2             = vals[2].to_f  if (vals.size > 2)
-          @g_bpm            = vals[3].to_f  if (vals.size > 3)
-          @g_tidal          = vals[4].to_f  if (vals.size > 4)
-          @g_peep           = vals[5].to_f  if (vals.size > 5)
-          @t_temperature    = vals[6].to_f  if (vals.size > 6)
-          @g_batterypowered = vals[7].to_i  if (vals.size > 7)
-          @g_batterycharge  = vals[8].to_f  if (vals.size > 8)
-          @g_ppeak          = vals[9].to_f  if (vals.size > 9)
-          @g_tv_insp       = vals[10].to_f  if (vals.size > 10)
-          @g_tv_esp        = vals[11].to_f  if (vals.size > 11)
-          @g_currentvm     = vals[12].to_f  if (vals.size > 12)
+          if (vals.size > 0); @g_ppatient       = vals[0].to_f end
+          if (vals.size > 1); @g_flux           = vals[1].to_f end
+          if (vals.size > 2); @g_o2             = vals[2].to_f end
+          if (vals.size > 3); @g_bpm            = vals[3].to_f end
+          if (vals.size > 4); @g_tidal          = vals[4].to_f end
+          if (vals.size > 5); @g_peep           = vals[5].to_f end
+          if (vals.size > 6); @t_temperature    = vals[6].to_f end
+          if (vals.size > 7); @g_batterypowered = vals[7].to_i end
+          if (vals.size > 8); @g_batterycharge  = vals[8].to_f end
+          if (vals.size > 9); @g_ppeak          = vals[9].to_f end
+          if (vals.size > 10); @g_tv_insp       = vals[10].to_f end
+          if (vals.size > 11); @g_tv_esp        = vals[11].to_f end
+          if (vals.size > 12); @g_currentvm     = vals[12].to_f end
         when "ppressure"
           @g_ppatient       = line.to_f  
         when "flow"
@@ -215,10 +217,10 @@ class Mvm_Fw_Test_Log_Event
           @g_run            = line.to_i
       end
     end
-    if (line.downcase.include? "ok")
-      @t_failed = false
-    else
+    if (line.downcase.include? "error")
       @t_failed = true
+    else
+      @t_failed = false
     end
   end
 end
@@ -241,7 +243,7 @@ class Mvm_Fw_Test_Oracle_Helper
         # Detect command replies
         if ((m=/valore=/.match(l)) && (@rhsh.key?(:command)))
           @rhsh[:command].sort
-          @rhsh[:command].last.update_command_status(l.chomp)
+          @rhsh[:command].last.update_command_status(m.post_match.chomp)
         else
           r=Mvm_Fw_Test_Log_Event.new(l.chomp)
           if (r.type)
@@ -262,7 +264,7 @@ class Mvm_Fw_Test_Oracle_Helper
   def last_before_ts(type, ts)
     prev_e = nil;
     @rhsh[type].each do |e|
-      return prev_e if ( e.t_ms > ts )
+      if ( e.t_ms > ts ); return prev_e end
       prev_e = e
     end  
     return prev_e
@@ -272,7 +274,7 @@ class Mvm_Fw_Test_Oracle_Helper
     prev_e = nil;
     @rhsh[type].each do |e|
       if (e.t_ms >= ts)
-        return e if ((!prev_e) || ((prev_e) && (prev_e.t_ms < ts))) 
+        if ((!prev_e) || ((prev_e) && (prev_e.t_ms < ts))); return e end
       end
     end  
     return nil
@@ -338,7 +340,7 @@ class Mvm_Fw_Test_Oracle_Helper
         if (pev)
           reqs = e["reqs"] 
           reqs.each do |r|
-            if (!(v = pev.val(r["attr"])))
+            if ((v = pev.val(r["attr"])) == nil)
               ret = false
               @report << " - attribute " + r["attr"] + " not found in <" +
                          evs.to_s + "> event at t==" + pev.t_ms.to_s
