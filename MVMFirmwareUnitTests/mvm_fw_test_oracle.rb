@@ -37,7 +37,14 @@ end
 oh.digest_file(conf[fkey])
 oh.digest_file(conf[lkey]) if (conf.key?(lkey))
 
-pp oh.rhsh
-# To be continued...
+#pp oh.rhsh
 
-return 0
+rchk = oh.run_checks_in_config()
+
+p oh.report
+
+exit 99 if (!rchk)
+
+# More checks should be added here...
+
+exit 0
