@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/fmselab/mvm-firmware.svg?branch=master)](https://travis-ci.org/fmselab/mvm-firmware)
+
 # mvm-firmware
 
 mvm-firmware: the tests for the firmware for MVM.
