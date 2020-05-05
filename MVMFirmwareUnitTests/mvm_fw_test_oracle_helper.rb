@@ -37,12 +37,16 @@ class Mvm_Fw_Test_Log_Event
 
   Type_regexps = { 
                    :valves_closed => Regexp.new('- *VALVES CLOSED *-'),
-                   :valves_ok  => Regexp.new('- *VALVES OK *-'),
-                   :out_valve  => Regexp.new('GPIO *- *DEVS *- *OUT_VALVE'),
-                   :pv1        => Regexp.new('GPIO *- *DEVS *- *PV1'),
-                   :ps0        => Regexp.new('MS5525DSO *- *PS0.*D[12] Setup'),
-                   :ps1        => Regexp.new('MS5525DSO *- *PS1.*D[12] Setup'),
-                   :ps2        => Regexp.new('MS5525DSO *- *PS2.*D[12] Setup')
+                   :valves_ok   => Regexp.new('- *VALVES OK *-'),
+                   :out_valve   => Regexp.new('GPIO *- *DEVS *- *OUT_VALVE'),
+                   :breathe     => Regexp.new('GPIO *- *DEVS *- *BREATHE'),
+                   :buzzer      => Regexp.new('GPIO *- *DEVS *- *BUZZER'),
+                   :alarm_led   => Regexp.new('GPIO *- *DEVS *- *ALARM_LED'),
+                   :alarm_relay => Regexp.new('GPIO *- *DEVS *- *ALARM_RELAY'),
+                   :pv1         => Regexp.new('GPIO *- *DEVS *- *PV1'),
+                   :ps0         => Regexp.new('MS5525DSO *- *PS0.*D[12] Setup'),
+                   :ps1         => Regexp.new('MS5525DSO *- *PS1.*D[12] Setup'),
+                   :ps2         => Regexp.new('MS5525DSO *- *PS2.*D[12] Setup')
                  }
 
   def <=>(other)
@@ -280,6 +284,24 @@ class Mvm_Fw_Test_Oracle_Helper
                 @report << " - attribute " + r["attr"] + " in <" +
                        evs.to_s + "> event at t==" + pev.t_ms.to_s +
                        " < " + ge.to_s + " ( == " + v.to_s + " )"
+              end
+            end
+            if (r.key?("andon"))
+              andv = r["andon"]
+              if (!(v & andv))
+                ret = false
+                @report << " - attribute " + r["attr"] + " in <" +
+                       evs.to_s + "> event at t==" + pev.t_ms.to_s +
+                       " & " + andv.to_s + " OFF ( == " + v.to_s + " )"
+              end
+            end
+            if (r.key?("andoff"))
+              andv = r["andoff"]
+              if (v & andv)
+                ret = false
+                @report << " - attribute " + r["attr"] + " in <" +
+                       evs.to_s + "> event at t==" + pev.t_ms.to_s +
+                       " & " + andv.to_s + " ON ( == " + v.to_s + " )"
               end
             end
           end
