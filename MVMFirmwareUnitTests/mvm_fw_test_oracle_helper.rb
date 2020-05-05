@@ -20,7 +20,12 @@ require 'json'
 class Mvm_Fw_Test_Log_Event
   attr_reader(:type, :t_abs, :t_ms, :t_tick, :t_value,
               :t_pressure, :t_temperature, :t_pv1,
-              :t_alarms, :t_warnings, :t_command)
+              :t_alarms, :t_warnings, :t_command,
+              :t_command_args, :t_command_status, :t_set, :t_failed,
+              :g_ppatient, :g_flux, :g_o2, :g_bpm, :g_tidal,
+              :g_peep, :g_batterypowered,
+              :g_batterycharge, :g_ppeak, :g_tv_insp, :g_tv_esp,
+              :g_currentvm, :g_flow, :g_ptarget, :g_psupport, :g_run)
 
   @type=nil
   @t_abs=nil
@@ -32,10 +37,31 @@ class Mvm_Fw_Test_Log_Event
   @t_alarms=nil
   @t_warnings=nil
   @t_command=nil
+  @t_command_args=nil
+  @t_command_status=nil
   @t_pv1=nil
+  @t_set=false
   @t_failed=false
 
+  @g_ppatient=nil
+  @g_flux=nil
+  @g_o2=nil
+  @g_bpm=nil
+  @g_tidal=nil
+  @g_peep=nil
+  @g_batterypowered=nil
+  @g_batterycharge=nil
+  @g_ppeak=nil
+  @g_tv_insp=nil
+  @g_tv_esp =nil
+  @g_currentvm=nil
+  @g_flow=nil
+  @g_ptarget=nil
+  @g_psupport=nil
+  @g_run=nil
+
   Type_regexps = { 
+                   :command => Regexp.new('MAIN PROGRAM *- *SENDING COMMAND *-'),
                    :valves_closed => Regexp.new('- *VALVES CLOSED *-'),
                    :valves_ok   => Regexp.new('- *VALVES OK *-'),
                    :out_valve   => Regexp.new('GPIO *- *DEVS *- *OUT_VALVE'),
@@ -85,7 +111,15 @@ class Mvm_Fw_Test_Log_Event
     if (m=/- +warnings: *(0x)?([0-9a-fA-F]+)/.match(line))
       @t_warnings = m[2].to_i(16)
     end
-    if (m=/- +command: *(0x)?([0-9a-fA-F]+)/.match(line))
+    if (m=/- *SENDING COMMAND *- *(set|get) +([^ ]+)([^-]*)-/i.match(line))
+      if (m[1].casecmp("set") == 0)
+        @t_set = true
+      else
+        @t_set = false
+      end
+      @t_command = m[2].downcase
+      @t_command_args = m[3].strip
+    elsif (m=/- +command: *(0x)?([0-9a-fA-F]+)/.match(line))
       @t_command = m[2].to_i(16)
     end
 
@@ -127,7 +161,64 @@ class Mvm_Fw_Test_Log_Event
       when "commands"
         return @t_command
       else
-        return self[name.to_sym]
+        return self.send name.to_sym
+    end
+  end
+
+  def update_command_status(line)
+    if (@t_set)
+      @t_command_status = line
+    else
+      case @t_command
+        when "all"
+          vals = line.split(',')
+          @g_ppatient       = vals[0].to_f  if (vals.size > 0)
+          @g_flux           = vals[1].to_f  if (vals.size > 1)
+          @g_o2             = vals[2].to_f  if (vals.size > 2)
+          @g_bpm            = vals[3].to_f  if (vals.size > 3)
+          @g_tidal          = vals[4].to_f  if (vals.size > 4)
+          @g_peep           = vals[5].to_f  if (vals.size > 5)
+          @t_temperature    = vals[6].to_f  if (vals.size > 6)
+          @g_batterypowered = vals[7].to_i  if (vals.size > 7)
+          @g_batterycharge  = vals[8].to_f  if (vals.size > 8)
+          @g_ppeak          = vals[9].to_f  if (vals.size > 9)
+          @g_tv_insp       = vals[10].to_f  if (vals.size > 10)
+          @g_tv_esp        = vals[11].to_f  if (vals.size > 11)
+          @g_currentvm     = vals[12].to_f  if (vals.size > 12)
+        when "ppressure"
+          @g_ppatient       = line.to_f  
+        when "flow"
+          @g_flow           = line.to_f
+        when "o2"
+          @g_o2             = line.to_f
+        when "bpm"
+          @g_bpm            = line.to_f
+        when "tidal"
+          @g_tidal          = line.to_f
+        when "peep"
+          @g_peep           = line.to_f
+        when "temperature"
+          @t_temperature    = line.to_f
+        when "power_mode"
+          @g_batterypowered = line.to_i
+        when "battery"
+          @g_batterycharge  = line.to_f
+        when "ptarget"
+          @g_ptarget        = line.to_f
+        when "pressure_support"
+          @g_psupport       = line.to_f
+        when "alarm"
+          @t_alarm          = line.to_i
+        when "warning"
+          @t_warning        = line.to_i
+        when "run"
+          @g_run            = line.to_i
+      end
+    end
+    if (line.downcase.include? "ok")
+      @t_failed = false
+    else
+      @t_failed = true
     end
   end
 end
@@ -146,14 +237,19 @@ class Mvm_Fw_Test_Oracle_Helper
   
   def digest_file(filename)
     File::open(filename,'r') do |f|
-      pp f
       f.each_line do |l|
-        r=Mvm_Fw_Test_Log_Event.new(l.chomp)
-        if (r.type)
-          if (@rhsh.key?(r.type))
-            @rhsh[r.type].push(r)
-          else
-            @rhsh[r.type] = [r]
+        # Detect command replies
+        if ((m=/valore=/.match(l)) && (@rhsh.key?(:command)))
+          @rhsh[:command].sort
+          @rhsh[:command].last.update_command_status(l.chomp)
+        else
+          r=Mvm_Fw_Test_Log_Event.new(l.chomp)
+          if (r.type)
+            if (@rhsh.key?(r.type))
+              @rhsh[r.type].push(r)
+            else
+              @rhsh[r.type] = [r]
+            end
           end
         end
       end
