@@ -38,10 +38,10 @@ MVM_FIRMWARE_OBJECTS = HAL.o \
                        MVM_StateMachine.o \
                        PressureLoop.o \
                        TidalVolume.o \
-                       hw.o \
-                       stdlib_noniso.o WString.o
+                       hw.o
 
 MWM_FW_TEST_OBJECTS =  SerialImpl.o \
+                       stdlib_noniso.o WString.o \
                        simulated_fw_board_v4.o \
                        i2c_device_library.o \
                        simulate_i2c_devices.o \
@@ -71,4 +71,9 @@ mvm_fw_unit_test_run: $(MWM_FW_TEST_OBJECTS) $(MVM_FIRMWARE_OBJECTS); \
 test_qtl: test_qtl.o; \
     $(LINK.C) -o $@ test_qtl.o
 
-clean: ; /bin/rm -f *.o $(MVM_FW_TEST_EXECUTABLES);
+gcov: mvm_fw_unit_test_run.gcda mvm_fw_unit_test_run.gcno ; \
+    gcov $(MVM_FIRMWARE_OBJECTS)
+
+clean_gcov: ; /bin/rm -f *.gcov *.gcda *.gcno
+
+clean: clean_gcov ; /bin/rm -f *.o $(MVM_FW_TEST_EXECUTABLES);
