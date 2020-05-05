@@ -158,10 +158,11 @@ mvm_fw_unit_test_pflow::m_evolve(qtl_ms_t tf)
    {
     in_p = FW_TEST_qtl_double.value("input_line_pressure",t);
     out_p = FW_TEST_qtl_double.value("env_pressure",t);
-    pat_c = FW_TEST_qtl_double.value("patient_capacity",t);
     // the effect of autonomous breathing is an increase in
     // the 'pipe' capacity.
-    cur_c = m_capacity + pat_c;
+    cur_c = m_capacity;
+    pat_c = FW_TEST_qtl_double.value("patient_capacity",t);
+    if (!std::isnan(pat_c)) cur_c += pat_c;
 
     // admit some volume if input valve open 
     double pv1_open_fraction = FW_TEST_gdevs.get_pv1_fraction();
