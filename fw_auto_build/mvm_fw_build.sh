@@ -19,19 +19,32 @@ exitcode=1
 
 cd /mnt
 
-git clone "$git_proj"
+echo "$0: git cloning repository at $git_proj ... " >&2
+git clone -q "$git_proj"
 
-if [ $? -eq 0 ]; then 
+if [ $? -eq 0 ]; then
+  echo "Done" >&2
   cd MVMFirmwareCpp
   if [ "x$fw_tag" != "x" ]; then
-    git checkout $fw_tag
+    echo "$0: git checking out \"$fw_tag\" tag ... " >&2
+    if git checkout -q $fw_tag; then
+      echo "Done" >&2
+    else
+      echo "ERROR - will use master branch" >&2
+    fi
   fi
+  echo "$0: compiling arduino-cli ... " >&2
   arduino-cli compile \
     --fqbn  "esp32:esp32:featheresp32:FlashFreq=80,UploadSpeed=115200,DebugLevel=none,PartitionScheme=default" \
     MVMFirmwareCore
   exitcode=$?
+  if [ $exitcode -eq 0 ]; then
+    echo "Done" >&2
+  else
+    echo "ERROR" >&2 
+  fi
 else
-  echo "$0: error git-cloning $git_proj." 2>&1 
+  echo "ERROR" >&2 
 fi
 
 exit $exitcode
