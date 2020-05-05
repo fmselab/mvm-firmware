@@ -283,7 +283,8 @@ mvm_fw_gpio_devs
             << " - tick:" << FW_TEST_tick << " - Alarms: "
             << std::hex << std::showbase 
             << FW_TEST_peek_system_status->ALARM_FLAG << " - Warnings: "
-            << FW_TEST_peek_system_status->WARNING_FLAG << " - ";
+            << FW_TEST_peek_system_status->WARNING_FLAG << " - "
+            << std::dec << std::noshowbase ;
 
       if (std::isnan(enable) ||
           (!std::isnan(enable) && (enable != 0)))
