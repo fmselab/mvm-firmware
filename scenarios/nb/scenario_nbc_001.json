@@ -1,28 +1,30 @@
 {
+ "scenario_id": "NBC_001",
+ "scenario_descr": "Normal behavior in PCV controlled mode",
+ "scenario_ref_req": "PCV.1, PCV.2",
  "SerialTTY": "scenario_nbc_001.out",
- "LogFile": "/tmp/mvm_fw_ut.log",
- "start_tick": 0,
- "debug_level": 4,
- "ms_scale_factor": 2.0,
- "ms_wait_per_tick": 20,
- "end_ms": 100000,
+ "LogFile": "scenario_nbc_001.log",
+ "debug_level": 5,
+ "ms_scale_factor": 3.0,
+ "us_wait_per_tick": 100,
+ "end_ms": 120000,
  "initial_battery_charge": 90.0,
  "qtl_timelines" : [
   { "depth": 100, "name": "env_temperature",
-    "start": 0, "end": 1000,
+    "start": 0, "end": 100,
     "expr": "21. + 6*sin(t/318.)", "repeat": true
   },
   { "depth": 100, "name": "env_pressure",
-    "start": 0, "end": 10,
+    "start": 0, "end": 100,
     "expr": "10. + 1.*cos(t/318.)", "repeat": true
   },
   { "depth": 100, "name": "input_line_pressure",
-    "start": 0, "end": 0, 
-    "value": 50
+    "start": 0, "end": 0,
+    "value": 30
   },
   { "depth": 100, "name": "o2_concentration",
-    "start": 0, "end": 10000,
-    "expr": "70. - 0.005*t"
+    "start": 0, "end": 100,
+    "expr": "70. + 3.*sin(t/318.)", "repeat": true
   },
   { "depth": 90, "name": "wall_power",
     "start": 0, "end": 200000,
@@ -42,7 +44,7 @@
   },
   { "depth": 100, "name": "voltage_ref",
     "start": 0, "end": 100,
-    "expr": "2. + 0.2*cos(t/31.8)", "repeat": true
+    "expr": "2.5 + 0.01*cos(t/31.8)", "repeat": true
   },
   { "depth": 100, "name": "voltage_12v",
     "start": 0, "end": 100,
@@ -54,16 +56,27 @@
   }
  ],
  "command_timeline": [
-  { "t": 9000, "c": "set rate 20" }, 
-  { "t": 9500, "c": "set ratio 0.5" }, 
-  { "t": 10000, "c": "set run 1" }, 
-  { "t": 11000, "c": "get mode" }, 
-  { "t": 11000, "c": "get pressure" }, 
-  { "t": 12000, "c": "get pressure" }, 
-  { "t": 13000, "c": "get pressure" }, 
-  { "t": 18000, "c": "get battery" }, 
-  { "t": 19000, "c": "get battery" }, 
-  { "t": 20000, "c": "get battery" }, 
+  { "t": 9000, "c": "set rate 20" },
+  { "t": 9500, "c": "set ratio 0.5" },
+  { "t": 10000, "c": "set run 1" },
+  { "t": 11000, "c": "get mode" },
+  { "t": 20000, "c": "get all" },
+  { "t": 30000, "c": "get all" },
+  { "t": 40000, "c": "get all" },
+  { "t": 50000, "c": "get all" },
+  { "t": 60000, "c": "get all" },
+  { "t": 70000, "c": "get all" },
+  { "t": 80000, "c": "get all" },
+  { "t": 90000, "c": "get all" },
+  { "t": 100000, "c": "get all" },
+  { "t": 110000, "c": "get all" },
+  { "t": 120000, "c": "get all" },
   { "t": 90000, "c": "set run 0" }
+ ],
+"oracle_checks": [
+  { "event": "out_valve", "before": 9000, "reqs":[{ "attr":"value", "eq": 0 }] },
+  { "event": "buzzer", "after": 2000, "never":true },
+  { "event": "alarm_led", "after": 2000, "never":true },
+  { "event": "alarm_relay", "after": 2000, "never":true }
  ]
 }

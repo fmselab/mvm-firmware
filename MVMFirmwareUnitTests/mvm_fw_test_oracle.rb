@@ -29,13 +29,14 @@ oh = Mvm_Fw_Test_Oracle_Helper.new(conf);
 
 fkey = "SerialTTY"
 lkey = "LogFile"
+ckey = "CheckRubyObj"
 
 if (!conf.key?(fkey))
   raise "#{$0}: #{fkey} not defined in config file #{ARGV[0]}"
 end
  
 oh.digest_file(conf[fkey])
-oh.digest_file(conf[lkey]) if (conf.key?(lkey))
+if (conf.key?(lkey)); oh.digest_file(conf[lkey]) end
 
 #pp oh.rhsh
 
@@ -43,8 +44,15 @@ rchk = oh.run_checks_in_config()
 
 p oh.report
 
-exit 99 if (!rchk)
+if (!rchk); exit 99 end
 
 # More checks should be added here...
+
+if (conf.key?(ckey))
+  require conf[ckey]
+  eval "rchk = " + conf[ckey] + ".check(oh)"
+  ecal "p " + conf[ckey] + ".report"
+  if (!rchk); exit 98 end
+end
 
 exit 0

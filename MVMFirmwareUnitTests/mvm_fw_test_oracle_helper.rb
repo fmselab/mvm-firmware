@@ -261,6 +261,44 @@ class Mvm_Fw_Test_Oracle_Helper
     end 
   end
 
+  def max_between_ts(type, attr, start, bend)
+    maxv = nil;
+    ret = nil
+    @rhsh[type].each do |e|
+      if ((start != nil) && (e.t_ms < start)); last end
+      if ((bend != nil)   && (e.t_ms > bend)); last end
+      val = e.val(attr)
+      if (val == nil); next end
+      if (maxv == nil)
+        maxv = val
+        ret = e
+      elsif (val > maxv)
+        maxv = val
+        ret = e
+      end
+    end  
+    return ret
+  end
+
+  def min_between_ts(type, attr, start, bend)
+    minv = nil;
+    ret = nil
+    @rhsh[type].each do |e|
+      if ((start != nil) && (e.t_ms < start)); last end
+      if ((bend != nil)   && (e.t_ms > bend)); last end
+      val = e.val(attr)
+      if (val == nil); next end
+      if (minv == nil)
+        minv = val
+        ret = e
+      elsif (val < minv)
+        minv = val
+        ret = e
+      end
+    end  
+    return ret
+  end
+
   def last_before_ts(type, ts)
     prev_e = nil;
     @rhsh[type].each do |e|
@@ -297,24 +335,55 @@ class Mvm_Fw_Test_Oracle_Helper
       tst.each do |e| 
         next if (!e.key?("event"))
         evs = e["event"].to_sym
+        want_never = false
+        if (e.key?("never"))
+          want_never = e["never"]
+        end
         if (!evs)
-          ret = false
-          @report << " - unknown event <" + e["event"] + ">"
+          if (!want_never)
+            ret = false
+            @report << " - unknown event <" + e["event"] + ">"
+          end
           next
         end
         if (!@rhsh.key?(evs))
-          ret = false
-          @report << " - no activity found for event <" + e["event"] + ">"
+          if (!want_never)
+            ret = false
+            @report << " - no activity found for event <" + e["event"] + ">"
+          end
           next
         end
         pev = nil
+        max = nil
+        min = nil
+        if (e.key?("max"))
+          max = e["max"]
+        end
+        if (e.key?("min"))
+          min = e["max"]
+        end
         if (e.key?("after"))
           after_ts  = e["after"]
-          pev = next_after_ts(evs, after_ts)
+          if (max)
+            pev = max_between_ts(evs, max, after_ts, nil)
+          elsif (min)
+            pev = min_between_ts(evs, min, after_ts, nil)
+          else
+            pev = next_after_ts(evs, after_ts)
+          end
           if (!pev)
+            if (!want_never)
+              ret = false
+              @report << " - no event for <" + evs.to_s + 
+                         "> after t==" + after_ts.to_s
+            end
+            next
+          end
+          if ((pev) && (want_never))
             ret = false
-            @report << " - no event for <" + evs.to_s + 
-                       "> after t==" + after_ts.to_s
+            @report << " - found unwanted event for <" + evs.to_s + 
+                       "> after t==" + after_ts.to_s + ", at t==" +
+                       pev.t_ms.to_s
             next
           end
           if (e.key?("before"))
@@ -329,11 +398,26 @@ class Mvm_Fw_Test_Oracle_Helper
           end
         elsif (e.key?("before"))
           before_ts = e["before"] 
-          pev = last_before_ts(evs, before_ts)
+          if (max)
+            pev = max_between_ts(evs, max, nil, before_ts)
+          elsif (min)
+            pev = min_between_ts(evs, min, nil, before_ts)
+          else
+            pev = last_before_ts(evs, before_ts)
+          end
           if (!pev)
+            if (!want_never)
+              ret = false
+              @report << " - no event for <" + evs.to_s + 
+                         "> before t==" + before_ts.to_s
+            end
+            next
+          end
+          if ((pev) && (want_never))
             ret = false
-            @report << " - no event for <" + evs.to_s + 
-                       "> before t==" + before_ts.to_s
+            @report << " - found unwanted event for <" + evs.to_s + 
+                       "> after t==" + after_ts.to_s + ", at t==" +
+                       pev.t_ms.to_s
             next
           end
         end
