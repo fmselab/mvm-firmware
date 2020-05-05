@@ -227,11 +227,34 @@ extern qtl_tick_t                 FW_TEST_tick;
 extern qtl_ms_t                   FW_TEST_ms;
 
 extern t_SystemStatus            *FW_TEST_peek_system_status;
+extern mvm_fw_unit_test_config    FW_TEST_main_config;
 
 class
 mvm_fw_gpio_devs
 {
   public:
+    mvm_fw_gpio_devs()
+     {
+      uint32_t pv1_init; // RapidJSON doesn't handle 16-bit types.
+      if (!FW_TEST_main_config.get_number<uint32_t>("PV1_init", pv1_init))
+       {
+        m_pv1_value = 0; // Default: start w/ valve open.
+       }
+      else m_pv1_value = static_cast<uint16_t>(pv1_init);
+
+      uint32_t gpio_init; // Default: valves open, no LED. 
+      if (!FW_TEST_main_config.get_number<uint32_t>("GPIO_init", gpio_init))
+       {
+        gpio_init = 0; // Default: valves open, no LEDs. 
+       }
+      for (int i = 0; i<LAST_REG; ++i)
+       {
+        if (gpio_init & (1<<i)) m_devs[i] = true;
+        else                    m_devs[i] = false;
+       }
+     }
+    ~mvm_fw_gpio_devs() {}
+
     enum
     mvm_fw_bool_regs
      {
@@ -375,7 +398,7 @@ mvm_fw_unit_test_pflow
     double m_ps0_fraction, m_ps2_fraction;
     double m_overpressure;
     double m_capacity;
-    double m_volume;
+    double m_gas;
     double m_flow;
     double m_p[LAST_PS];
 };
@@ -397,7 +420,6 @@ typedef std::map<sim_i2c_devaddr, std::pair<FW_TEST_devices, std::string> > test
 extern test_hardware_t FW_TEST_hardware;
 extern qtl_tick_t FW_TEST_last_watchdog_reset;
 
-extern mvm_fw_unit_test_config FW_TEST_main_config;
 extern int FW_TEST_debug_level;
 extern int FW_TEST_serial_poll_timeout;
 

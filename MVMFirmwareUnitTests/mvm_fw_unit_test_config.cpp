@@ -93,16 +93,16 @@ mvm_fw_unit_test_config::load_command_timeline(mvm_fw_test_cmds_t &ctl,
 void
 mvm_fw_unit_test_pflow::init()
 {
-  m_volume = 0.; // Zero volume is atmospheric pressure.
   m_flow = 0.;
   m_last_ms = FW_TEST_ms;
 
   if (!FW_TEST_main_config.get_number<double>("pflow_capacity",
                                               m_capacity))
    {
-    m_capacity = 3.; // 'standard' liters, in principle.
+    m_capacity = 2.; // 'standard' liters, in principle.
                      //  - carefully researched figure.
    }
+
   if (!FW_TEST_main_config.get_number<double>("pflow_valve_resistance",
                                                m_v_resistance))
    {
@@ -121,7 +121,7 @@ mvm_fw_unit_test_pflow::init()
   if (!FW_TEST_main_config.get_number<double>("ps0_fraction",
                                                m_ps0_fraction))
    {
-    m_ps0_fraction = 0.8; // trying to estimate the pressure fall at PS0
+    m_ps0_fraction = 0.1; // trying to estimate the pressure fall at PS0
    }
   if (!FW_TEST_main_config.get_number<double>("ps2_fraction",
                                                m_ps2_fraction))
@@ -133,6 +133,15 @@ mvm_fw_unit_test_pflow::init()
    m_p[PS0] = cur_p;
    m_p[PS1] = cur_p;
    m_p[PS2] = cur_p;
+   double init_pat_c = FW_TEST_qtl_double.value("patient_capacity",FW_TEST_ms);
+   if (std::isnan(init_pat_c))
+    {
+     m_gas = m_capacity * cur_p; // Atmospheric pressure level. Gas const == 1
+    }
+   else
+    {
+     m_gas = (m_capacity + init_pat_c) * cur_p; 
+    }
    m_inited = true;
 }
 
@@ -144,61 +153,53 @@ mvm_fw_unit_test_pflow::m_evolve(qtl_ms_t tf)
 
   // Just a crude finite-difference evolution to establish
   // a plausible interplay between the simulated quantities.
-  double in_p, out_p, mask_p;
+  double in_p, out_p, pat_c, cur_c;
   for (qtl_ms_t t = m_last_ms+1; t<=tf; ++t)
    {
     in_p = FW_TEST_qtl_double.value("input_line_pressure",t);
     out_p = FW_TEST_qtl_double.value("env_pressure",t);
-    mask_p = FW_TEST_qtl_double.value("mask_pressure",t);
-    
+    pat_c = FW_TEST_qtl_double.value("patient_capacity",t);
+    // the effect of autonomous breathing is an increase in
+    // the 'pipe' capacity.
+    cur_c = m_capacity + pat_c;
+
     // admit some volume if input valve open 
     double pv1_open_fraction = FW_TEST_gdevs.get_pv1_fraction();
     if ((pv1_open_fraction > 0) && (in_p > m_p[PS0]))
      {
-      double inlet = (1/m_capacity)*((in_p-m_p[PS0])/m_v_resistance)*
-                      (FW_TEST_gdevs.get_pv1_fraction());
-      m_volume += inlet;
-      net_flow += inlet; 
+      double inlet = ((in_p-m_p[PS0])/m_v_resistance)*
+                     (FW_TEST_gdevs.get_pv1_fraction());
+      m_gas += inlet;
+      net_flow += (inlet/m_p[PS1]); 
      }
     // expel some volume if output valve open 
     // Valve FALSE is open and TRUE is closed...
-    if ((!FW_TEST_gdevs[mvm_fw_gpio_devs::OUT_VALVE]) && (m_p[PS0] > out_p))
+    if ((!FW_TEST_gdevs[mvm_fw_gpio_devs::OUT_VALVE]) && (m_p[PS2] > out_p))
      {
-      m_volume -= ((m_p[PS0]-out_p)/m_v_resistance);
+      m_gas -= ((m_p[PS2]-out_p)/m_v_resistance);
      }
-    // deal with autonomous breathing, if present 
-    if (!std::isnan(mask_p))
-     {
-      m_volume += ((mask_p - m_p[PS1])/m_m_resistance);
-     }
-    if (m_volume < 0)
-     {
-      // Negative pressure - relief valve kicking in
-      net_flow -= m_volume;
-      m_volume = 0;
-     }
-    
-    if (!std::isnan(mask_p))
-     {
-      m_p[PS1] = mask_p;
-     }
-    else
-     {
-      m_p[PS1] = m_volume/m_capacity + out_p;
-     }
-
+    m_p[PS1] = m_gas / cur_c;
     if (pv1_open_fraction>0)
      {
-      m_p[PS0] = (in_p - m_p[PS1])*m_ps0_fraction + out_p;
+      m_p[PS0] = in_p + (m_p[PS1] - in_p)*m_ps0_fraction;
      }
     else m_p[PS0] = m_p[PS1]; // Should not be so abrupt, really.
     if (m_p[PS0] > m_overpressure)
      {
       // Overpressure valve kicking in
       double overv = ((m_p[PS0]-out_p)/m_v_resistance);
-      net_flow -= overv;
+      m_gas -= overv;
+      net_flow -= (overv/m_p[PS1]);
+      m_p[PS1] = m_gas / cur_c;
      }
-
+    if (m_p[PS0] < out_p)
+     {
+      // Negative pressure - relief valve kicking in
+      double new_gas = cur_c * out_p;
+      m_p[PS1] = new_gas / cur_c;
+      net_flow += (new_gas - m_gas)/m_p[PS1];
+     }
+    
     if (!(FW_TEST_gdevs[mvm_fw_gpio_devs::OUT_VALVE])) 
      {
       // Valve open.

@@ -4,7 +4,7 @@
  "start_tick": 0,
  "debug_level": 0,
  "ms_scale_factor": 1.0,
- "ms_wait_per_tick": 20,
+ "ms_wait_per_tick": 10,
  "end_ms": 100000,
  "initial_battery_charge": 90.0,
  "qtl_timelines" : [
@@ -21,8 +21,8 @@
     "value": 30
   },
   { "depth": 100, "name": "o2_concentration",
-    "start": 0, "end": 10000,
-    "expr": "70. - 0.005*t"
+    "start": 0, "end": 100000,
+    "expr": "70. - 0.0005*t"
   },
   { "depth": 90, "name": "wall_power",
     "start": 0, "end": 20000,
@@ -42,11 +42,11 @@
   },
   { "depth": 100, "name": "voltage_ref",
     "start": 0, "end": 100,
-    "expr": "2. + 0.2*cos(t/31.8)", "repeat": true
+    "expr": "2.5 + 0.01*cos(t/31.8)", "repeat": true
   },
   { "depth": 100, "name": "voltage_12v",
     "start": 0, "end": 100,
-    "expr": "12. + 0.15*cos(t/31.8)", "repeat": true
+    "expr": "12. + 1*cos(t/31.8)", "repeat": true
   },
   { "depth": 100, "name": "voltage_5v",
     "start": 0, "end": 100,
