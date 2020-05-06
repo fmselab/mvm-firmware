@@ -1,19 +1,24 @@
 language: cpp
 compiler:
- - gcc
+- gcc
 os:
- - linux
-
+- linux
 script:
- - cd MVMFirmwareUnitTests
- - make
-
+- pushd MVMFirmwareUnitTests
+- make
+- popd
+- ruby MVMFirmwareUnitTests/mvm_fw_test_run_scenarios.rb
+- git remote add ur_proj https://${GH_TOKEN}@github.com/fmselab/mvm-firmware.git
+- git commit --message "Travis build+test run: $TRAVIS_BUILD_NUMBER" scenarios/README.md
+- git push --quiet --set-upstream ur_proj master
 deploy:
   provider: s3
-  access_key_id: "21W3LO10AM9USM38MVV5"
-  secret_access_key: "Shb8jXu2A0pw92yVp9CgSV4ypfow4m40BmAe6Xs3"
+  access_key_id: 21W3LO10AM9USM38MVV5
+  secret_access_key: Shb8jXu2A0pw92yVp9CgSV4ypfow4m40BmAe6Xs3
   endpoint: https://rgw.fisica.unimi.it
-  bucket: "fwtartifacts"
-  file:
-    - "mvm_fw_unit_test_run"
-
+  bucket: fwtartifacts
+  skip_cleanup: true
+  local_dir: scenarios
+env:
+  global:
+    secure: CXSUZiDR2taBOQQK979p8IBlBG0/cgV/J69y/fGk//IliCjV240uE5MJm9evTwACtrA31dOS3Eq/W05tkomkNt+cIt1j0PT2C162fcHBeVb1EfsLeyYGObNp9mWio8bmvS02AHx2LxXzZ1qJisgI6MVeRDg/+DkgS4YxbjbWbOKeejk5x7YkpCXQcRLkJtJ/tazS995kk1PAEukCMLxqr2jjodK/WMGM6SAV9c/Jh2NIGcjSVlHTdP9dUBkSVLl5njni2h9I1UzAwoVBZr3CO361irrBXPLTOkTPOresv3hFS1oNW8TK8BGaIQMNeev/IRRzngUe7yQ4MJo2KA1nvCSFT7cuuuyw2en5wsEPRpbLKqNjdFsjV75MUhuTKDPQjLUVzj3FKCPJUIOqN4cpdpYj/W8FMr1cBHcPU2FblcBFIxAc0dxDnWHuh9x5U9uy26iLypB2vzs5p9YgI1RPbHbQSHM7B8B6m8Y7wDbaS6VC7uNw9q3PMOTh7gVKy1TpqMzfwljlp6ORE/7b70whM/wqsEH4BqFDP7ifC5VM42u9aw3lvGJbcSmG/bm9WP8FzxD+6nbwSdu1vxXJpky3ByA4N/dRn5QXZyKcONmk8Qk61t12NzwbDbQ+zJKI0jHqDLUKOBZJDBt+vYK0TbRG4bYGFXX+e8sgp4ghLGALQhk=
