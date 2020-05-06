@@ -40,8 +40,10 @@ jsons = Dir.glob(CSScenarioDir + "/**/*.json")
 
 gh = Mvm_Fw_Test_Gcov_Helper.new(CSHomeDir, "MVMFirmwareCore")
 
-tout = "<Table>\n<Tr><Td>Scenario Id</Td><Td>Description</Td>" +
-       "<Td>Covered reqs</Td><Td>Coverage</Td><Td>Result</Td></Tr>\n"
+tout = "<H1>MVM FW Scenario test results</H1>\n"
+tout << "<H2>as of: " + Time.now.strftime("%d/%m/%Y %H:%M") + "</H2>\n"
+tout << "<Table>\n<Tr><Td>Scenario Id</Td><Td>Description</Td>" +
+        "<Td>Covered reqs</Td><Td>Coverage</Td><Td>Result</Td></Tr>\n"
 
 retcode = 0
 
