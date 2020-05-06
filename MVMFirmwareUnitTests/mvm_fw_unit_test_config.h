@@ -356,9 +356,9 @@ mvm_fw_gpio_devs
     uint16_t get_pv1() const { return m_pv1_value; }
     double get_pv1_fraction() const
      {
-      // Fraction of *opening* of the valve. If the 'pipe open' value is
-      // zero, hopefully it works in this way. CHECKME
-      return (1.-(static_cast<double>(m_pv1_value) / 0xffff));
+      // Fraction of *opening* of the valve. Zero is valve *closed*
+      // (confirmed on 20200506) - which is also the initial valve status.
+      return ((static_cast<double>(m_pv1_value) / 0xffff));
      }
 
   private:
