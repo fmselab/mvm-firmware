@@ -67,7 +67,7 @@ jsons.each do |jsf|
 
   if (!system(CSCheckExe + " " + jsf))
     STDERR.puts "#{$0}: Error running #{CSCheckExe} on conf file #{jsf}." 
-    retcode++
+    retcode = retcode + 1
     next
   end
 
@@ -75,7 +75,7 @@ jsons.each do |jsf|
 
   if (!conf.key?(Cfkey))
     STDERR.puts "#{$0}: #{Cfkey} not defined in config file #{jsf}"
-    retcode++
+    retcode = retcode + 1
     next
   end
    
