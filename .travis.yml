@@ -8,10 +8,10 @@ script:
 - make
 - popd
 - ruby MVMFirmwareUnitTests/mvm_fw_test_run_scenarios.rb
-- git remote add ur_proj https://${GH_TOKEN}@github.com/fmselab/mvm-firmware.git
-- git add scenarios/README.md
+- git remote remove origin
+- git remote add origin  https://${GH_TOKEN}@github.com/fmselab/mvm-firmware.git
 - "git commit --message \"Travis build+test run: $TRAVIS_BUILD_NUMBER\" scenarios/README.md"
-- git push --quiet --set-upstream ur_proj master
+- git push --quiet origin master
 deploy:
   provider: s3
   access_key_id: 21W3LO10AM9USM38MVV5
