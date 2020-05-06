@@ -20,7 +20,7 @@
   },
   { "depth": 100, "name": "input_line_pressure",
     "start": 0, "end": 0,
-    "value": 30
+    "value": 40
   },
   { "depth": 100, "name": "o2_concentration",
     "start": 0, "end": 100,

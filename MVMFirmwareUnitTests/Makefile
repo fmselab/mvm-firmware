@@ -74,6 +74,6 @@ test_qtl: test_qtl.o; \
 gcov: mvm_fw_unit_test_run.gcda mvm_fw_unit_test_run.gcno ; \
     gcov $(MVM_FIRMWARE_OBJECTS)
 
-clean_gcov: ; /bin/rm -f *.gcov *.gcda *.gcno
+clean_gcov: ; /bin/rm -f *.gcov *.gcda 
 
 clean: clean_gcov ; /bin/rm -f *.o $(MVM_FW_TEST_EXECUTABLES);

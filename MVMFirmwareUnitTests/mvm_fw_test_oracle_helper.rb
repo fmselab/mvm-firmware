@@ -4,7 +4,7 @@
 
   File :     mvm_fw_test_oracle_helper.rb
 
-  Author :   Francesco Prelz ($Author: printmi $)
+  Author :   Francesco Prelz 
   e-mail :   "francesco.prelz@mi.infn.it"
 
   Revision history :

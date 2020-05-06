@@ -51,7 +51,7 @@ if (!rchk); exit 99 end
 if (conf.key?(ckey))
   require conf[ckey]
   eval "rchk = " + conf[ckey] + ".check(oh)"
-  ecal "p " + conf[ckey] + ".report"
+  eval "p " + conf[ckey] + ".report"
   if (!rchk); exit 98 end
 end
 
