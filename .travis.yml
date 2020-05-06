@@ -10,6 +10,10 @@ script:
 - ruby MVMFirmwareUnitTests/mvm_fw_test_run_scenarios.rb
 - git remote remove origin
 - git remote add origin  https://${GH_TOKEN}@github.com/fmselab/mvm-firmware.git
+- git remote show origin
+- mv scenarios/README.md README.md.SAVE
+- git checkout master
+- mv README.md.SAVE scenarios/README.md 
 - "git commit --message \"Travis build+test run: $TRAVIS_BUILD_NUMBER\" scenarios/README.md"
 - git push --quiet origin master
 deploy:
