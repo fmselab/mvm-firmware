@@ -9,7 +9,8 @@ script:
 - popd
 - ruby MVMFirmwareUnitTests/mvm_fw_test_run_scenarios.rb
 - git remote add ur_proj https://${GH_TOKEN}@github.com/fmselab/mvm-firmware.git
-- git commit --message "Travis build+test run: $TRAVIS_BUILD_NUMBER" scenarios/README.md
+|-
+git commit --message "Travis build+test run: ${TRAVIS_BUILD_NUMBER}" scenarios/README.md
 - git push --quiet --set-upstream ur_proj master
 deploy:
   provider: s3
