@@ -50,10 +50,10 @@ MWM_FW_TEST_OBJECTS =  SerialImpl.o \
 
 MVM_FW_TEST_EXECUTABLES = mvm_fw_unit_test_run
 
-all: $(MVM_FIRMWARE_OBJECTS) $(MWM_FW_TEST_OBJECTS) $(MVM_FW_TEST_EXECUTABLES) ;
+all: fw_board_ni_v4.h $(MVM_FIRMWARE_OBJECTS) $(MWM_FW_TEST_OBJECTS) \
+     $(MVM_FW_TEST_EXECUTABLES) ;
 
-mvm_fw_unit_test_run.o: mvm_fw_unit_test_run.cpp quantity_timelines.hpp \
-                        fw_board_ni_v4.h ;\
+mvm_fw_unit_test_run.o: mvm_fw_unit_test_run.cpp quantity_timelines.hpp ;\
    $(COMPILE.C) -D WITH_POSIX_PTS mvm_fw_unit_test_run.cpp
 
 fw_board_ni_v4.h: simulated_fw_board_v4.h ;\
