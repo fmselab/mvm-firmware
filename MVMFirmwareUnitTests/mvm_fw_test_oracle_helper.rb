@@ -299,20 +299,22 @@ class Mvm_Fw_Test_Oracle_Helper
     return ret
   end
 
-  def last_before_ts(type, ts)
+  def last_between_ts(type, start, bend)
     prev_e = nil;
     @rhsh[type].each do |e|
-      if ( e.t_ms > ts ); return prev_e end
-      prev_e = e
+      if ((bend != nil) && (e.t_ms > bend)); return prev_e end
+      if ((start == nil) || (e.t_ms >= start)); prev_e = e end
     end  
     return prev_e
   end
 
-  def next_after_ts(type, ts)
+  def first_between_ts(type, start, bend)
     prev_e = nil;
     @rhsh[type].each do |e|
-      if (e.t_ms >= ts)
-        if ((!prev_e) || ((prev_e) && (prev_e.t_ms < ts))); return e end
+      if ((start == nil) || (e.t_ms >= start))
+        if ((bend != nil) && (e.t_ms > bend)); last end
+        if ((!prev_e) || ((prev_e) && (prev_e.t_ms < start))); return e end
+        prev_e = e
       end
     end  
     return nil
@@ -362,64 +364,35 @@ class Mvm_Fw_Test_Oracle_Helper
         if (e.key?("min"))
           min = e["max"]
         end
-        if (e.key?("after"))
-          after_ts  = e["after"]
-          if (max)
-            pev = max_between_ts(evs, max, after_ts, nil)
-          elsif (min)
-            pev = min_between_ts(evs, min, after_ts, nil)
+        before_ts = nil
+        if (e.key?("before")); before_ts = e["before"] end
+        after_ts = nil
+        if (e.key?("after"));  after_ts  = e["after"] end
+        if (max)
+          pev = max_between_ts(evs, max, after_ts, before_ts)
+        elsif (min)
+          pev = min_between_ts(evs, min, after_ts, before_ts)
+        else
+          if (after_ts == nil) 
+            pev = last_between_ts(evs, after_ts, before_ts)
           else
-            pev = next_after_ts(evs, after_ts)
+            pev = first_between_ts(evs, after_ts, before_ts)
           end
-          if (!pev)
-            if (!want_never)
-              ret = false
-              @report << " - no event for <" + evs.to_s + 
-                         "> after t==" + after_ts.to_s
-            end
-            next
-          end
-          if ((pev) && (want_never))
+        end
+        if (!pev)
+          if (!want_never)
             ret = false
-            @report << " - found unwanted event for <" + evs.to_s + 
-                       "> after t==" + after_ts.to_s + ", at t==" +
-                       pev.t_ms.to_s
-            next
+            @report << " - no event for <" + evs.to_s + 
+                       "> after t==" + after_ts.to_s
           end
-          if (e.key?("before"))
-            before_ts = e["before"] 
-            if (before_ts && pev.t_ms > before_ts)
-              ret = false
-              @report << " - no event for <" + evs.to_s +
-                         "> after t==" + after_ts.to_s +
-                         " and before t==" + before_ts.to_s
-              next
-            end
-          end
-        elsif (e.key?("before"))
-          before_ts = e["before"] 
-          if (max)
-            pev = max_between_ts(evs, max, nil, before_ts)
-          elsif (min)
-            pev = min_between_ts(evs, min, nil, before_ts)
-          else
-            pev = last_before_ts(evs, before_ts)
-          end
-          if (!pev)
-            if (!want_never)
-              ret = false
-              @report << " - no event for <" + evs.to_s + 
-                         "> before t==" + before_ts.to_s
-            end
-            next
-          end
-          if ((pev) && (want_never))
-            ret = false
-            @report << " - found unwanted event for <" + evs.to_s + 
-                       "> after t==" + after_ts.to_s + ", at t==" +
-                       pev.t_ms.to_s
-            next
-          end
+          next
+        end
+        if ((pev) && (want_never))
+          ret = false
+          @report << " - found unwanted event for <" + evs.to_s + 
+                     "> after t==" + after_ts.to_s + ", at t==" +
+                     pev.t_ms.to_s
+          next
         end
         if (pev)
           reqs = e["reqs"] 

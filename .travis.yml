@@ -14,7 +14,7 @@ script:
 - mv scenarios/README.md README.md.SAVE
 - git checkout master
 - mv README.md.SAVE scenarios/README.md 
-- "git commit --message \"Travis build+test run: $TRAVIS_BUILD_NUMBER\" scenarios/README.md"
+- "git commit --message \"Travis build+test run: $TRAVIS_BUILD_NUMBER [ci skip]\" scenarios/README.md"
 - git push --quiet origin master
 deploy:
   provider: s3
