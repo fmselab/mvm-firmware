@@ -30,6 +30,7 @@ $LOAD_PATH.unshift CSHomeDir
 
 require 'json'
 require 'pp'
+require 'cgi'
 require 'mvm_fw_test_oracle_helper'
 require 'mvm_fw_test_gcov_helper'
 
@@ -40,7 +41,7 @@ jsons = Dir.glob(CSScenarioDir + "/**/*.json")
 gh = Mvm_Fw_Test_Gcov_Helper.new(CSHomeDir, "MVMFirmwareCore")
 
 tout = "<Table>\n<Tr><Td>Scenario Id</Td><Td>Description</Td>" +
-       "<Td>Covered reqs</Td><Td>Result</Td><Td>Coverage</Td></Tr>\n"
+       "<Td>Covered reqs</Td><Td>Coverage</Td><Td>Result</Td></Tr>\n"
 
 jsons.each do |jsf|
 
@@ -131,7 +132,7 @@ jsons.each do |jsf|
     tout << "<B><Font color=\"green\">PASSED</Font></B>"
   else
     tout << "<B><Font color=\"red\">FAILED</Font></B>"
-    tout << " (" + trep + ")"
+    tout << " (" + CGI.escapeHTML(trep) + ")"
   end
   tout << "</Td></Tr>\n"
   Dir.chdir(curdir)
