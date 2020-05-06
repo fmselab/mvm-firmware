@@ -6,6 +6,9 @@ The image is a Debian-based container, with an installation of [```arduino-cli``
 
 If you have *Docker* installed and running, you can build the firmware in the current directory with the command:
 
-    $ docker run -v `pwd`:/mnt prelz/mvm_fw_build mvm_fw_build.sh [FW version tag]
+    $ docker run -v $(pwd):/mnt prelz/mvm_fw_build mvm_fw_build.sh [FW version tag]
+
+
+On Windows please make sure that you enabled sharing of the current directory. Also, note that ```$(pwd)``` should work in *PowerShell* but not in *cmd* (use ```%cd%``` instead).
 
 If you want to play around with compilation options, you can either edit the script and rebuild the container image, or open a shell in the existing container and modify the script there (note that changes will be lost if you delete the container).
