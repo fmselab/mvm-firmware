@@ -43,6 +43,8 @@ gh = Mvm_Fw_Test_Gcov_Helper.new(CSHomeDir, "MVMFirmwareCore")
 tout = "<Table>\n<Tr><Td>Scenario Id</Td><Td>Description</Td>" +
        "<Td>Covered reqs</Td><Td>Coverage</Td><Td>Result</Td></Tr>\n"
 
+retcode = 0
+
 jsons.each do |jsf|
 
   tdir = File.dirname(jsf);
@@ -65,6 +67,7 @@ jsons.each do |jsf|
 
   if (!system(CSCheckExe + " " + jsf))
     STDERR.puts "#{$0}: Error running #{CSCheckExe} on conf file #{jsf}." 
+    retcode++
     next
   end
 
@@ -72,6 +75,7 @@ jsons.each do |jsf|
 
   if (!conf.key?(Cfkey))
     STDERR.puts "#{$0}: #{Cfkey} not defined in config file #{jsf}"
+    retcode++
     next
   end
    
@@ -100,7 +104,7 @@ jsons.each do |jsf|
   if (gh.gcov_files)
     gh.gcov_files.each do |f|
       if (!File.rename(File.join(CSHomeDir, f), File.join(Dir.pwd, f)))
-        STDERR.puts "#{$0}: moving #{f} to cur dir " + Dir.pwd
+        STDERR.puts "#{$0}: error moving #{f} to cur dir " + Dir.pwd
       end
     end
   end
@@ -143,4 +147,4 @@ File.open(File.join(CSScenarioDir, "README.md"), 'w') do |f|
   f.write(tout) 
 end
 
-exit 0
+exit retcode
