@@ -251,6 +251,14 @@ mvm_fw_unit_test_pflow::m_evolve(qtl_ms_t tf)
 double
 mvm_fw_unit_test_pflow::p_value(const std::string &name, qtl_ms_t t)
 {
+  double enable;
+  enable = FW_TEST_qtl_double.value(name+"_enable", FW_TEST_ms);
+  if (!std::isnan(enable) && (enable == 0)) return std::nan("");
+
+  double ovval;
+  ovval = FW_TEST_qtl_double.value(name+"_override", FW_TEST_ms);
+  if (!std::isnan(ovval)) return ovval;
+
   if (!m_inited) return std::nan("");
   m_evolve(t);
   if (m_last_ms < t) return std::nan("");
@@ -265,6 +273,14 @@ mvm_fw_unit_test_pflow::p_value(const std::string &name, qtl_ms_t t)
 double
 mvm_fw_unit_test_pflow::in_f_value(qtl_ms_t t)
 {
+  double enable;
+  enable = FW_TEST_qtl_double.value("in_flow_enable", FW_TEST_ms);
+  if (!std::isnan(enable) && (enable == 0)) return std::nan("");
+
+  double ovval;
+  ovval = FW_TEST_qtl_double.value("in_flow_override", FW_TEST_ms);
+  if (!std::isnan(ovval)) return ovval;
+
   if (!m_inited) return std::nan("");
   m_evolve(t);
   if (m_last_ms < t) return std::nan("");
@@ -274,10 +290,17 @@ mvm_fw_unit_test_pflow::in_f_value(qtl_ms_t t)
 double
 mvm_fw_unit_test_pflow::v_f_value(qtl_ms_t t)
 {
+  double enable;
+  enable = FW_TEST_qtl_double.value("venturi_flow_enable", FW_TEST_ms);
+  if (!std::isnan(enable) && (enable == 0)) return std::nan("");
+
+  double ovval;
+  ovval = FW_TEST_qtl_double.value("venturi_flow_override", FW_TEST_ms);
+  if (!std::isnan(ovval)) return ovval;
+
   if (!m_inited) return std::nan("");
   m_evolve(t);
   if (m_last_ms < t) return std::nan("");
   return (m_v_flow*60000); // liters per minute;
 }
-
 
