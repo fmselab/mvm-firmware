@@ -417,7 +417,7 @@ mvm_fw_unit_test_SENSIRION_SFM3019::m_update_measurement()
   if (m_last_mtick >= FW_TEST_tick) return true;
 
   int ret = true;
-  double freading = FW_TEST_pflow.f_value(FW_TEST_main_config.get_scaled_ms());
+  double freading = FW_TEST_pflow.in_f_value(FW_TEST_main_config.get_scaled_ms());
   if (std::isnan(freading))
    {
     m_flow_val = 0xffff;
@@ -425,8 +425,8 @@ mvm_fw_unit_test_SENSIRION_SFM3019::m_update_measurement()
    }
   else
    {
+    freading *= m_scale_factor;
     freading += m_offset;
-    freading += m_scale_factor;
     m_flow_val = static_cast<uint16_t>(freading);
    }
 

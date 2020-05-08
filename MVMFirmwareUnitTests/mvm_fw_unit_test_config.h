@@ -380,14 +380,16 @@ mvm_fw_unit_test_pflow
     ~mvm_fw_unit_test_pflow() {}
 
     void   init();
-    double p_value(const std::string &name, qtl_tick_t t);
-    double f_value(qtl_tick_t t);
+    double p_value(const std::string &name, qtl_ms_t t);
+    double in_f_value(qtl_ms_t t);
+    double v_f_value(qtl_ms_t t);
 
     enum p_sensors
      {
       PS0,
       PS1,
       PS2,
+      PS3,
       LAST_PS
      };
 
@@ -395,12 +397,14 @@ mvm_fw_unit_test_pflow
     bool m_inited;
     qtl_ms_t m_last_ms;
     void m_evolve(qtl_tick_t t);
-    double m_m_resistance, m_v_resistance;
-    double m_ps0_fraction, m_ps2_fraction;
+    double m_m_resistance, m_in_v_resistance, m_out_v_resistance;
+    double m_ps0_fraction, m_ps3_fraction;
     double m_overpressure;
     double m_capacity;
-    double m_gas;
-    double m_flow;
+    double m_gas, m_gas_old;
+    double m_in_flow, m_v_flow;
+    double m_old_c;
+    double m_venturi_flow_at_1_psi_drop;
     double m_p[LAST_PS];
 };
 

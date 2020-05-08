@@ -49,7 +49,7 @@ mvm_fw_unit_test_config::load_config(const std::string &conf_file)
     std::ostringstream ers;
     ers << "Error parsing configuration file "
         << conf_file << ": "
-        << rapidjson::GetParseError_En(pres.Code()) 
+        << rapidjson::GetParseError_En(pres.Code())
         << " Offset: " << pres.Offset() << ".";
     m_error_string = ers.str();
     return false;
@@ -93,7 +93,6 @@ mvm_fw_unit_test_config::load_command_timeline(mvm_fw_test_cmds_t &ctl,
 void
 mvm_fw_unit_test_pflow::init()
 {
-  m_flow = 0.;
   m_last_ms = FW_TEST_ms;
 
   if (!FW_TEST_main_config.get_number<double>("pflow_capacity",
@@ -103,44 +102,58 @@ mvm_fw_unit_test_pflow::init()
                      //  - carefully researched figure.
    }
 
-  if (!FW_TEST_main_config.get_number<double>("pflow_valve_resistance",
-                                               m_v_resistance))
+  if (!FW_TEST_main_config.get_number<double>("pflow_in_valve_resistance",
+                                               m_in_v_resistance))
    {
-    m_v_resistance = 10.; // 1/section of inlet, fundamentally. 
+    m_in_v_resistance = 5000.;
+   }
+  if (!FW_TEST_main_config.get_number<double>("pflow_out_valve_resistance",
+                                               m_out_v_resistance))
+   {
+    m_out_v_resistance = 1000.;
    }
   if (!FW_TEST_main_config.get_number<double>("pflow_mouth_resistance",
                                                m_m_resistance))
    {
-    m_m_resistance = 2; // 1/section of mouth, fundamentally. 
+    m_m_resistance = 3000.;
    }
   if (!FW_TEST_main_config.get_number<double>("overpressure_valve_setting",
                                                m_overpressure))
    {
-    m_overpressure = 100.; // arbitrary default - FIXME
+    m_overpressure = 80.; // arbitrary default - FIXME
    }
   if (!FW_TEST_main_config.get_number<double>("ps0_fraction",
                                                m_ps0_fraction))
    {
-    m_ps0_fraction = 0.1; // trying to estimate the pressure fall at PS0
+    m_ps0_fraction = 1.2; // trying to estimate the pressure rise at PS0
    }
-  if (!FW_TEST_main_config.get_number<double>("ps2_fraction",
-                                               m_ps2_fraction))
+  if (!FW_TEST_main_config.get_number<double>("venturi_flow_at_1_psi_drop",
+                                               m_venturi_flow_at_1_psi_drop))
    {
-    m_ps2_fraction = 0.1; // trying to estimate the pressure fall at PS2
+    m_venturi_flow_at_1_psi_drop = 33.7; // Crudely assume it's linear.
+   }
+  if (!FW_TEST_main_config.get_number<double>("ps3_fraction",
+                                               m_ps3_fraction))
+   {
+    m_ps3_fraction = 0.9; // trying to estimate the pressure fall at PS3
    }
    double cur_p = FW_TEST_qtl_double.value("env_pressure",FW_TEST_ms);
-   m_flow = 0;
+   m_in_flow = 0;
+   m_v_flow = 0;
    m_p[PS0] = cur_p;
    m_p[PS1] = cur_p;
-   m_p[PS2] = cur_p;
-   double init_pat_c = FW_TEST_qtl_double.value("patient_capacity",FW_TEST_ms);
-   if (std::isnan(init_pat_c))
+   m_p[PS2] = 0; // Venturi deltaP
+   m_p[PS3] = cur_p;
+   m_old_c = FW_TEST_qtl_double.value("patient_capacity",FW_TEST_ms);
+   if (std::isnan(m_old_c))
     {
      m_gas = m_capacity * cur_p; // Atmospheric pressure level. Gas const == 1
+     m_old_c = m_capacity;
     }
    else
     {
-     m_gas = (m_capacity + init_pat_c) * cur_p; 
+     m_old_c += m_capacity;
+     m_gas = m_old_c * cur_p;
     }
    m_inited = true;
 }
@@ -148,7 +161,8 @@ mvm_fw_unit_test_pflow::init()
 void
 mvm_fw_unit_test_pflow::m_evolve(qtl_ms_t tf)
 {
-  double net_flow = 0.;
+  double net_in_flow = 0.;
+  double net_v_flow = 0.;
   if (tf <= m_last_ms) return;
 
   // Just a crude finite-difference evolution to establish
@@ -156,6 +170,8 @@ mvm_fw_unit_test_pflow::m_evolve(qtl_ms_t tf)
   double in_p, out_p, pat_c, cur_c;
   for (qtl_ms_t t = m_last_ms+1; t<=tf; ++t)
    {
+    double cur_v_flow  = (m_v_flow * (tf-t) + net_v_flow)
+                         / static_cast<double>(tf - m_last_ms);
     in_p = FW_TEST_qtl_double.value("input_line_pressure",t);
     out_p = FW_TEST_qtl_double.value("env_pressure",t);
     // the effect of autonomous breathing is an increase in
@@ -164,61 +180,71 @@ mvm_fw_unit_test_pflow::m_evolve(qtl_ms_t tf)
     pat_c = FW_TEST_qtl_double.value("patient_capacity",t);
     if (!std::isnan(pat_c)) cur_c += pat_c;
 
-    // admit some volume if input valve open 
+    // admit some volume of gas if input valve open
     double pv1_open_fraction = FW_TEST_gdevs.get_pv1_fraction();
     if ((pv1_open_fraction > 0) && (in_p > m_p[PS0]))
      {
-      double inlet = ((in_p-m_p[PS0])/m_v_resistance)*
-                     (FW_TEST_gdevs.get_pv1_fraction());
+      double inlet = ((in_p-m_p[PS0])/m_in_v_resistance)*
+                     (FW_TEST_gdevs.get_pv1_fraction()); // per 1 ms
       m_gas += inlet;
-      net_flow += (inlet/m_p[PS1]); 
+      net_in_flow += (inlet/m_p[PS1]);
+      net_v_flow += (inlet/m_p[PS1]);
      }
-    // expel some volume if output valve open 
+    // expel some volume if output valve open
     // Valve FALSE is open and TRUE is closed...
-    if ((!FW_TEST_gdevs[mvm_fw_gpio_devs::OUT_VALVE]) && (m_p[PS2] > out_p))
+    if ((!FW_TEST_gdevs[mvm_fw_gpio_devs::OUT_VALVE]) && (m_p[PS3] > out_p))
      {
-      m_gas -= ((m_p[PS2]-out_p)/m_v_resistance);
+      double outlet = ((m_p[PS3]-out_p)/m_out_v_resistance); // per 1 ms
+      m_gas -= outlet;
+      net_v_flow -= (outlet/m_p[PS1]);
      }
-    m_p[PS1] = m_gas / cur_c;
+    m_p[PS1] = m_gas / cur_c + cur_v_flow * m_m_resistance;
     if (pv1_open_fraction>0)
      {
-      m_p[PS0] = in_p + (m_p[PS1] - in_p)*m_ps0_fraction;
+      m_p[PS0] = m_p[PS1]*(1 + (m_ps0_fraction-1)*pv1_open_fraction);
      }
-    else m_p[PS0] = m_p[PS1]; // Should not be so abrupt, really.
+    else m_p[PS0] = m_p[PS1];
     if (m_p[PS0] > m_overpressure)
      {
       // Overpressure valve kicking in
-      double overv = ((m_p[PS0]-out_p)/m_v_resistance);
+      double overv = ((m_p[PS0]-out_p)/m_out_v_resistance); // per 1 ms
       m_gas -= overv;
-      net_flow -= (overv/m_p[PS1]);
-      m_p[PS1] = m_gas / cur_c;
+      net_v_flow -= (overv/m_p[PS1]);
      }
-    if (m_p[PS0] < out_p)
+    if ((FW_TEST_gdevs[mvm_fw_gpio_devs::OUT_VALVE]) && (m_p[PS0] < out_p))
      {
-      // Negative pressure - relief valve kicking in
-      double new_gas = cur_c * out_p;
-      m_p[PS1] = new_gas / cur_c;
-      net_flow += (new_gas - m_gas)/m_p[PS1];
+      // Negative pressure && out_valve closed - relief valve kicking in
+      double inlet = ((out_p-m_p[PS0])/m_out_v_resistance); // per 1 ms
+      m_gas += inlet;
+      net_in_flow += (inlet/m_p[PS1]);
+      net_v_flow += (inlet/m_p[PS1]);
      }
-    
-    if (!(FW_TEST_gdevs[mvm_fw_gpio_devs::OUT_VALVE])) 
+
+    if (!(FW_TEST_gdevs[mvm_fw_gpio_devs::OUT_VALVE]))
      {
       // Valve open.
-      m_p[PS2] = (m_p[PS1] - out_p)*m_ps2_fraction + out_p;
+      m_p[PS3] = (m_p[PS1] - out_p)*m_ps3_fraction + out_p;
      }
     else
      {
-      m_p[PS2] = m_p[PS1]; // Should not be so abrupt, really.
+      m_p[PS3] = m_p[PS1]; // Should not be so abrupt, really.
      }
    }
 
-  m_flow = net_flow / static_cast<double>(tf - m_last_ms) * 1000; // cm**3
+  net_v_flow += (m_old_c - cur_c); // liters
+  m_old_c = cur_c;
+  m_in_flow = net_in_flow / static_cast<double>(tf - m_last_ms);
+  m_v_flow  = net_v_flow / static_cast<double>(tf - m_last_ms);
+  // Estimate Venturi deltaP in PSI per liters/minute at first order.
+  m_p[PS2] = (m_v_flow*60000.)  / m_venturi_flow_at_1_psi_drop;
 
 #ifdef DEBUG
-  std::cerr << "DEBUG: tck:" << FW_TEST_tick << ", pin:" << in_p 
-            << ", p0:" << m_p[PS0] << ", p1:" 
-            << m_p[PS1] << ", p2:" << m_p[PS2] << ", pout:" << out_p
-            << " flow:" << m_flow << std::endl;
+  std::cerr << "DEBUG: ms:" << FW_TEST_ms << ", pin:" << in_p
+            << ", p0:" << m_p[PS0] << ", p1:"
+            << m_p[PS1] << ", p2:" << m_p[PS2]
+            << ", p3:" << m_p[PS3] << ", pout:" << out_p
+            << " in_flow:" << m_in_flow
+            << " v_flow:" << m_v_flow << std::endl;
 #endif
 
   m_last_ms = tf;
@@ -237,11 +263,21 @@ mvm_fw_unit_test_pflow::p_value(const std::string &name, qtl_ms_t t)
 }
 
 double
-mvm_fw_unit_test_pflow::f_value(qtl_ms_t t)
+mvm_fw_unit_test_pflow::in_f_value(qtl_ms_t t)
 {
   if (!m_inited) return std::nan("");
   m_evolve(t);
   if (m_last_ms < t) return std::nan("");
-  return m_flow;
+  return (m_in_flow*60000); // liters per minute;
 }
+
+double
+mvm_fw_unit_test_pflow::v_f_value(qtl_ms_t t)
+{
+  if (!m_inited) return std::nan("");
+  m_evolve(t);
+  if (m_last_ms < t) return std::nan("");
+  return (m_v_flow*60000); // liters per minute;
+}
+
 
