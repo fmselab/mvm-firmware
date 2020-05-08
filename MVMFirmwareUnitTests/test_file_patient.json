@@ -1,7 +1,6 @@
 {
  "SerialTTY": "/tmp/test_file_patient.out",
  "LogFile": "/tmp/mvm_fw_ut.log",
- "start_tick": 0,
  "debug_level": 5,
  "ms_scale_factor": 3,
  "ms_wait_per_tick": 20,
