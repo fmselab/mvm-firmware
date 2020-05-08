@@ -194,7 +194,7 @@ class mvm_fw_unit_test_config
       int nsec_d = now.tv_nsec - m_start_time.tv_nsec;
       if (nsec_d < 0)
        {
-        --(ret.tv_nsec);
+        --(ret.tv_sec);
         ret.tv_nsec = nsec_d + 1000000000;
        }
       else ret.tv_nsec = nsec_d;
