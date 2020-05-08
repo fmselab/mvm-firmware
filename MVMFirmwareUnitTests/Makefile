@@ -71,6 +71,9 @@ mvm_fw_unit_test_run: $(MWM_FW_TEST_OBJECTS) $(MVM_FIRMWARE_OBJECTS); \
 test_qtl: test_qtl.o; \
     $(LINK.C) -o $@ test_qtl.o
 
+test_pflow: test_pflow.o mvm_fw_unit_test_config.o; \
+    $(LINK.C) -o $@ test_pflow.o mvm_fw_unit_test_config.o
+
 gcov: mvm_fw_unit_test_run.gcda mvm_fw_unit_test_run.gcno ; \
     gcov $(MVM_FIRMWARE_OBJECTS)
 

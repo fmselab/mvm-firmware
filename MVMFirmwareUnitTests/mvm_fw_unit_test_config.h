@@ -398,12 +398,11 @@ mvm_fw_unit_test_pflow
     qtl_ms_t m_last_ms;
     void m_evolve(qtl_tick_t t);
     double m_m_resistance, m_in_v_resistance, m_out_v_resistance;
-    double m_ps0_fraction, m_ps3_fraction;
-    double m_overpressure;
+    double m_overpressure, m_peep;
     double m_capacity;
     double m_gas, m_gas_old;
     double m_in_flow, m_v_flow;
-    double m_old_c;
+    double m_cur_p, m_old_c;
     double m_venturi_flow_at_1_psi_drop;
     double m_p[LAST_PS];
 };
