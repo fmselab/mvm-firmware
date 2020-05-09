@@ -395,6 +395,7 @@ class Mvm_Fw_Test_Oracle_Helper
           next
         end
         if (pev)
+          if (!e.key?("reqs")); next end
           reqs = e["reqs"] 
           reqs.each do |r|
             if ((v = pev.val(r["attr"])) == nil)
