@@ -16,11 +16,11 @@
   },
   { "depth": 100, "name": "env_pressure",
     "start": 0, "end": 100,
-    "expr": "10. + 1.*cos(t/318.)", "repeat": true
+    "expr": "984. + 5.*cos(t/3180.)", "repeat": true
   },
   { "depth": 100, "name": "input_line_pressure",
     "start": 0, "end": 0,
-    "value": 40
+    "value": 3000
   },
   { "depth": 100, "name": "o2_concentration",
     "start": 0, "end": 100,

@@ -238,7 +238,7 @@ mvm_fw_gpio_devs
       uint32_t pv1_init; // RapidJSON doesn't handle 16-bit types.
       if (!FW_TEST_main_config.get_number<uint32_t>("PV1_init", pv1_init))
        {
-        m_pv1_value = 0; // Default: start w/ valve open.
+        m_pv1_value = 0; // Default: start w/ valve closed.
        }
       else m_pv1_value = static_cast<uint16_t>(pv1_init);
 
@@ -384,6 +384,11 @@ mvm_fw_unit_test_pflow
     double in_f_value(qtl_ms_t t);
     double v_f_value(qtl_ms_t t);
 
+    double get_venturi_linear_coefficient() const
+     {
+      return m_venturi_flow_at_1_psi_drop;
+     }
+
     enum p_sensors
      {
       PS0,
@@ -399,8 +404,8 @@ mvm_fw_unit_test_pflow
     void m_evolve(qtl_tick_t t);
     double m_m_resistance, m_in_v_resistance, m_out_v_resistance;
     double m_overpressure, m_peep;
-    double m_capacity;
-    double m_gas, m_gas_old;
+    double m_capacity, m_lung_max_capacity, m_lung_k;
+    double m_gas, m_gas_rest, m_gas_old;
     double m_in_flow, m_v_flow;
     double m_cur_p, m_old_c;
     double m_venturi_flow_at_1_psi_drop;

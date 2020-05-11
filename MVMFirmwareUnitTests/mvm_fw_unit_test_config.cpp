@@ -102,15 +102,27 @@ mvm_fw_unit_test_pflow::init()
                      //  - carefully researched figure.
    }
 
+  if (!FW_TEST_main_config.get_number<double>("pflow_lung_k",
+                                              m_lung_k))
+   {
+    m_lung_k = 1/50.;
+   }
+
+  if (!FW_TEST_main_config.get_number<double>("pflow_lung_max_capacity",
+                                              m_lung_max_capacity))
+   {
+    m_lung_max_capacity = 0.6;
+   }
+
   if (!FW_TEST_main_config.get_number<double>("pflow_in_valve_resistance",
                                                m_in_v_resistance))
    {
-    m_in_v_resistance = 10.;
+    m_in_v_resistance = 0.6;
    }
   if (!FW_TEST_main_config.get_number<double>("pflow_out_valve_resistance",
                                                m_out_v_resistance))
    {
-    m_out_v_resistance = 1.;
+    m_out_v_resistance = 0.003;
    }
   if (!FW_TEST_main_config.get_number<double>("pflow_mouth_resistance",
                                                m_m_resistance))
@@ -150,6 +162,7 @@ mvm_fw_unit_test_pflow::init()
      m_old_c += m_capacity;
      m_gas = m_old_c * m_cur_p;
     }
+   m_gas_rest = m_gas;
    m_inited = true;
 }
 
@@ -174,6 +187,13 @@ mvm_fw_unit_test_pflow::m_evolve(qtl_ms_t tf)
     cur_c = m_capacity;
     pat_c = FW_TEST_qtl_double.value("patient_capacity",t);
     if (!std::isnan(pat_c)) cur_c += pat_c;
+    else
+     {
+      double inflation_fraction = (m_lung_k*(m_gas - m_gas_rest));
+      if (inflation_fraction < 0) inflation_fraction = 0;
+      if (inflation_fraction > 1) inflation_fraction = 1;
+      cur_c += m_lung_max_capacity * inflation_fraction;
+     }
 
     // admit some volume of gas if input valve open
     double pv1_open_fraction = FW_TEST_gdevs.get_pv1_fraction();
@@ -182,6 +202,7 @@ mvm_fw_unit_test_pflow::m_evolve(qtl_ms_t tf)
       double inlet = ((in_p-m_p[PS0])/m_in_v_resistance)*
                      (FW_TEST_gdevs.get_pv1_fraction()) / 1000.; // per 1 ms
       m_gas += inlet;
+      inlet /= m_p[PS1];
       net_in_flow += inlet;
       net_v_flow += inlet;
      }
@@ -189,8 +210,9 @@ mvm_fw_unit_test_pflow::m_evolve(qtl_ms_t tf)
     // Valve FALSE is open and TRUE is closed...
     if (!FW_TEST_gdevs[mvm_fw_gpio_devs::OUT_VALVE])
      {
-      double exch = ((m_cur_p - m_p[PS1])/m_out_v_resistance) / 1000.; // per 1 ms
+      double exch = ((m_cur_p + m_peep - m_p[PS1])/m_out_v_resistance) / 1000.; // per 1 ms
       m_gas += exch;
+      exch /= m_p[PS1];
       net_v_flow += exch;
      }
     m_p[PS1] = m_gas / cur_c + cur_v_flow * m_m_resistance;
@@ -205,6 +227,7 @@ mvm_fw_unit_test_pflow::m_evolve(qtl_ms_t tf)
       // Overpressure valve kicking in
       double overv = ((m_p[PS0]-m_cur_p)/m_out_v_resistance) / 1000.; // per 1 ms
       m_gas -= overv;
+      overv /= m_p[PS1];
       net_in_flow -= overv;
       net_v_flow -= overv;
      }
@@ -213,8 +236,9 @@ mvm_fw_unit_test_pflow::m_evolve(qtl_ms_t tf)
       // Negative pressure && out_valve closed - relief valve kicking in
       double inlet = ((m_cur_p-m_p[PS0])/m_out_v_resistance) / 1000.; // per 1 ms
       m_gas += inlet;
+      inlet /= m_p[PS1];
       net_in_flow += inlet;
-      net_v_flow += m_p[PS1];
+      net_v_flow += inlet;
      }
 
     if (!(FW_TEST_gdevs[mvm_fw_gpio_devs::OUT_VALVE]))
@@ -228,7 +252,7 @@ mvm_fw_unit_test_pflow::m_evolve(qtl_ms_t tf)
      }
    }
 
-  net_v_flow += (m_old_c - cur_c); // liters
+  if (!std::isnan(pat_c)) net_v_flow += (m_old_c - cur_c); // liters
   m_old_c = cur_c;
   m_in_flow = net_in_flow / static_cast<double>(tf - m_last_ms);
   m_v_flow  = net_v_flow / static_cast<double>(tf - m_last_ms);
@@ -236,6 +260,12 @@ mvm_fw_unit_test_pflow::m_evolve(qtl_ms_t tf)
   m_p[PS2] = (m_v_flow*60000.)  / m_venturi_flow_at_1_psi_drop;
 
 #ifdef DEBUG
+  std::cerr << "DEBUG: deltaT:" << (tf - m_last_ms) << ", net_in_flow:"
+            << net_in_flow << ", net_v_flow:" << net_v_flow
+            << ", m_p[PS2]:" << m_p[PS2]
+            << ", m_in_flow:" << m_in_flow << " x60k:" << (m_in_flow*60000)
+            << ", m_v_flow:" << m_v_flow << std::endl;
+  std::cerr << "DEBUG: m_gas:" << m_gas << ", cur_c:" << cur_c << std::endl;
   std::cerr << "DEBUG: ms:" << FW_TEST_ms << ", pin:" << in_p
             << ", p0:" << m_p[PS0] << ", p1:"
             << m_p[PS1] << ", p2:" << m_p[PS2]

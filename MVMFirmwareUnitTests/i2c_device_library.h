@@ -149,6 +149,7 @@ mvm_fw_unit_test_SENSIRION_SFM3019: public simulated_i2c_device
     int16_t m_flow_val, m_temp_val, m_offset;
     const uint32_t m_product_number = 0x04020611;
     const uint64_t m_serial_number  = 2020123456;
+    double m_freading, m_treading;
 
     return_word_container_t m_retc;
 
@@ -160,6 +161,7 @@ mvm_fw_unit_test_SENSIRION_SFM3019: public simulated_i2c_device
       m_status_word = 0x3ff;
       m_scale_factor = 170;
       m_offset = -24576;
+      m_freading = m_treading = 0.;
      }
 
     bool m_update_measurement();

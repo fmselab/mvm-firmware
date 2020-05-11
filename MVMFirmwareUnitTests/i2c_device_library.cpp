@@ -288,7 +288,7 @@ mvm_fw_unit_test_SENSIRION_SFM3019::handle_command(uint8_t cmd,
       else m_retc.push_back(r);
       msg << "flow: [" << std::hex << m_flow_val << "], temp: ["
           << m_temp_val << "], status: [" << m_status_word
-          << "].";
+          << "] Flow_in == " << m_freading << ".";
      }
    }
   else if ((cmd == 0x36) && (wlength >= 1))
@@ -417,28 +417,28 @@ mvm_fw_unit_test_SENSIRION_SFM3019::m_update_measurement()
   if (m_last_mtick >= FW_TEST_tick) return true;
 
   int ret = true;
-  double freading = FW_TEST_pflow.in_f_value(FW_TEST_main_config.get_scaled_ms());
-  if (std::isnan(freading))
+  m_freading = FW_TEST_pflow.in_f_value(FW_TEST_main_config.get_scaled_ms());
+  if (std::isnan(m_freading))
    {
-    m_flow_val = 0xffff;
+    m_flow_val = 0x7fff;
     ret = false;
    }
   else
    {
-    freading *= m_scale_factor;
-    freading += m_offset;
-    m_flow_val = static_cast<uint16_t>(freading);
+    double cread = m_freading * m_scale_factor;
+    cread       += m_offset;
+    m_flow_val = static_cast<int16_t>(cread);
    }
 
-  double treading = FW_TEST_qtl_double.value(m_name + "_temperature",FW_TEST_ms);
-  if (std::isnan(treading))
+  m_treading = FW_TEST_qtl_double.value(m_name + "_temperature",FW_TEST_ms);
+  if (std::isnan(m_treading))
    {
-    treading = FW_TEST_qtl_double.value("env_temperature",FW_TEST_ms);
+    m_treading = FW_TEST_qtl_double.value("env_temperature",FW_TEST_ms);
    }
 
-  if (!std::isnan(treading))
+  if (!std::isnan(m_treading))
    {
-    m_temp_val = static_cast<uint16_t>(treading * 200.);
+    m_temp_val = static_cast<uint16_t>(m_treading * 200.);
    }
   else
    {
@@ -555,6 +555,10 @@ mvm_fw_unit_test_Supervisor::m_update()
 
   double cval;
   cval = FW_TEST_qtl_double.value("supervisor_pin",FW_TEST_ms);
+  if (std::isnan(cval))
+   {
+    cval = FW_TEST_qtl_double.value("input_line_pressure",FW_TEST_ms);
+   }
   if (!std::isnan(cval))
    {
     m_pin = static_cast<float>(cval);
