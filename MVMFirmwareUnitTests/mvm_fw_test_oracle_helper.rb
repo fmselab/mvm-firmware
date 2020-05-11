@@ -70,9 +70,9 @@ class Mvm_Fw_Test_Log_Event
                    :alarm_led   => Regexp.new('GPIO *- *DEVS *- *ALARM_LED'),
                    :alarm_relay => Regexp.new('GPIO *- *DEVS *- *ALARM_RELAY'),
                    :pv1         => Regexp.new('GPIO *- *DEVS *- *PV1'),
-                   :ps0         => Regexp.new('MS5525DSO *- *PS0.*D[12] Setup'),
-                   :ps1         => Regexp.new('MS5525DSO *- *PS1.*D[12] Setup'),
-                   :ps2         => Regexp.new('MS5525DSO *- *PS2.*D[12] Setup')
+                   :pi3         => Regexp.new('MS5525DSO *- *PI3.*D[12] Setup'),
+                   :pi2         => Regexp.new('MS5525DSO *- *PI2.*D[12] Setup'),
+                   :pi1         => Regexp.new('MS5525DSO *- *PI1.*D[12] Setup')
                  }
 
   def <=>(other)
