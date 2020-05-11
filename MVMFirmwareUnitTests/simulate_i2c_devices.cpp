@@ -25,7 +25,7 @@ simulate_i2c_devices::init_hw(const test_hardware_t &hwl)
 
     if (it->second.first == TEST_TE_MS5525DSO)
      {
-      if (it->second.second == "PS0")
+      if (it->second.second == "PI3")
         nd = new mvm_fw_unit_test_TE_MS5525DSO(pp005GS, it->second.second, DebugIface);
       else
         nd = new mvm_fw_unit_test_TE_MS5525DSO(pp001DS, it->second.second, DebugIface); 
