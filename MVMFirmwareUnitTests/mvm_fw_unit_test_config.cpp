@@ -235,7 +235,6 @@ mvm_fw_unit_test_pflow::m_evolve(qtl_ms_t tf)
   // Estimate Venturi deltaP in PSI per liters/minute at first order.
   m_p[PS2] = (m_v_flow*60000.)  / m_venturi_flow_at_1_psi_drop;
 
-#define DEBUG 1
 #ifdef DEBUG
   std::cerr << "DEBUG: ms:" << FW_TEST_ms << ", pin:" << in_p
             << ", p0:" << m_p[PS0] << ", p1:"
