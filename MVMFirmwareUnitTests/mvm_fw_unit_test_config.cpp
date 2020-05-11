@@ -196,8 +196,7 @@ mvm_fw_unit_test_pflow::m_evolve(qtl_ms_t tf)
 
     // admit some volume of gas if input valve open
     double pv1_open_fraction = FW_TEST_gdevs.get_pv1_fraction();
-    if ((!FW_TEST_gdevs[mvm_fw_gpio_devs::BREATHE]) && // Valve open.
-        ((pv1_open_fraction > 0) && (in_p > m_p[PI3])))
+    if ((pv1_open_fraction > 0) && (in_p > m_p[PI3]))
      {
       double inlet = ((in_p-m_p[PI3])/m_in_v_resistance)*
                      (FW_TEST_gdevs.get_pv1_fraction()) / 1000.; // per 1 ms
@@ -216,8 +215,7 @@ mvm_fw_unit_test_pflow::m_evolve(qtl_ms_t tf)
       net_v_flow += exch;
      }
     m_p[PI2] = m_gas / cur_c + cur_v_flow * m_m_resistance;
-    if ((!FW_TEST_gdevs[mvm_fw_gpio_devs::BREATHE]) && // Valve open.
-        (pv1_open_fraction>0))
+    if (pv1_open_fraction>0)
      {
       m_p[PI3] = m_p[PI2] +
             (net_in_flow/t)*m_in_v_resistance*FW_TEST_gdevs.get_pv1_fraction();
