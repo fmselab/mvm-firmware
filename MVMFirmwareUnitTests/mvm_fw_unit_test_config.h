@@ -391,10 +391,9 @@ mvm_fw_unit_test_pflow
 
     enum p_sensors
      {
-      PS0,
-      PS1,
-      PS2,
-      PS3,
+      PI3,
+      PI2,
+      PI1,
       LAST_PS
      };
 

@@ -48,17 +48,17 @@ HW_V4::Init()
   sim_i2c_devaddr dadd;
   dadd.muxport = 0; dadd.address = 0x76;
   FW_TEST_hardware.insert(std::make_pair(dadd,
-                          std::make_pair(TEST_TE_MS5525DSO, "PS0")));
+                          std::make_pair(TEST_TE_MS5525DSO, "PI3")));
   m_dev_addrs.insert(std::make_pair(IIC_PS_0, dadd));
 
   dadd.muxport = 0; dadd.address = 0x77;
   FW_TEST_hardware.insert(std::make_pair(dadd,
-                          std::make_pair(TEST_TE_MS5525DSO, "PS1")));
+                          std::make_pair(TEST_TE_MS5525DSO, "PI2")));
   m_dev_addrs.insert(std::make_pair(IIC_PS_1, dadd));
 
   dadd.muxport = 1; dadd.address = 0x76;
   FW_TEST_hardware.insert(std::make_pair(dadd,
-                          std::make_pair(TEST_TE_MS5525DSO, "PS2")));
+                          std::make_pair(TEST_TE_MS5525DSO, "PI1")));
   m_dev_addrs.insert(std::make_pair(IIC_PS_2, dadd));
 
   dadd.muxport = 1; dadd.address = 0x2e;
