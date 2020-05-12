@@ -23,9 +23,13 @@
 #include <map>
 #include <stdint.h> // <cstdint> is C++11.
 
+#ifdef JSON_INSTEAD_OF_YAML
 #include <rapidjson/document.h>
 #include <rapidjson/error/en.h> 
 #include <rapidjson/istreamwrapper.h>
+#else
+#include <yaml-cpp/yaml.h>
+#endif
 
 #include <exprtk.hpp>
 
@@ -433,8 +437,13 @@ class quantity_timelines
 
     void initialize(const char *config_filename,
                     const char *head_el=default_head_el);
+#ifdef JSON_INSTEAD_OF_YAML
     void initialize(const rapidjson::Document &d,
                     const char *head_el=default_head_el);
+#else
+    void initialize(const YAML::Node &n,
+                    const char *head_el=default_head_el);
+#endif
 
     bool parse_ok() const { return m_parse_ok; }
     int  count() const { return m_count; }
@@ -475,29 +484,46 @@ quantity_timelines<TNUM>::initialize(const char *config_filename,
   std::ifstream ifs(config_filename);
   if (!ifs.good()) return;
 
+#ifdef JSON_INSTEAD_OF_YAML
   rapidjson::IStreamWrapper isw(ifs);
  
   rapidjson::Document d;
   rapidjson::ParseResult pres = d.ParseStream(isw);
   if (pres)
+#else
+  YAML::Node d = YAML::Load(ifs);
+  if (d)
+#endif
    {
     initialize(d, head_el);
    }
   else
    {
       std::cerr << "DEBUG: Parse Error! " 
+#ifdef JSON_INSTEAD_OF_YAML
                 << rapidjson::GetParseError_En(pres.Code())
+#endif
                 << std::endl;
    }
 }
 
 template<typename TNUM>
 void
+#ifdef JSON_INSTEAD_OF_YAML
 quantity_timelines<TNUM>::initialize(const rapidjson::Document &d, const char *head_el)
+#else
+quantity_timelines<TNUM>::initialize(const YAML::Node &n, const char *head_el)
+#endif
 {
+#ifdef JSON_INSTEAD_OF_YAML
   if (d.HasMember(head_el))
+#else
+  YAML::Node a;
+  if (a = n[head_el])
+#endif
    {
     m_parse_ok = true;
+#ifdef JSON_INSTEAD_OF_YAML
     const rapidjson::Value& a(d[head_el]);
     if (!a.IsArray()) return;
     for (rapidjson::SizeType i = 0; i < a.Size(); i++)
@@ -516,7 +542,15 @@ quantity_timelines<TNUM>::initialize(const rapidjson::Document &d, const char *h
           std::cerr << itr->name.GetString() << ": "  <<  itr->value.GetFloat();
         std::cerr << std::endl;
        }
-#endif
+#endif // DEBUG
+#else //!JSON_INSTEAD_OF_YAML
+    if (!a.IsSequence()) return;
+    for (int i = 0; i < a.size(); i++)
+     {
+      YAML::Node m(a[i]); 
+      if ((!m) || (!m.IsMap())) continue;
+#endif //!JSON_INSTEAD_OF_YAML
+#ifdef JSON_INSTEAD_OF_YAML
       if (!m.HasMember("name")) continue;
       if (!m.HasMember("start")) continue;
       const rapidjson::Value& vnam(m["name"]); 
@@ -606,6 +640,82 @@ quantity_timelines<TNUM>::initialize(const rapidjson::Document &d, const char *h
          }
        }
       else continue; // No valid blob.
+#else // defined JSON_INSTEAD_OF_YAML
+      YAML::Node vnam, sstart; 
+      if (!(vnam = m["name"])) continue;
+      if (!(sstart = m["start"])) continue;
+      if (!(sstart.IsScalar())) continue;
+      std::string snam(vnam.as<std::string>());
+      qtl_config_blob<TNUM> newblob(snam);
+      int depth = 0;
+      bool repeat = false;
+      qtl_ms_t start, end, repeat_start, repeat_end;
+      start = end = repeat_start = repeat_end = 0;
+      start = sstart.as<qtl_ms_t>();
+      YAML::Node vm; 
+      if (vm = m["depth"])
+       {
+        if (vm.IsScalar()) depth = vm.as<int>();
+       }
+      if (vm = m["end"])
+       {
+        if (vm.IsScalar()) end = vm.as<qtl_ms_t>();
+        if (end != start) ++end; // Upper boundary is not included
+                                 // in the interval. But equal values
+                                 // mean forever. 
+       }
+      if (vm = m["repeat"])
+       {
+        if (vm.IsScalar()) repeat = vm.as<bool>();
+       }
+      if (vm = m["repeat_start"])
+       {
+        if (vm.IsScalar()) repeat_start = vm.as<qtl_ms_t>();
+       }
+      if (vm = m["repeat_end"])
+       {
+        if (vm.IsScalar()) repeat_end = vm.as<qtl_ms_t>();
+       }
+      if (vm = m["value"])
+       {
+        TNUM value;
+        if (vm.IsScalar()) value = vm.as<TNUM>();
+        newblob.initialize(start, end, value, depth); 
+       }
+      else if (vm = m["expr"])
+       {
+        std::string exs(vm.as<std::string>());
+        if (vm.IsScalar()) newblob.initialize(start, end,
+                             exs, depth, repeat,
+                             repeat_start, repeat_end );
+       }
+      else if (vm = m["compose"])
+       {
+        if (vm.IsSequence())
+         {
+          for (int cai = 0; cai < vm.size(); cai++)
+           {
+            if (vm[cai].IsScalar())
+             {
+              std::string cels(vm[cai].as<std::string>());
+              newblob.add_dep_blob(cels);
+             }
+           }
+          newblob.set_data(start, depth, repeat,
+                           repeat_start, repeat_end);
+         }
+       }
+      else if (vm = m["values"])
+       {
+        if (vm.IsSequence())
+         {
+          std::vector<TNUM> nvalues = vm.as<std::vector<TNUM> >();
+          newblob.initialize(start, nvalues, depth,
+                             repeat, repeat_start, repeat_end);
+         }
+       }
+      else continue; // No valid blob.
+#endif // not defined JSON_INSTEAD_OF_YAML
       // Insert new new blob where it should go.
       typename qtl_blob_container_t::iterator dbl = m_blobs.find(depth);
       if (dbl == m_blobs.end())

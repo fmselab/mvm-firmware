@@ -19,9 +19,13 @@
 #include <string>
 #include <iostream>
 
+#ifdef JSON_INSTEAD_OF_YAML
 #include <rapidjson/document.h>
 #include <rapidjson/error/en.h>
 #include <rapidjson/istreamwrapper.h>
+#else
+#include <yaml-cpp/yaml.h>
+#endif
 
 #include <cerrno>
 #include <cstring> // strerror()
@@ -63,7 +67,11 @@ class mvm_fw_unit_test_config
 {
   public:
 
+#ifdef JSON_INSTEAD_OF_YAML
     typedef rapidjson::Document mvm_fw_test_config_t;
+#else
+    typedef YAML::Node mvm_fw_test_config_t;
+#endif
 
     mvm_fw_unit_test_config(): m_valid(false), m_time_started(false) {}
     mvm_fw_unit_test_config(const std::string &conf_file): m_valid(false),
@@ -78,11 +86,19 @@ class mvm_fw_unit_test_config
      {
       if (!m_valid) return false;
       const char *cname=name.c_str();
+#ifdef JSON_INSTEAD_OF_YAML
       if (m_conf.HasMember(cname))
        {
         const rapidjson::Value& v(m_conf[cname]);
         if (!v.IsString()) return false;
         value = v.GetString();
+#else
+      YAML::Node v;
+      if (v=m_conf[cname])
+       {
+        if (!v.IsScalar()) return false;
+        value = v.as<std::string>();
+#endif
         return true;
        }
       return false;
@@ -93,11 +109,19 @@ class mvm_fw_unit_test_config
      {
       if (!m_valid) return false;
       const char *cname=name.c_str();
+#ifdef JSON_INSTEAD_OF_YAML
       if (m_conf.HasMember(cname))
        {
         const rapidjson::Value& v(m_conf[cname]);
         if (!v.IsNumber()) return false;
         value = v.Get<TNUM>();
+#else
+      YAML::Node v;
+      if (v = m_conf[cname])
+       {
+        if (!v.IsScalar()) return false;
+        value = v.as<TNUM>();
+#endif
         return true;
        }
       return false;
@@ -108,6 +132,7 @@ class mvm_fw_unit_test_config
      {
       if (!m_valid) return false;
       const char *cname=name.c_str();
+#ifdef JSON_INSTEAD_OF_YAML
       if (m_conf.HasMember(cname))
        {
         const rapidjson::Value& a(m_conf[cname]);
@@ -116,11 +141,25 @@ class mvm_fw_unit_test_config
          {
           const rapidjson::Value& v(a[i]);
           if (!(v.IsNumber()))
+#else
+      YAML::Node a;
+      if (a = m_conf[cname])
+       {
+        if (!a.IsSequence()) return false;
+        for (std::size_t i = 0; ((i < a.size())&&(i < size)); i++)
+         {
+          YAML::Node v = a[i];
+          if (!(v.IsScalar()))
+#endif
            {
             value[i] = 0;
             continue;
            }
+#ifdef JSON_INSTEAD_OF_YAML
           value[i] = v.Get<TNUM>();
+#else
+          value[i] = v.as<TNUM>();
+#endif
          }
         return true;
        }
@@ -133,6 +172,7 @@ class mvm_fw_unit_test_config
       // uint16_t's.
       if (!m_valid) return false;
       const char *cname=name.c_str();
+#ifdef JSON_INSTEAD_OF_YAML
       if (m_conf.HasMember(cname))
        {
         const rapidjson::Value& a(m_conf[cname]);
@@ -141,11 +181,25 @@ class mvm_fw_unit_test_config
          {
           const rapidjson::Value& v(a[i]);
           if (!(v.IsNumber()))
+#else
+      YAML::Node a;
+      if (a = m_conf[cname])
+       {
+        if (!a.IsSequence()) return false;
+        for (std::size_t i = 0; ((i < a.size())&&(i < size)); i++)
+         {
+          YAML::Node v = a[i];
+          if (!(v.IsScalar()))
+#endif
            {
             value[i] = 0;
             continue;
            }
+#ifdef JSON_INSTEAD_OF_YAML
           value[i] = static_cast<uint16_t>(v.GetInt());
+#else
+          value[i] = v.as<uint16_t>();
+#endif
          }
         return true;
        }
@@ -156,11 +210,19 @@ class mvm_fw_unit_test_config
      {
       if (!m_valid) return false;
       const char *cname=name.c_str();
+#ifdef JSON_INSTEAD_OF_YAML
       if (m_conf.HasMember(cname))
        {
         const rapidjson::Value& v(m_conf[cname]);
         if (!v.IsBool()) return false;
         value = v.GetBool();
+#else
+      YAML::Node v;
+      if (v = m_conf[cname])
+       {
+        if (!v.IsScalar()) return false;
+        value = v.as<bool>();
+#endif
         return true;
        }
       return false;

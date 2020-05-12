@@ -16,9 +16,13 @@
 
 #include "mvm_fw_unit_test_config.h"
 
+#ifdef JSON_INSTEAD_OF_YAML
 #include <rapidjson/document.h>
 #include <rapidjson/error/en.h>
 #include <rapidjson/istreamwrapper.h>
+#else
+#include <yaml-cpp/yaml.h>
+#endif
 
 std::ostream& operator<< (std::ostream &os, const system_error &serr)
 {
@@ -42,15 +46,23 @@ mvm_fw_unit_test_config::load_config(const std::string &conf_file)
     return false;
    }
 
+#ifdef JSON_INSTEAD_OF_YAML
   rapidjson::IStreamWrapper isw(ifs);
   rapidjson::ParseResult pres = m_conf.ParseStream(isw);
   if (!pres)
+#else
+  m_conf = YAML::Load(ifs);
+  if (!m_conf)
+#endif
    {
     std::ostringstream ers;
     ers << "Error parsing configuration file "
         << conf_file << ": "
+#ifdef JSON_INSTEAD_OF_YAML
         << rapidjson::GetParseError_En(pres.Code())
-        << " Offset: " << pres.Offset() << ".";
+        << " Offset: " << pres.Offset()
+#endif
+        << ".";
     m_error_string = ers.str();
     return false;
    }
@@ -65,6 +77,7 @@ mvm_fw_unit_test_config::load_command_timeline(mvm_fw_test_cmds_t &ctl,
   int ret = -1;
 
   const char *cname=name.c_str();
+#ifdef JSON_INSTEAD_OF_YAML
   if (m_conf.HasMember(cname))
    {
     const rapidjson::Value& a(m_conf[cname]);
@@ -86,6 +99,29 @@ mvm_fw_unit_test_config::load_command_timeline(mvm_fw_test_cmds_t &ctl,
       ret++;
      }
    }
+#else
+  YAML::Node a;
+  if (a = m_conf[cname])
+   {
+    if (!a.IsSequence()) return ret;
+    ret = 0;
+    for (std::size_t i = 0; i < a.size(); i++)
+     {
+      YAML::Node v(a[i]);
+      if (!(v.IsMap())) continue;
+      YAML::Node vt;
+      if (!(vt = v["t"])) continue;
+      YAML::Node vc;
+      if (!(vc = v["c"])) continue;
+      if (!(vt.IsScalar())) continue;
+      if (!(vc.IsScalar())) continue;
+      qtl_tick_t ts = vt.as<qtl_tick_t>();
+      std::string cmd = (vc.as<std::string>());
+      ctl.insert(std::make_pair(ts, cmd));
+      ret++;
+     }
+   }
+#endif
 
   return ret;
 }

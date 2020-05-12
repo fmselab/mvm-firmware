@@ -12,7 +12,7 @@
 #
 
 MVM_FW_ROOT := ../MVMFirmwareCpp/MVMFirmwareCore
-MVM_FW_INCLUDES := -I . -I $(MVM_FW_ROOT) -I rapidjson/include -I exprtk
+MVM_FW_INCLUDES := -I . -I $(MVM_FW_ROOT) -I yaml-cpp/include -I exprtk
 
 DEBUG = -g 
 
@@ -46,7 +46,8 @@ MWM_FW_TEST_OBJECTS =  SerialImpl.o \
                        i2c_device_library.o \
                        simulate_i2c_devices.o \
                        mvm_fw_unit_test_config.o \
-                       mvm_fw_unit_test_run.o
+                       mvm_fw_unit_test_run.o \
+                       yaml-cpp-build/libyaml-cpp.a
 
 MVM_FW_TEST_EXECUTABLES = mvm_fw_unit_test_run
 
@@ -68,11 +69,15 @@ mvm_fw_unit_test_run: $(MWM_FW_TEST_OBJECTS) $(MVM_FIRMWARE_OBJECTS); \
 %.o: $(MVM_FW_ROOT)/%.cpp ;\
    $(COMPILE.C) $<
 
+.ONESHELL:
+yaml-cpp-build/libyaml-cpp.a: yaml-cpp/CMakeLists.txt ;\
+    cd yaml-cpp-build; cmake ../yaml-cpp; make 
+
 test_qtl: test_qtl.o; \
-    $(LINK.C) -o $@ test_qtl.o
+    $(LINK.C) -o $@ test_qtl.o yaml-cpp-build/libyaml-cpp.a
 
 test_pflow: test_pflow.o mvm_fw_unit_test_config.o; \
-    $(LINK.C) -o $@ test_pflow.o mvm_fw_unit_test_config.o
+    $(LINK.C) -o $@ test_pflow.o mvm_fw_unit_test_config.o yaml-cpp-build/libyaml-cpp.a
 
 gcov: mvm_fw_unit_test_run.gcda mvm_fw_unit_test_run.gcno ; \
     gcov $(MVM_FIRMWARE_OBJECTS)
