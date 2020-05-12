@@ -71,7 +71,7 @@ mvm_fw_unit_test_run: $(MWM_FW_TEST_OBJECTS) $(MVM_FIRMWARE_OBJECTS); \
 
 .ONESHELL:
 yaml-cpp-build/libyaml-cpp.a: yaml-cpp/CMakeLists.txt ;\
-    cd yaml-cpp-build; cmake ../yaml-cpp; make 
+    mkdir -p yaml-cpp-build; cd yaml-cpp-build; cmake ../yaml-cpp; make 
 
 test_qtl: test_qtl.o; \
     $(LINK.C) -o $@ test_qtl.o yaml-cpp-build/libyaml-cpp.a
