@@ -37,6 +37,8 @@ require 'mvm_fw_test_gcov_helper'
 # Traverse scenario directory tree and look for JSON files 
 
 jsons = Dir.glob(CSScenarioDir + "/**/*.json") 
+yamls = Dir.glob(CSScenarioDir + "/**/*.yml") 
+confs = jsons + yamls
 
 gh = Mvm_Fw_Test_Gcov_Helper.new(CSHomeDir, "MVMFirmwareCore")
 
@@ -47,7 +49,7 @@ tout << "<Table>\n<Tr><Td>Scenario Id</Td><Td>Description</Td>" +
 
 retcode = 0
 
-jsons.each do |jsf|
+confs.each do |jsf|
 
   tdir = File.dirname(jsf);
   curdir = Dir.pwd

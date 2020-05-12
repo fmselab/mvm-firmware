@@ -21,7 +21,7 @@ require 'yaml'
 require 'pp'
 require 'mvm_fw_test_oracle_helper'
 
-raise "Usage: #{$0} json_config" if(ARGV.length!=1)
+raise "Usage: #{$0} config (json|yml)" if(ARGV.length!=1)
 
 cfile = File.read(ARGV[0])
 conf = YAML.load(cfile)
