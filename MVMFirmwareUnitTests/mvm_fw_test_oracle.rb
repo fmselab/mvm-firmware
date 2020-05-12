@@ -17,14 +17,14 @@
 
 $LOAD_PATH.unshift File.dirname(__FILE__)
 
-require 'json'
+require 'yaml'
 require 'pp'
 require 'mvm_fw_test_oracle_helper'
 
 raise "Usage: #{$0} json_config" if(ARGV.length!=1)
 
 cfile = File.read(ARGV[0])
-conf = JSON.parse(cfile)
+conf = YAML.load(cfile)
 oh = Mvm_Fw_Test_Oracle_Helper.new(conf);
 
 fkey = "SerialTTY"

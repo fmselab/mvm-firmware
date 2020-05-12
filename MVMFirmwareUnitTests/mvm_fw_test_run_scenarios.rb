@@ -28,7 +28,7 @@ Csrkey = "scenario_ref_req"
 
 $LOAD_PATH.unshift CSHomeDir
 
-require 'json'
+require 'yaml'
 require 'pp'
 require 'cgi'
 require 'mvm_fw_test_oracle_helper'
@@ -53,7 +53,7 @@ jsons.each do |jsf|
   curdir = Dir.pwd
 
   cfile = File.read(jsf)
-  conf = JSON.parse(cfile)
+  conf = YAML.load(cfile)
 
   if (conf.key?(Cidkey))
     newdir = File.join(tdir, conf[Cidkey].upcase)

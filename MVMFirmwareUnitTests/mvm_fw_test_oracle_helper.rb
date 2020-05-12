@@ -15,11 +15,9 @@
 
 =end
 
-require 'json'
-
 class Mvm_Fw_Test_Log_Event
   attr_reader(:type, :t_abs, :t_ms, :t_tick, :t_value,
-              :t_pressure, :t_temperature, :t_pv1,
+              :t_pressure, :t_temperature, :t_flow, :t_pv1,
               :t_alarms, :t_warnings, :t_command,
               :t_command_args, :t_command_status, :t_set, :t_failed,
               :g_ppatient, :g_flux, :g_o2, :g_bpm, :g_tidal,
@@ -34,6 +32,7 @@ class Mvm_Fw_Test_Log_Event
   @t_value=nil
   @t_pressure=nil
   @t_temperature=nil
+  @t_flow=nil
   @t_alarms=nil
   @t_warnings=nil
   @t_command=nil
@@ -70,6 +69,7 @@ class Mvm_Fw_Test_Log_Event
                    :alarm_led   => Regexp.new('GPIO *- *DEVS *- *ALARM_LED'),
                    :alarm_relay => Regexp.new('GPIO *- *DEVS *- *ALARM_RELAY'),
                    :pv1         => Regexp.new('GPIO *- *DEVS *- *PV1'),
+                   :flow1       => Regexp.new('SFM3019 *- *FLOW1 *-.* Read op'),
                    :pi3         => Regexp.new('MS5525DSO *- *PI3.*D[12] Setup'),
                    :pi2         => Regexp.new('MS5525DSO *- *PI2.*D[12] Setup'),
                    :pi1         => Regexp.new('MS5525DSO *- *PI1.*D[12] Setup')
@@ -104,6 +104,9 @@ class Mvm_Fw_Test_Log_Event
     end
     if (m=/pressure *== *([[:digit:]\.]+)/i.match(line))
       @t_pressure = m[1].to_f
+    end
+    if (m=/flow_in *== *([[:digit:]\.]+)/i.match(line))
+      @t_flow = m[1].to_f
     end
     if (m=/- +alarms: *(0x)?([0-9a-fA-F]+)/.match(line))
       @t_alarms = m[2].to_i(16)
@@ -152,6 +155,8 @@ class Mvm_Fw_Test_Log_Event
         return @t_pressure
       when "temperature"
         return @t_temperature
+      when "flow"
+        return @t_flow
       when "pv1"
         return @t_pv1
       when "alarms"
@@ -265,8 +270,8 @@ class Mvm_Fw_Test_Oracle_Helper
     maxv = nil;
     ret = nil
     @rhsh[type].each do |e|
-      if ((start != nil) && (e.t_ms < start)); last end
-      if ((bend != nil)   && (e.t_ms > bend)); last end
+      if ((start != nil) && (e.t_ms < start)); next end
+      if ((bend != nil)  && (e.t_ms > bend)); break end
       val = e.val(attr)
       if (val == nil); next end
       if (maxv == nil)
@@ -284,8 +289,8 @@ class Mvm_Fw_Test_Oracle_Helper
     minv = nil;
     ret = nil
     @rhsh[type].each do |e|
-      if ((start != nil) && (e.t_ms < start)); last end
-      if ((bend != nil)   && (e.t_ms > bend)); last end
+      if ((start != nil) && (e.t_ms < start)); next end
+      if ((bend != nil)   && (e.t_ms > bend)); break end
       val = e.val(attr)
       if (val == nil); next end
       if (minv == nil)
@@ -312,7 +317,7 @@ class Mvm_Fw_Test_Oracle_Helper
     prev_e = nil;
     @rhsh[type].each do |e|
       if ((start == nil) || (e.t_ms >= start))
-        if ((bend != nil) && (e.t_ms > bend)); last end
+        if ((bend != nil) && (e.t_ms > bend)); break end
         if ((!prev_e) || ((prev_e) && (prev_e.t_ms < start))); return e end
         prev_e = e
       end
