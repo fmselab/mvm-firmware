@@ -242,10 +242,10 @@ mvm_fw_gpio_devs
        }
       else m_pv1_value = static_cast<uint16_t>(pv1_init);
 
-      uint32_t gpio_init; // Default: valves open, no LED. 
+      uint32_t gpio_init; // Default: valves open, no LED.
       if (!FW_TEST_main_config.get_number<uint32_t>("GPIO_init", gpio_init))
        {
-        gpio_init = 0; // Default: valves open, no LEDs. 
+        gpio_init = 0; // Default: valves open, no LEDs.
        }
       for (int i = 0; i<LAST_REG; ++i)
        {
@@ -268,9 +268,11 @@ mvm_fw_gpio_devs
 
     bool set(mvm_fw_bool_regs dev, bool value)
      {
-      double enable;
+      double enable, override;
       bool ret = false;
       enable = FW_TEST_qtl_double.value(std::string(m_names[dev])+"_enable",
+                                        FW_TEST_ms);
+      override = FW_TEST_qtl_double.value(std::string(m_names[dev])+"_override",
                                         FW_TEST_ms);
       timespec now;
       ::clock_gettime(CLOCK_REALTIME, &now);
@@ -281,7 +283,7 @@ mvm_fw_gpio_devs
             << now.tv_sec << ":" << now.tv_nsec/1000000
             << " - ms (scaled):" << FW_TEST_ms
             << " - tick:" << FW_TEST_tick << " - Alarms: "
-            << std::hex << std::showbase 
+            << std::hex << std::showbase
             << FW_TEST_peek_system_status->ALARM_FLAG << " - Warnings: "
             << FW_TEST_peek_system_status->WARNING_FLAG << " - "
             << std::dec << std::noshowbase ;
@@ -289,8 +291,15 @@ mvm_fw_gpio_devs
       if (std::isnan(enable) ||
           (!std::isnan(enable) && (enable != 0)))
        {
+        if (!std::isnan(override))
+
+         {
+          if (override != 0) value = false;
+          else               value = true;
+          m_msg << " value forced to " << value << " by configuration -";
+         }
         m_devs[dev] = value;
-        m_msg << "value set to " << value;
+        m_msg << " value set to " << value;
         ret = true;
         if (m_devs[dev] == old_value)
          {
@@ -310,9 +319,10 @@ mvm_fw_gpio_devs
 
     bool set_pv1(uint16_t value)
      {
-      double enable;
+      double enable, override;
       bool ret = false;
       enable = FW_TEST_qtl_double.value("PV1_enable", FW_TEST_ms);
+      override = FW_TEST_qtl_double.value("PV1_override", FW_TEST_ms);
       timespec now;
       ::clock_gettime(CLOCK_REALTIME, &now);
       uint16_t old_pv1_value = m_pv1_value;
@@ -326,6 +336,12 @@ mvm_fw_gpio_devs
       if (std::isnan(enable) ||
           (!std::isnan(enable) && (enable != 0)))
        {
+        if (!std::isnan(override))
+
+         {
+          value = static_cast<uint16_t>(override);
+          m_msg << " value forced to " << value << " by configuration -";
+         }
         m_pv1_value = value;
         m_msg << "value set to " << value;
         ret = true;
@@ -376,7 +392,7 @@ class
 mvm_fw_unit_test_pflow
 {
   public:
-    mvm_fw_unit_test_pflow(): m_inited(false) {} 
+    mvm_fw_unit_test_pflow(): m_inited(false) {}
     ~mvm_fw_unit_test_pflow() {}
 
     void   init();
