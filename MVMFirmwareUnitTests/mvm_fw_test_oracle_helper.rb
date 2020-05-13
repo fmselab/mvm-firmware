@@ -23,7 +23,7 @@ class Mvm_Fw_Test_Log_Event
               :g_ppatient, :g_flux, :g_o2, :g_bpm, :g_tidal,
               :g_peep, :g_batterypowered,
               :g_batterycharge, :g_ppeak, :g_tv_insp, :g_tv_esp,
-              :g_currentvm, :g_flow, :g_ptarget, :g_psupport, :g_run)
+              :g_currentvm, :g_flow, :g_ptarget, :g_psupport, :g_run, :g_mode)
 
   @type=nil
   @t_abs=nil
@@ -58,6 +58,7 @@ class Mvm_Fw_Test_Log_Event
   @g_ptarget=nil
   @g_psupport=nil
   @g_run=nil
+  @g_mode=nil
 
   Type_regexps = { 
                    :command => Regexp.new('MAIN PROGRAM *- *SENDING COMMAND *-'),
@@ -220,6 +221,8 @@ class Mvm_Fw_Test_Log_Event
           @t_warning        = line.to_i
         when "run"
           @g_run            = line.to_i
+        when "mode"
+          @g_mode           = line.to_i
       end
     end
     if (line.downcase.include? "error")
