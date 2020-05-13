@@ -173,6 +173,36 @@ class Mvm_Fw_Test_Log_Event
     end
   end
 
+  def is_selected(sel)
+    ret = true
+    sel.each do |sc|
+      if (sc.key?("attr"))
+        if (sc.key?("eq"))
+          if (val(sc["attr"]) != sc["eq"])
+            ret = false
+            break
+          end
+        elsif (sc.key?("ne"))
+          if (val(sc["attr"]) == sc["ne"])
+            ret = false
+            break
+          end
+        elsif (sc.key?("le"))
+          if (val(sc["attr"]) > sc["le"])
+            ret = false
+            break
+          end
+        elsif (sc.key?("ge"))
+          if (val(sc["attr"]) < sc["ge"])
+            ret = false
+            break
+          end
+        end
+      end
+    end
+    return ret
+  end
+
   def update_command_status(line)
     if (@t_set)
       @t_command_status = line
@@ -269,12 +299,13 @@ class Mvm_Fw_Test_Oracle_Helper
     end 
   end
 
-  def max_between_ts(type, attr, start, bend)
+  def max_between_ts(type, attr, start, bend, sel)
     maxv = nil;
     ret = nil
     @rhsh[type].each do |e|
       if ((start != nil) && (e.t_ms < start)); next end
       if ((bend != nil)  && (e.t_ms > bend)); break end
+      if (sel && (!e.is_selected(sel))); next end
       val = e.val(attr)
       if (val == nil); next end
       if (maxv == nil)
@@ -288,12 +319,13 @@ class Mvm_Fw_Test_Oracle_Helper
     return ret
   end
 
-  def min_between_ts(type, attr, start, bend)
+  def min_between_ts(type, attr, start, bend, sel)
     minv = nil;
     ret = nil
     @rhsh[type].each do |e|
       if ((start != nil) && (e.t_ms < start)); next end
       if ((bend != nil)   && (e.t_ms > bend)); break end
+      if (sel && (!e.is_selected(sel))); next end
       val = e.val(attr)
       if (val == nil); next end
       if (minv == nil)
@@ -307,18 +339,20 @@ class Mvm_Fw_Test_Oracle_Helper
     return ret
   end
 
-  def last_between_ts(type, start, bend)
+  def last_between_ts(type, start, bend, sel)
     prev_e = nil;
     @rhsh[type].each do |e|
+      if (sel && (!e.is_selected(sel))); next end
       if ((bend != nil) && (e.t_ms > bend)); return prev_e end
       if ((start == nil) || (e.t_ms >= start)); prev_e = e end
     end  
     return prev_e
   end
 
-  def first_between_ts(type, start, bend)
+  def first_between_ts(type, start, bend, sel)
     prev_e = nil;
     @rhsh[type].each do |e|
+      if (sel && (!e.is_selected(sel))); next end
       if ((start == nil) || (e.t_ms >= start))
         if ((bend != nil) && (e.t_ms > bend)); break end
         if ((!prev_e) || ((prev_e) && (prev_e.t_ms < start))); return e end
@@ -377,14 +411,14 @@ class Mvm_Fw_Test_Oracle_Helper
         after_ts = nil
         if (e.key?("after"));  after_ts  = e["after"] end
         if (max)
-          pev = max_between_ts(evs, max, after_ts, before_ts)
+          pev = max_between_ts(evs, max, after_ts, before_ts, e["select"])
         elsif (min)
-          pev = min_between_ts(evs, min, after_ts, before_ts)
+          pev = min_between_ts(evs, min, after_ts, before_ts, e["select"])
         else
           if (after_ts == nil) 
-            pev = last_between_ts(evs, after_ts, before_ts)
+            pev = last_between_ts(evs, after_ts, before_ts, e["select"])
           else
-            pev = first_between_ts(evs, after_ts, before_ts)
+            pev = first_between_ts(evs, after_ts, before_ts, e["select"])
           end
         end
         if (!pev)
