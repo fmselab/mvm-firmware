@@ -33,6 +33,7 @@ require 'pp'
 require 'cgi'
 require 'mvm_fw_test_oracle_helper'
 require 'mvm_fw_test_gcov_helper'
+require 'mvm_fw_combine_gcov_coverage'
 
 # Traverse scenario directory tree and look for JSON files 
 
@@ -48,6 +49,7 @@ tout << "<Table>\n<Tr><Td>Scenario Id</Td><Td>Description</Td>" +
         "<Td>Covered reqs</Td><Td>Coverage</Td><Td>Result</Td></Tr>\n"
 
 retcode = 0
+gcov_coll = []
 
 confs.each do |jsf|
 
@@ -105,13 +107,18 @@ confs.each do |jsf|
   gh.evaluate()
 
   # Move GCOV files over
+  dest_gcov = []
   if (gh.gcov_files)
     gh.gcov_files.each do |f|
-      if (!File.rename(File.join(CSHomeDir, f), File.join(Dir.pwd, f)))
+      dfile = File.join(Dir.pwd, f)
+      if (!File.rename(File.join(CSHomeDir, f), dfile))
         STDERR.puts "#{$0}: error moving #{f} to cur dir " + Dir.pwd
+      else
+        dest_gcov.push(dfile)
       end
     end
   end
+  gcov_coll.push(dest_gcov)
 
   tout << "<Tr><Td>"
   if (conf.key?(Cidkey))
@@ -145,6 +152,12 @@ confs.each do |jsf|
   tout << "</Td></Tr>\n"
   Dir.chdir(curdir)
 end
+
+# Add global coverage
+gc = Mvm_Fw_Combine_Gcov_Coverage.new(gcov_coll);
+tout << "<Tr><Td Colspan=3>TOTAL code coverage:</Td><Td>" + gc.report + 
+       "</Td><Td></Td></Tr>\n"
+
 tout << "</Table>\n"
 
 File.open(File.join(CSScenarioDir, "README.md"), 'w') do |f|
