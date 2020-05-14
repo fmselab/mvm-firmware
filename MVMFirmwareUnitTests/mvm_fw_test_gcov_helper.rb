@@ -51,12 +51,10 @@ class Mvm_Fw_Test_Gcov_Helper
     # Lines executed:100.00% of 36
     # Creating 'tuple.gcov'
 
-    dfd = File::open(File.join(@curdir, @proj_str + "-gcov-debug"),'w')
-
     cur_file = nil
+    file_used = true
     IO::popen("make gcov",'r',:err => File::NULL) do |f|
       f.each_line do |l|
-        dfd.write(l)
         if (m=/File +'([^']+)'/.match(l))
           if ((@proj_str) && (@proj_str.length > 0) &&
               (!m[1].include? @proj_str))
@@ -65,14 +63,16 @@ class Mvm_Fw_Test_Gcov_Helper
           end
           tfile = File.basename(m[1])
           cur_file = tfile
+          file_used = false
         elsif (m=/Lines executed: *([0-9\.]+)% +of +([0-9]+)/.match(l))
-          if (cur_file)
+          if ((cur_file) && (!file_used))
             cur_frac = m[1].to_f / 100
             cur_lines = m[2].to_f
             chk_lines = (cur_lines * cur_frac).round 
             @total_lines += cur_lines.to_i
             @checked_lines += chk_lines
             @chsh[cur_file] = { :lines => cur_lines, :checked => chk_lines }
+            file_used = true
           end
         elsif (m=/Creating +'([^']+)'/.match(l))
           if (cur_file)
@@ -81,8 +81,6 @@ class Mvm_Fw_Test_Gcov_Helper
         end
       end
     end
-
-    dfd.close
 
     @cperc = 0
     if (@total_lines > 0)
