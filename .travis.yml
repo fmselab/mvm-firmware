@@ -6,6 +6,7 @@ os:
 script:
 - pushd MVMFirmwareUnitTests
 - make
+- make clean_gcov
 - popd
 - ruby MVMFirmwareUnitTests/mvm_fw_test_run_scenarios.rb
 - git remote remove origin
