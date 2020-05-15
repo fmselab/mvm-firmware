@@ -40,14 +40,7 @@ simulate_i2c_devices::init_hw(const test_hardware_t &hwl)
      }
     else if (it->second.first == TEST_TCA_I2C_MULTIPLEXER)
      {
-      nd = new simulated_i2c_device(it->second.second, DebugIface);
-      if (nd)
-       {
-        nd->add_command_handler(0, TCA_I2C_Multiplexer_command_handler(0, nd->get_dbg()));
-        nd->add_command_handler(1, TCA_I2C_Multiplexer_command_handler(1, nd->get_dbg()));
-        nd->add_command_handler(2, TCA_I2C_Multiplexer_command_handler(2, nd->get_dbg()));
-        nd->add_command_handler(3, TCA_I2C_Multiplexer_command_handler(3, nd->get_dbg()));
-       }
+      nd = new mvm_fw_unit_test_Multiplexer(it->second.second, DebugIface, m_cur_mux);
      }
     else if (it->second.first == TEST_XXX_SUPERVISOR)
      {

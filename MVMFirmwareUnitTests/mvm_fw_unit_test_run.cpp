@@ -40,8 +40,8 @@ t_SystemStatus            *FW_TEST_peek_system_status;
 
 // The following can go away when all leftover references disappear from
 // the firmware code.
-extern WireImpl Wire;
-WireImpl Wire;
+extern TwoWire Wire;
+TwoWire Wire;
 
 extern SerialImpl Serial;
 SerialImpl Serial;

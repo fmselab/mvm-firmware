@@ -30,8 +30,8 @@ const int I2C_DEVICE_BUSY=-8;
 
 const std::string I2C_DEVICE_module_name("I2C SIMULATION");
 
-#include "DebugIface.h"
 #include "mvm_fw_unit_test_config.h"
+#include "DebugIface.h"
 
 struct sim_i2c_devaddr
 {

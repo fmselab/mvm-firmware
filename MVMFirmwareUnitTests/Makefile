@@ -40,7 +40,7 @@ MVM_FIRMWARE_OBJECTS = HAL.o \
                        TidalVolume.o \
                        hw.o
 
-MWM_FW_TEST_OBJECTS =  SerialImpl.o \
+MWM_FW_TEST_OBJECTS =  Wire.o SerialImpl.o \
                        stdlib_noniso.o WString.o \
                        simulated_fw_board_v4.o \
                        i2c_device_library.o \

@@ -5,6 +5,8 @@
 //
 // Revision history:
 // 25-Apr-2020 Initial version.
+// 15-May-2020 Rearranged to fit at the lower (Wire.h) level required by
+//             the new MVM firmware.
 //
 // Description:
 // Knowledge to populate and implement the MVM I2C device zoo.
@@ -22,8 +24,8 @@ class
 simulate_i2c_devices
 {
   public:
-    simulate_i2c_devices(): m_conf(FW_TEST_main_config) {} 
-    simulate_i2c_devices(mvm_fw_unit_test_config &conf): m_conf(conf) {}
+    simulate_i2c_devices(): m_conf(FW_TEST_main_config),m_cur_mux(-1) {} 
+    simulate_i2c_devices(mvm_fw_unit_test_config &conf): m_conf(conf),m_cur_mux(-1) {}
     ~simulate_i2c_devices()
      {
       simulated_i2c_devices_t::iterator dit;
@@ -31,6 +33,15 @@ simulate_i2c_devices
        {
         if (dit->second) delete (dit->second);
        }
+     }
+
+    int
+    exchange_message(uint8_t address,
+                     uint8_t* wbuffer, int wlength,
+                     uint8_t *rbuffer, int rlength, bool stop)
+     {
+      sim_i2c_devaddr dad(address, m_cur_mux);
+      return exchange_message(dad, wbuffer, wlength, rbuffer, rlength, stop);
      }
 
     int
@@ -80,8 +91,11 @@ simulate_i2c_devices
 
     void init_hw(const test_hardware_t &hwl);
 
+    int8_t get_cur_mux() const { return m_cur_mux; }
+
   private:
     mvm_fw_unit_test_config &m_conf;
     simulated_i2c_devices_t m_devs;
+    int8_t m_cur_mux;
 };
 #endif /* defined _I2C_DEVICE_SIMULATE_H */

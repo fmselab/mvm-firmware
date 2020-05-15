@@ -252,27 +252,47 @@ mvm_fw_unit_test_Supervisor: public simulated_i2c_device
     double m_charge;
 };
 
-struct
-TCA_I2C_Multiplexer_command_handler
+class
+mvm_fw_unit_test_Multiplexer: public simulated_i2c_device
 {
-  TCA_I2C_Multiplexer_command_handler(int cmd, DebugIfaceClass &dbg): m_cmd(cmd), m_dbg(dbg) {}
-  ~TCA_I2C_Multiplexer_command_handler() {}
-
-  int operator()(uint8_t* a1, int a2, uint8_t* a3, int a4)
-   {
-    timespec now;
-    ::clock_gettime(CLOCK_REALTIME, &now);
-    std::ostringstream msg;
-    msg << I2C_DEVICE_module_name << " - TCA MUX - " 
-      << now.tv_sec << ":" << now.tv_nsec/1000000 << " - tick:"
-      << FW_TEST_tick << " - called (NOP) with cmd " << m_cmd;
-    m_dbg.DbgPrint(DBG_CODE, DBG_INFO, msg.str().c_str());
-    return 0;
-   }
+  public:
+    mvm_fw_unit_test_Multiplexer(const std::string &name, DebugIfaceClass &dbg,
+                                 int8_t &muxref):
+                                 simulated_i2c_device(name, dbg), m_mux(muxref) {}
+    ~mvm_fw_unit_test_Multiplexer() {}
+  
+    int handle_command(uint8_t cmd, uint8_t *wbuffer, int wlength,
+                                    uint8_t *rbuffer, int rlength)
+     {
+      timespec now;
+      ::clock_gettime(CLOCK_REALTIME, &now);
+      std::ostringstream msg;
+      msg << I2C_DEVICE_module_name << " - " << m_name << " - " 
+        << now.tv_sec << ":" << now.tv_nsec/1000000 << " - tick:"
+        << FW_TEST_tick << " - called with cmd " << cmd;
+      uint8_t cmux = cmd;
+      int8_t mux;
+      for (int mux=0; mux<(sizeof(cmux)*8); ++mux)
+       {
+        if ((cmux&1) != 0) break; 
+        cmux >>= 1; 
+       }
+      if (cmux != 1) // More that one bit set in  command.
+       {
+        msg << " - malformed command ("  << std::hex << std::showbase
+            << cmd << std::dec << std::noshowbase << ")";
+       }
+      else
+       {
+        m_mux = mux;
+        msg << " - mux set to: " << mux;
+       }
+      m_dbg.DbgPrint(DBG_CODE, DBG_INFO, msg.str().c_str());
+      return 0;
+     }
 
   private:
-   int m_cmd;
-   DebugIfaceClass &m_dbg;
+    int8_t &m_mux;
 };
 
 #endif /* defined _MVM_FW_TEST_I2C_DEVLIB */
