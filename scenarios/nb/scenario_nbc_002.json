@@ -60,6 +60,7 @@
   { "t": 9500, "c": "set ratio 0.5" },
   { "t": 9550, "c": "get mode" },
   { "t": 9600, "c": "set mode 1" },
+  { "t": 9650, "c": "get mode" },
   { "t": 10000, "c": "set run 1" },
   { "t": 11000, "c": "get mode" },
   { "t": 20000, "c": "get all" },
@@ -68,6 +69,6 @@
  ],
 "oracle_checks": [
   { "event": "command", "before": 9600, "reqs":[{ "attr":"g_mode", "eq": 0 }] },
-  { "event": "command", "after": 9600, "reqs":[{ "attr":"g_mode", "eq": 1 }] }
+  { "event": "command", "after": 9650, "reqs":[{ "attr":"g_mode", "eq": 1 }] }
  ]
 }
