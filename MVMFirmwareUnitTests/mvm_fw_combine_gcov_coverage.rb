@@ -29,31 +29,36 @@ class Mvm_Fw_Combine_Gcov_Coverage
     @fmiss = {}
     @total_lines = 0
     @missed_lines = 0
-    gcoll.each do |gcf| 
-      gcf.each do |cf| 
+    gcoll.each do |gcf|
+      gcf.each do |cf|
+        fkey = File.basename(cf)
         File::open(cf,'r') do |f|
           f.each_line do |l|
             ul = l.encode("UTF-8", :invalid => :replace,
                                    :undef => :replace,
                                    :replace => "")
             if (m=/^\s*[0-9\*]+:\s*([0-9]+)\s*:/.match(ul))
-              if (!(@fcounted.key?(cf)))
+              line = m[1].to_i
+              if (!(@fcounted.key?(fkey)))
                 @total_lines = @total_lines + 1
-              elsif (@fmiss[cf][m[1]])
+              elsif ((@fmiss.key?(fkey)) &&
+                     (@fmiss[fkey].key?(line)) &&
+                     (@fmiss[fkey][line]))
                 @missed_lines = @missed_lines - 1
-                fmiss[cf].delete(m[1])
+                @fmiss[fkey].delete(line)
               end
             elsif (m=/^\s*#+:\s*([0-9]+)\s*:/.match(ul))
-              if (!(@fcounted.key?(cf)))
+              line = m[1].to_i
+              if (!(@fcounted.key?(fkey)))
                 @total_lines = @total_lines + 1
                 @missed_lines = @missed_lines + 1
-                if (!@fmiss.key?(cf)); @fmiss[cf] = {} end
-                @fmiss[cf][m[1]] = true 
+                if (!@fmiss.key?(fkey)); @fmiss[fkey] = {} end
+                @fmiss[fkey][line] = true
               end
             end
           end
         end
-        @fcounted[cf] = true
+        @fcounted[fkey] = true
       end
     end
     @checked_lines = @total_lines - @missed_lines
@@ -67,4 +72,3 @@ class Mvm_Fw_Combine_Gcov_Coverage
   end
 
 end
-
