@@ -1,5 +1,5 @@
 <H1>MVM FW Scenario test results</H1>
-<H2>as of: 15/05/2020 21:00</H2>
+<H2>as of: 15/05/2020 21:09</H2>
 <Table>
 <Tr><Td>Scenario Id</Td><Td>Description</Td><Td>Covered reqs</Td><Td>Coverage</Td><Td>Result</Td></Tr>
 <Tr><Td><B> NBC_002</B></Td><Td>Normal behavior in PSV controlled mode</Td><Td>PSV.1, PSV.2</Td><Td>1378/2235 (   61 &percnt;)</Td><Td><B><Font color="red">FAILED</Font></B> ( - attribute g_mode not found in &lt;command&gt; event at t==9600 - attribute g_mode not found in &lt;command&gt; event at t==9600 - Test FAILED.)</Td></Tr>
