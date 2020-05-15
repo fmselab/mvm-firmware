@@ -8,7 +8,7 @@
 //
 // Description:
 // Implementation of simulated I2C devices. As the time for development
-// is short only commands that are actually used ade implemented. We try
+// is short only commands that are actually used are implemented. We try
 // not to depend on any information coded in the Firmware itself though.
 //
 
