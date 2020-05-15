@@ -1,0 +1,73 @@
+{
+ "scenario_id": "NBC_002",
+ "scenario_descr": "Normal behavior in PSV controlled mode",
+ "scenario_ref_req": "PSV.1, PSV.2",
+ "SerialTTY": "scenario_nbc_002.out",
+ "LogFile": "scenario_nbc_002.log",
+ "debug_level": 5,
+ "ms_scale_factor": 3.0,
+ "us_wait_per_tick": 100,
+ "end_ms": 120000,
+ "initial_battery_charge": 90.0,
+ "qtl_timelines" : [
+  { "depth": 100, "name": "env_temperature",
+    "start": 0, "end": 100,
+    "expr": "21. + 6*sin(t/318.)", "repeat": true
+  },
+  { "depth": 100, "name": "env_pressure",
+    "start": 0, "end": 100,
+    "expr": "984. + 5.*cos(t/3180.)", "repeat": true
+  },
+  { "depth": 100, "name": "input_line_pressure",
+    "start": 0, "end": 0,
+    "value": 3000
+  },
+  { "depth": 100, "name": "o2_concentration",
+    "start": 0, "end": 100,
+    "expr": "70. + 3.*sin(t/318.)", "repeat": true
+  },
+  { "depth": 90, "name": "wall_power",
+    "start": 0, "end": 200000,
+    "value": 0
+  },
+  { "depth": 100, "name": "wall_power",
+    "start": 0, "end": 0,
+    "value": 1
+  },
+  { "depth": 100, "name": "charge_current",
+    "start": 0, "end": 0,
+    "value": 0.05
+  },
+  { "depth": 100, "name": "discharge_current",
+    "start": 0, "end": 0,
+    "value": -0.01
+  },
+  { "depth": 100, "name": "voltage_ref",
+    "start": 0, "end": 100,
+    "expr": "2.5 + 0.01*cos(t/31.8)", "repeat": true
+  },
+  { "depth": 100, "name": "voltage_12v",
+    "start": 0, "end": 100,
+    "expr": "12. + 0.15*cos(t/31.8)", "repeat": true
+  },
+  { "depth": 100, "name": "voltage_5v",
+    "start": 0, "end": 100,
+    "expr": "5. + 0.1*sin(t/31.8)", "repeat": true
+  }
+ ],
+ "command_timeline": [
+  { "t": 9000, "c": "set rate 20" },
+  { "t": 9500, "c": "set ratio 0.5" },
+  { "t": 9550, "c": "get mode" },
+  { "t": 9600, "c": "set mode 1" },
+  { "t": 10000, "c": "set run 1" },
+  { "t": 11000, "c": "get mode" },
+  { "t": 20000, "c": "get all" },
+  { "t": 30000, "c": "get all" },
+  { "t": 90000, "c": "set run 0" }
+ ],
+"oracle_checks": [
+  { "event": "command", "before": 9600, "reqs":[{ "attr":"g_mode", "eq": 0 }] },
+  { "event": "command", "after": 9600, "reqs":[{ "attr":"g_mode", "eq": 1 }] }
+ ]
+}
