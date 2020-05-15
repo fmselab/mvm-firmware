@@ -68,7 +68,7 @@
   { "t": 90000, "c": "set run 0" }
  ],
 "oracle_checks": [
-  { "event": "command", "before": 9600, "reqs":[{ "attr":"g_mode", "eq": 0 }] },
+  { "event": "command", "before": 9599, "reqs":[{ "attr":"g_mode", "eq": 0 }] },
   { "event": "command", "after": 9650, "reqs":[{ "attr":"g_mode", "eq": 1 }] }
  ]
 }
