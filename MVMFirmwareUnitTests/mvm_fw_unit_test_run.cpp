@@ -40,8 +40,9 @@ t_SystemStatus            *FW_TEST_peek_system_status;
 
 // The following can go away when all leftover references disappear from
 // the firmware code.
+simulate_i2c_devices FW_TEST_devs;
 extern TwoWire Wire;
-TwoWire Wire;
+TwoWire Wire(FW_TEST_devs);
 
 extern SerialImpl Serial;
 SerialImpl Serial;
@@ -321,6 +322,8 @@ main (int argc, char *argv[])
 
   FW_TEST_pflow.init();
   the_mvm.Init(); // Should check for errors - where ?
+
+  FW_TEST_devs.init_hw(FW_TEST_hardware);
 
   // Flow reading will go berserk with the "default" (unitialised...)
   // 'custom' Venturi calibration.
