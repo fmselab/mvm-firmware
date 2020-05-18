@@ -42,15 +42,15 @@ mvm_fw_unit_test_TE_MS5525DSO: public simulated_i2c_device
   public:
     mvm_fw_unit_test_TE_MS5525DSO(TE_MS5525DSO_models model,
                             const std::string &name, DebugIfaceClass &dbg):
-     simulated_i2c_device(name, dbg), m_model(model) { m_init_prom(); }
+     simulated_i2c_device(name, dbg, "MS5525DSO"), m_model(model) { m_init_prom(); }
     mvm_fw_unit_test_TE_MS5525DSO(TE_MS5525DSO_models model,
                             const char *name, DebugIfaceClass &dbg) :
-     simulated_i2c_device(name, dbg), m_model(model) { m_init_prom(); }
+     simulated_i2c_device(name, dbg, "MS5525DSO"), m_model(model) { m_init_prom(); }
     ~mvm_fw_unit_test_TE_MS5525DSO() {}
 
     int handle_command(uint8_t cmd, uint8_t *wbuffer, int wlength,
                                     uint8_t *rbuffer, int rlength);
-    private:
+  private:
     void m_init_prom();
     TE_MS5525DSO_models m_model;
     uint16_t m_prom[8];
@@ -133,9 +133,9 @@ mvm_fw_unit_test_SENSIRION_SFM3019: public simulated_i2c_device
     typedef std::deque<return_word> return_word_container_t; 
  
     mvm_fw_unit_test_SENSIRION_SFM3019(const std::string &name, DebugIfaceClass &dbg) :
-     simulated_i2c_device(name, dbg) { m_init(); }
+     simulated_i2c_device(name, dbg, "SFM3019") { m_init(); }
     mvm_fw_unit_test_SENSIRION_SFM3019(const char *name, DebugIfaceClass &dbg) :
-     simulated_i2c_device(name, dbg) { m_init(); }
+     simulated_i2c_device(name, dbg, "SFM3019") { m_init(); }
     ~mvm_fw_unit_test_SENSIRION_SFM3019() {}
 
     int handle_command(uint8_t cmd, uint8_t *wbuffer, int wlength,
@@ -169,14 +169,53 @@ mvm_fw_unit_test_SENSIRION_SFM3019: public simulated_i2c_device
 
 };
 
+
+class
+mvm_fw_unit_test_Amphenol_NPAx00: public simulated_i2c_device
+{
+  public:
+    enum Amphenol_NPAx00_pressure_ranges
+    {
+      AMPHENOL_NPAX00_10_INCH_WATER,
+      AMPHENOL_NPAX00_1_PSI,
+      AMPHENOL_NPAX00_5_PSI,
+      AMPHENOL_NPAX00_15_PSI,
+      AMPHENOL_NPAX00_30_PSI,
+      AMPHENOL_NPAX00_LAST
+    };
+    double pressure_range[AMPHENOL_NPAX00_LAST] =
+     {
+       // All ranges expressed in centimeters of water.
+       25.4, // 10 Inches of water
+       70.30696, // 1 PSI
+       351.5348, // 5 PSI
+       1054.6044, // 15 PSI
+       2109.2088  // 30 PSI
+     };
+
+    mvm_fw_unit_test_Amphenol_NPAx00(double pressure_range,
+                            const std::string &name, DebugIfaceClass &dbg):
+     simulated_i2c_device(name, dbg, "NPAx00"), m_prange(pressure_range) { }
+    mvm_fw_unit_test_Amphenol_NPAx00(double pressure_range,
+                            const char *name, DebugIfaceClass &dbg) :
+     simulated_i2c_device(name, dbg, "NPAx00"), m_prange(pressure_range) { }
+    ~mvm_fw_unit_test_Amphenol_NPAx00() {}
+
+    int handle_command(uint8_t cmd, uint8_t *wbuffer, int wlength,
+                                    uint8_t *rbuffer, int rlength);
+  private:
+    double m_prange;
+    double m_preading, m_treading;
+};
+
 class
 mvm_fw_unit_test_TI_ADS1115: public simulated_i2c_device
 {
   public:
     mvm_fw_unit_test_TI_ADS1115(const std::string &name, DebugIfaceClass &dbg) :
-     simulated_i2c_device(name, dbg) { m_init(); }
+     simulated_i2c_device(name, dbg, "ADS1115") { m_init(); }
     mvm_fw_unit_test_TI_ADS1115(const char *name, DebugIfaceClass &dbg) :
-     simulated_i2c_device(name, dbg) { m_init(); }
+     simulated_i2c_device(name, dbg, "ADS1115") { m_init(); }
     ~mvm_fw_unit_test_TI_ADS1115() {}
 
     int handle_command(uint8_t cmd, uint8_t *wbuffer, int wlength,
@@ -226,9 +265,9 @@ mvm_fw_unit_test_Supervisor: public simulated_i2c_device
 {
   public:
     mvm_fw_unit_test_Supervisor(const std::string &name, DebugIfaceClass &dbg) :
-     simulated_i2c_device(name, dbg) { m_init(); }
+     simulated_i2c_device(name, dbg, "SUPER") { m_init(); }
     mvm_fw_unit_test_Supervisor(const char *name, DebugIfaceClass &dbg) :
-     simulated_i2c_device(name, dbg) { m_init(); }
+     simulated_i2c_device(name, dbg, "SUPER") { m_init(); }
     ~mvm_fw_unit_test_Supervisor() {}
 
     int handle_command(uint8_t cmd, uint8_t *wbuffer, int wlength,
@@ -258,18 +297,14 @@ mvm_fw_unit_test_Multiplexer: public simulated_i2c_device
   public:
     mvm_fw_unit_test_Multiplexer(const std::string &name, DebugIfaceClass &dbg,
                                  int8_t &muxref):
-                                 simulated_i2c_device(name, dbg), m_mux(muxref) {}
+                                 simulated_i2c_device(name, dbg, "TCAMUX"), m_mux(muxref) {}
     ~mvm_fw_unit_test_Multiplexer() {}
   
     int handle_command(uint8_t cmd, uint8_t *wbuffer, int wlength,
                                     uint8_t *rbuffer, int rlength)
      {
-      timespec now;
-      ::clock_gettime(CLOCK_REALTIME, &now);
       std::ostringstream msg;
-      msg << I2C_DEVICE_module_name << " - " << m_name << " - " 
-        << now.tv_sec << ":" << now.tv_nsec/1000000 << " - tick:"
-        << FW_TEST_tick << " - called with cmd " << cmd;
+      msg << m_log_lineh() << "called with cmd " << cmd;
       uint8_t cmux = cmd;
       int8_t mux;
       for (int mux=0; mux<(sizeof(cmux)*8); ++mux)

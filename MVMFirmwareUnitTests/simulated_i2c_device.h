@@ -52,10 +52,15 @@ class simulated_i2c_device
     typedef std::function<int (uint8_t* a1, int a2, uint8_t* a3, int a4)> simulated_i2c_cmd_handler_t;
     typedef std::map<uint8_t, simulated_i2c_cmd_handler_t> simulated_i2c_cmd_handler_container_t;
 
-    simulated_i2c_device(const std::string &name, DebugIfaceClass &dbg) :
-      m_dbg(dbg), m_name(name) {}
-    simulated_i2c_device(const char *name, DebugIfaceClass &dbg) :
-      m_dbg(dbg), m_name(name) {}
+    simulated_i2c_device(const std::string &name, DebugIfaceClass &dbg, const std::string &modname) :
+      m_dbg(dbg), m_name(name), m_modname(modname),  m_alive_attr(name)
+      { m_alive_attr += "_enable"; }
+    simulated_i2c_device(const std::string &name, DebugIfaceClass &dbg, const char *modname) :
+      m_dbg(dbg), m_name(name), m_modname(modname),  m_alive_attr(name)
+      { m_alive_attr += "_enable"; }
+    simulated_i2c_device(const char *name, DebugIfaceClass &dbg, const char *modname) :
+      m_dbg(dbg), m_name(name), m_modname(modname), m_alive_attr(name)
+      { m_alive_attr += "_enable";}
     virtual ~simulated_i2c_device() {}
 
     void set_alive_attr(const std::string &attr) { m_alive_attr = attr; }
@@ -69,12 +74,17 @@ class simulated_i2c_device
     int exchange_message(uint8_t* wbuffer, int wlength,
                          uint8_t *rbuffer, int rlength, bool stop)
      {
-      if (!alive()) return I2C_DEVICE_SIMUL_DEAD;
+      std::ostringstream err;
+      err << m_log_lineh();
+
+      if (!alive())
+       {
+        m_dbg.DbgPrint(DBG_CODE, DBG_INFO, err.str().c_str());
+        return I2C_DEVICE_SIMUL_DEAD;
+       }
       if ((wbuffer != NULL) && (wlength < 1))
        {
-        std::ostringstream err;
-        err << I2C_DEVICE_module_name << ": Missing command for device '"
-            << m_name << "'.";
+        err << " - missing command.";
         m_dbg.DbgPrint(DBG_CODE, DBG_INFO, err.str().c_str());
         return I2C_DEVICE_SIMUL_NO_CMD;
        }
@@ -113,13 +123,15 @@ class simulated_i2c_device
       else
        {
         std::ostringstream err;
-        err << I2C_DEVICE_module_name << ": No handler in device '"
-            << m_name << "' for command "
-            << std::hex << std::showbase << static_cast<int>(cmd) << ".";
+        err << m_log_lineh()
+            << "No handler for command "
+            << std::hex << std::showbase << static_cast<int>(cmd)
+            << "." << std::dec << std::noshowbase;
         m_dbg.DbgPrint(DBG_CODE, DBG_INFO, err.str().c_str());
         return I2C_DEVICE_SIMUL_UNKNOWN_CMD;
        }
      }
+
 
   const std::string &get_name() const { return m_name; }
   DebugIfaceClass &get_dbg() const { return m_dbg; }
@@ -127,14 +139,33 @@ class simulated_i2c_device
   bool alive()
    {
     if (m_alive_attr.length() <= 0) return true;
-    if (FW_TEST_qtl_double.value(m_alive_attr,FW_TEST_ms)) return true;
+    double dalive = (FW_TEST_qtl_double.value(m_alive_attr,
+                                 FW_TEST_main_config.get_scaled_ms()));
+    if ((std::isnan(dalive)) || (dalive != 0)) return true;
     return false;
    }
 
   protected:
+
+    std::string m_log_lineh(qtl_ms_t now_ms = -1) const
+     {
+      if (now_ms < 0) now_ms = FW_TEST_ms;
+      timespec now;
+      ::clock_gettime(CLOCK_REALTIME, &now);
+      std::ostringstream msg;
+      msg << I2C_DEVICE_module_name 
+          << " - " << m_modname
+          << " - " << m_name << " - "
+          << now.tv_sec << ":" << now.tv_nsec/1000000 
+          << " - ms (scaled):" << now_ms
+          << " - tick:" << FW_TEST_tick << " - ";
+      return msg.str();
+     }
+
     DebugIfaceClass &m_dbg;
     simulated_i2c_cmd_handler_container_t m_cmd_handlers; 
     std::string m_name;
+    std::string m_modname;
     std::string m_alive_attr;
     std::string m_timeline_prefix;
 };

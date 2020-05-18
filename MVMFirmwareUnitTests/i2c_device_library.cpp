@@ -95,13 +95,9 @@ mvm_fw_unit_test_TE_MS5525DSO::handle_command(uint8_t cmd,
 {
   int ret = -1;
 
-  timespec now;
-  ::clock_gettime(CLOCK_REALTIME, &now);
   std::ostringstream msg;
-  msg << I2C_DEVICE_module_name << " - MS5525DSO - " << m_name << " - "
-      << now.tv_sec << ":" << now.tv_nsec/1000000
-      << " - ms (scaled):" << FW_TEST_main_config.get_scaled_ms()
-      << " - tick:" << FW_TEST_tick << " - ";
+  qtl_ms_t now_ms = FW_TEST_main_config.get_scaled_ms();
+  msg << m_log_lineh(now_ms);
 
   if ((cmd >= 0xa0) && (cmd <= 0xae))
    {
@@ -166,9 +162,9 @@ mvm_fw_unit_test_TE_MS5525DSO::handle_command(uint8_t cmd,
       rbuffer[2] = (d2&0xff);
      }
     msg << "Read " << (m_want_to_read_pressure ? "pressure" : "temperature")
-        << " ADC "  << std::hex << std::showbase << static_cast<int>(cmd)
+        << " ADC ("  << std::hex << std::showbase << static_cast<int>(cmd)
         << ") command received. Returning [" << std::hex << std::noshowbase
-        << std::setfill('0') << static_cast<int>(rbuffer[0])
+        << std::setfill('0') << std::setw(2) << static_cast<int>(rbuffer[0])
         << "][" << static_cast<int>(rbuffer[1])
         << "][" << static_cast<int>(rbuffer[2]) << "]." << std::dec;
     ret = 3;
@@ -194,7 +190,7 @@ mvm_fw_unit_test_TE_MS5525DSO::handle_command(uint8_t cmd,
       case 0x44:
       case 0x46:
       case 0x48:
-        m_preading = FW_TEST_pflow.p_value(m_name,FW_TEST_main_config.get_scaled_ms());
+        m_preading = FW_TEST_pflow.p_value(m_name,now_ms);
         m_want_to_read_pressure = true;
         msg << "D1 Setup (" << std::hex << std::showbase << static_cast<int>(cmd)
             << ") command received. Pressure == " << std::dec
@@ -207,10 +203,10 @@ mvm_fw_unit_test_TE_MS5525DSO::handle_command(uint8_t cmd,
       case 0x54:
       case 0x56:
       case 0x58:
-        m_treading = FW_TEST_qtl_double.value(m_name + "_temperature",FW_TEST_ms);
+        m_treading = FW_TEST_qtl_double.value(m_name + "_temperature", now_ms);
         if (std::isnan(m_treading))
          {
-          m_treading = FW_TEST_qtl_double.value("env_temperature",FW_TEST_ms);
+          m_treading = FW_TEST_qtl_double.value("env_temperature", now_ms);
          }
         got_treading = true;
         if (!read_pressure)
@@ -244,13 +240,9 @@ mvm_fw_unit_test_SENSIRION_SFM3019::handle_command(uint8_t cmd,
 {
   int ret = -1;
 
-  timespec now;
-  ::clock_gettime(CLOCK_REALTIME, &now);
   std::ostringstream msg;
-  msg << I2C_DEVICE_module_name << " - SFM3019 - " << m_name << " - "
-      << now.tv_sec << ":" << now.tv_nsec/1000000
-      << " - ms (scaled):" << FW_TEST_main_config.get_scaled_ms()
-      << " - tick:" << FW_TEST_tick << " - ";
+  qtl_ms_t now_ms = FW_TEST_main_config.get_scaled_ms();
+  msg << m_log_lineh();
 
   if ((wlength <= 0) && ((m_retc.size()*3) >= rlength))
    {
@@ -430,10 +422,10 @@ mvm_fw_unit_test_SENSIRION_SFM3019::m_update_measurement()
     m_flow_val = static_cast<int16_t>(cread);
    }
 
-  m_treading = FW_TEST_qtl_double.value(m_name + "_temperature",FW_TEST_ms);
+  m_treading = FW_TEST_qtl_double.value(m_name + "_temperature",FW_TEST_main_config.get_scaled_ms());
   if (std::isnan(m_treading))
    {
-    m_treading = FW_TEST_qtl_double.value("env_temperature",FW_TEST_ms);
+    m_treading = FW_TEST_qtl_double.value("env_temperature",FW_TEST_main_config.get_scaled_ms());
    }
 
   if (!std::isnan(m_treading))
@@ -450,18 +442,76 @@ mvm_fw_unit_test_SENSIRION_SFM3019::m_update_measurement()
 }
 
 int
+mvm_fw_unit_test_Amphenol_NPAx00::handle_command(uint8_t cmd,
+                 uint8_t *wbuffer, int wlength, uint8_t *rbuffer, int rlength)
+{
+  int ret = -1;
+
+  std::ostringstream msg;
+  qtl_ms_t now_ms = FW_TEST_main_config.get_scaled_ms();
+  msg << m_log_lineh(now_ms);
+
+  if (rlength >= 2)
+   {
+    msg << "reading " << rlength << "bytes - ";
+    m_treading = FW_TEST_qtl_double.value(m_name + "_temperature", now_ms);
+    if (std::isnan(m_treading))
+     {
+      m_treading = FW_TEST_qtl_double.value("env_temperature", now_ms);
+     }
+    m_preading = FW_TEST_qtl_double.value(m_name + "_override", now_ms);
+    if (std::isnan(m_preading))
+     {
+      m_preading = FW_TEST_qtl_double.value("input_line_pressure", now_ms);
+     }
+    msg << " pressure == " << m_preading << ", temperature == " << m_treading;
+    uint16_t raw_p, raw_t;
+
+    raw_p = m_preading/m_prange * 0x3fff;
+    raw_t = ((m_treading + 50.)/200.) * (1<11);
+
+    if (rlength >= 2)
+     {
+      rbuffer[0] = ((raw_p & 0x3f00) >> 8);
+      rbuffer[1] = (raw_p & 0xff);
+      ret = 2;
+      msg << " - returning [" << std::hex << std::setfill('0') << std::setw(2)
+          << rbuffer[0] << "][" << rbuffer[1] << "]" << std::dec;
+     }
+    if (rlength >= 3)
+     {
+      rbuffer[2] = ((raw_t >> 3) & 0xff);
+      ret = 3;
+      msg << "[" << std::hex << std::setfill('0') << std::setw(2)
+          << rbuffer[2] << "]" << std::dec;
+     }
+    if (rlength >= 4)
+     {
+      rbuffer[3] = ((raw_t & 3) << 5);
+      ret = 4;
+      msg << "[" << std::hex << std::setfill('0') << std::setw(2)
+          << rbuffer[3] << "]" << std::dec;
+     }
+   }
+  else
+   {
+    msg << "don't know how to read " << rlength << " bytes.";
+    ret = I2C_DEVICE_INSUFFICIENT_READ_BUFFER;
+   }
+
+  m_dbg.DbgPrint(DBG_CODE, DBG_VALUE, msg.str().c_str());
+  return ret;
+}
+
+int
 mvm_fw_unit_test_TI_ADS1115::handle_command(uint8_t cmd,
                  uint8_t *wbuffer, int wlength, uint8_t *rbuffer, int rlength)
 {
   int ret = -1;
 
-  timespec now;
-  ::clock_gettime(CLOCK_REALTIME, &now);
   std::ostringstream msg;
-  msg << I2C_DEVICE_module_name << " - ADS1115 - " << m_name << " - "
-      << now.tv_sec << ":" << now.tv_nsec/1000000
-      << " - ms (scaled):" << FW_TEST_main_config.get_scaled_ms()
-      << " - tick:" << FW_TEST_tick << " - ";
+  qtl_ms_t now_ms = FW_TEST_main_config.get_scaled_ms();
+  msg << m_log_lineh(now_ms);
 
   if ((cmd >= 0) && (cmd <= 3))
    {
@@ -483,14 +533,14 @@ mvm_fw_unit_test_TI_ADS1115::handle_command(uint8_t cmd,
         m_reg[CONVERSION_REG] = 0;
         if (m_cur_mux == 4)
          {
-          m_o2_concentration = FW_TEST_qtl_double.value("o2_concentration",FW_TEST_ms);
+          m_o2_concentration = FW_TEST_qtl_double.value("o2_concentration",now_ms);
           m_reg[CONVERSION_REG] = (m_o2_concentration - m_o2_sensor_calib_m)/
                                   m_o2_sensor_calib_q;
           msg << "O2 concentration: " << m_o2_concentration << "%";
          }
         else if ((m_cur_mux >= 5) && (m_cur_mux <= 7))
          {
-          m_voltage_ref = FW_TEST_qtl_double.value("voltage_ref",FW_TEST_ms);
+          m_voltage_ref = FW_TEST_qtl_double.value("voltage_ref", now_ms);
           uint16_t vrefs;
           if (m_voltage_ref <= 0) vrefs = 0;
           else if (m_voltage_ref > m_vmax) vrefs = 0xffff;
@@ -499,13 +549,13 @@ mvm_fw_unit_test_TI_ADS1115::handle_command(uint8_t cmd,
 
           if (m_cur_mux == 6)
            {
-            m_voltage_12v = FW_TEST_qtl_double.value("voltage_12v",FW_TEST_ms);
+            m_voltage_12v = FW_TEST_qtl_double.value("voltage_12v",now_ms);
             msg << " 12V voltage: " << m_voltage_12v << " V";
             m_reg[CONVERSION_REG] = (m_voltage_12v/(2.5*5.)) * vrefs;
            }
           else if (m_cur_mux == 7)
            {
-            m_voltage_5v = FW_TEST_qtl_double.value("voltage_5v",FW_TEST_ms);
+            m_voltage_5v = FW_TEST_qtl_double.value("voltage_5v",now_ms);
             msg << " 5V voltage: " << m_voltage_5v << " V";
             m_reg[CONVERSION_REG] = (m_voltage_5v/(2.5*2.)) * vrefs;
            }
@@ -541,12 +591,13 @@ mvm_fw_unit_test_TI_ADS1115::handle_command(uint8_t cmd,
 void
 mvm_fw_unit_test_Supervisor::m_update()
 {
-  if ( FW_TEST_ms <= m_last_update_ms ) return;
+  qtl_ms_t now_ms = FW_TEST_main_config.get_scaled_ms();
+  if ( now_ms <= m_last_update_ms ) return;
 
-  m_temp = FW_TEST_qtl_double.value("supervisor_temperature",FW_TEST_ms);
+  m_temp = FW_TEST_qtl_double.value("supervisor_temperature",now_ms);
   if (std::isnan(m_temp))
    {
-    m_temp = FW_TEST_qtl_double.value("env_temperature",FW_TEST_ms);
+    m_temp = FW_TEST_qtl_double.value("env_temperature",now_ms);
    }
   if (std::isnan(m_temp))
    {
@@ -554,10 +605,10 @@ mvm_fw_unit_test_Supervisor::m_update()
    }
 
   double cval;
-  cval = FW_TEST_qtl_double.value("supervisor_pin",FW_TEST_ms);
+  cval = FW_TEST_qtl_double.value("supervisor_pin",now_ms);
   if (std::isnan(cval))
    {
-    cval = FW_TEST_qtl_double.value("input_line_pressure",FW_TEST_ms);
+    cval = FW_TEST_qtl_double.value("input_line_pressure",now_ms);
    }
   if (!std::isnan(cval))
    {
@@ -565,14 +616,14 @@ mvm_fw_unit_test_Supervisor::m_update()
    }
   else m_pin = 0.;
 
-  cval = FW_TEST_qtl_double.value("supervisor_alarms",FW_TEST_ms);
+  cval = FW_TEST_qtl_double.value("supervisor_alarms",now_ms);
   if (!std::isnan(cval))
    {
     m_alarmsflags = static_cast<uint16_t>(cval);
    }
   else m_alarmsflags = 0;
 
-  cval = FW_TEST_qtl_double.value("wall_power",FW_TEST_ms);
+  cval = FW_TEST_qtl_double.value("wall_power",now_ms);
   if (!std::isnan(cval))
    {
     if (cval != 0) m_pwall = true;
@@ -582,18 +633,18 @@ mvm_fw_unit_test_Supervisor::m_update()
 
   if (m_pwall)
    {
-    cval = FW_TEST_qtl_double.value("charge_current",FW_TEST_ms);
-    m_charge += cval * 0.001 * (FW_TEST_ms - m_last_update_ms);
+    cval = FW_TEST_qtl_double.value("charge_current",now_ms);
+    m_charge += cval * 0.001 * (now_ms - m_last_update_ms);
    }
   else
    {
-    cval = FW_TEST_qtl_double.value("discharge_current",FW_TEST_ms);
-    m_charge += cval * 0.001 * (FW_TEST_ms - m_last_update_ms);
+    cval = FW_TEST_qtl_double.value("discharge_current",now_ms);
+    m_charge += cval * 0.001 * (now_ms - m_last_update_ms);
    }
   if (m_charge < 0.) m_charge = 0.;
   if (m_charge > 100.) m_charge = 100.;
 
-  m_last_update_ms = FW_TEST_ms;
+  m_last_update_ms = now_ms;
 }
 
 int
@@ -603,14 +654,9 @@ mvm_fw_unit_test_Supervisor::handle_command(uint8_t cmd,
   int ret = -1;
 
   verbose_level vlev = DBG_VALUE;
-  timespec now;
-  ::clock_gettime(CLOCK_REALTIME, &now);
   std::ostringstream msg;
-  msg << I2C_DEVICE_module_name << " - SUPER - "
-    << now.tv_sec << ":" << now.tv_nsec/1000000
-    << " - ms (scaled):" << FW_TEST_main_config.get_scaled_ms()
-    << " - tick:" << FW_TEST_tick << " - command: "
-    << std::hex << std::showbase << static_cast<int>(cmd);
+  msg << m_log_lineh() << "command: "
+      << std::hex << std::showbase << static_cast<int>(cmd);
 
   uint16_t val;
 
