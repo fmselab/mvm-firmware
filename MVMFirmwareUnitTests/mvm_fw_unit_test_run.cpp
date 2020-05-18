@@ -169,7 +169,7 @@ main (int argc, char *argv[])
     return 2;
    }
 
-  FW_TEST_qtl_double.initialize(FW_TEST_main_config.get_conf());
+  FW_TEST_main_config.initialize_qtl<double>(FW_TEST_qtl_double);
 
   std::string log_file;
   std::ofstream logf;

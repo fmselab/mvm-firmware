@@ -284,6 +284,19 @@ class mvm_fw_unit_test_config
     int load_command_timeline(mvm_fw_test_cmds_t &ctl,
                               const std::string &name=MVM_FM_confattr_CmdTimeline) const;
 
+    template<typename TNUM>
+    void initialize_qtl(quantity_timelines<TNUM> &qtl,
+                        const std::string &name=default_head_el) const
+     {
+      otherf_container::const_iterator oit;
+      otherf_container::const_iterator oend = other_confs.end();
+       for (oit = other_confs.begin(); oit != oend; ++oit)
+        {
+         oit->initialize_qtl(qtl, name);
+        }
+       qtl.initialize(m_conf);
+     }
+
     void start_time()
      {
       if (!get_number<double>(MVM_FM_confattr_MsScaleFactor,

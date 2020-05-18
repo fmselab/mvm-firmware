@@ -551,7 +551,14 @@ quantity_timelines<TNUM>::initialize(const YAML::Node &n, const char *head_el)
       if ((!m) || (!m.IsMap())) continue;
 #endif //!JSON_INSTEAD_OF_YAML
 #ifdef JSON_INSTEAD_OF_YAML
-      if (!m.HasMember("name")) continue;
+      if (!m.HasMember("name"))
+       {
+        if (!m.HasMember("include")) continue;
+        const rapidjson::Value& inam(m["include"]); 
+        if (!(inam.IsString())) continue;
+        initialize(inam.GetString(), head_el);
+        continue;
+       }
       if (!m.HasMember("start")) continue;
       const rapidjson::Value& vnam(m["name"]); 
       if (!(vnam.IsString())) continue;
@@ -642,7 +649,14 @@ quantity_timelines<TNUM>::initialize(const YAML::Node &n, const char *head_el)
       else continue; // No valid blob.
 #else // defined JSON_INSTEAD_OF_YAML
       YAML::Node vnam, sstart; 
-      if (!(vnam = m["name"])) continue;
+      if (!(vnam = m["name"])) 
+       {
+        YAML::Node inam;
+        if (!(inam = m["include"])) continue;
+        if (!(inam.IsScalar())) continue;
+        initialize(inam.as<std::string>().c_str(), head_el);
+        continue;
+       }
       if (!(sstart = m["start"])) continue;
       if (!(sstart.IsScalar())) continue;
       std::string snam(vnam.as<std::string>());
