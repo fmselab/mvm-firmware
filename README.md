@@ -1,4 +1,4 @@
-[![Build Status](https://travis-ci.org/fmselab/mvm-firmware.svg?branch=master)](https://travis-ci.org/fmselab/mvm-firmware)
+[![Build Status](https://travis-ci.com/fmselab/mvm-firmware.svg?branch=master)](https://travis-ci.org/fmselab/mvm-firmware)
 
 # mvm-firmware
 
