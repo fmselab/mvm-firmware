@@ -4,7 +4,7 @@ compiler:
 os:
 - linux
 script:
-- wget http://orsone.mi.infn.it/~prelz/ofw.tar.gz
+- wget -q http://orsone.mi.infn.it/~prelz/ofw.tar.gz
 - tar -zxf ofw.tar.gz
 - pushd MVMFirmwareUnitTests
 - make
