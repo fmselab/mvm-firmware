@@ -5,6 +5,7 @@
 //
 // Revision history:
 // 24-Apr-2020 Initial version.
+// 18-May-2020 Added possibility to include other config files.
 //
 // Description:
 // Methods to access the JSON configuration file, with a static instance of
@@ -67,12 +68,21 @@ mvm_fw_unit_test_config::load_config(const std::string &conf_file)
     return false;
    }
   m_valid = true;
+  std::string includef;
+  if (get_string("include", includef))
+   {
+    mvm_fw_unit_test_config newc(includef);
+    other_confs.insert(other_confs.end(), newc.get_other_confs().begin(),
+                                          newc.get_other_confs().end());
+    newc.clear_other_confs();
+    other_confs.push_back(newc);
+   }
   return true;
 }
 
 int
 mvm_fw_unit_test_config::load_command_timeline(mvm_fw_test_cmds_t &ctl,
-                                               const std::string &name)
+                                               const std::string &name) const
 {
   int ret = -1;
 
@@ -123,6 +133,12 @@ mvm_fw_unit_test_config::load_command_timeline(mvm_fw_test_cmds_t &ctl,
    }
 #endif
 
+  otherf_container::const_iterator oit;
+  otherf_container::const_iterator oend = other_confs.end();
+  for (oit = other_confs.begin(); oit != oend; ++oit)
+   {
+    oit->load_command_timeline(ctl, name);
+   }
   return ret;
 }
 

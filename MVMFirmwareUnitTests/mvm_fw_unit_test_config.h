@@ -6,6 +6,7 @@
 // Revision history:
 // 24-Apr-2020 Initial version.
 // 29-Apr-2020 Timeline of text commands added.
+// 18-May-2020 Added possibility to include other config files.
 //
 // Description:
 // Moved here the methods to access the JSON configuration file,
@@ -17,6 +18,7 @@
 #define _MVM_FW_TEST_CONFIG_H
 
 #include <string>
+#include <vector>
 #include <iostream>
 
 #ifdef JSON_INSTEAD_OF_YAML
@@ -72,6 +74,7 @@ class mvm_fw_unit_test_config
 #else
     typedef YAML::Node mvm_fw_test_config_t;
 #endif
+    typedef std::vector<mvm_fw_unit_test_config> otherf_container;
 
     mvm_fw_unit_test_config(): m_valid(false), m_time_started(false) {}
     mvm_fw_unit_test_config(const std::string &conf_file): m_valid(false),
@@ -82,7 +85,7 @@ class mvm_fw_unit_test_config
     ~mvm_fw_unit_test_config() {}
 
     bool get_string(const std::string &name,
-                          std::string &value)
+                          std::string &value) const
      {
       if (!m_valid) return false;
       const char *cname=name.c_str();
@@ -101,11 +104,20 @@ class mvm_fw_unit_test_config
 #endif
         return true;
        }
+      else
+       {
+        otherf_container::const_iterator oit;
+        otherf_container::const_iterator oend = other_confs.end();
+        for (oit = other_confs.begin(); oit != oend; ++oit)
+         {
+          if (oit->get_string(name, value)) return true; 
+         }
+       }
       return false;
      }
 
     template<typename TNUM>
-    bool get_number(const std::string &name, TNUM &value)
+    bool get_number(const std::string &name, TNUM &value) const
      {
       if (!m_valid) return false;
       const char *cname=name.c_str();
@@ -124,11 +136,20 @@ class mvm_fw_unit_test_config
 #endif
         return true;
        }
+      else
+       {
+        otherf_container::const_iterator oit;
+        otherf_container::const_iterator oend = other_confs.end();
+        for (oit = other_confs.begin(); oit != oend; ++oit)
+         {
+          if (oit->get_number(name, value)) return true; 
+         }
+       }
       return false;
      }
 
     template<typename TNUM>
-    bool get_num_array(const std::string &name, TNUM *value, int size)
+    bool get_num_array(const std::string &name, TNUM *value, int size) const
      {
       if (!m_valid) return false;
       const char *cname=name.c_str();
@@ -163,10 +184,19 @@ class mvm_fw_unit_test_config
          }
         return true;
        }
+      else
+       {
+        otherf_container::const_iterator oit;
+        otherf_container::const_iterator oend = other_confs.end();
+        for (oit = other_confs.begin(); oit != oend; ++oit)
+         {
+          if (oit->get_num_array(name, value, size)) return true; 
+         }
+       }
       return false;
      }
 
-    bool get_ushort_array(const std::string &name, uint16_t *value, int size)
+    bool get_ushort_array(const std::string &name, uint16_t *value, int size) const
      {
       // It seems that  no template classes can be instantiated for
       // uint16_t's.
@@ -203,10 +233,19 @@ class mvm_fw_unit_test_config
          }
         return true;
        }
+      else
+       {
+        otherf_container::const_iterator oit;
+        otherf_container::const_iterator oend = other_confs.end();
+        for (oit = other_confs.begin(); oit != oend; ++oit)
+         {
+          if (oit->get_ushort_array(name, value, size)) return true; 
+         }
+       }
       return false;
      }
 
-    bool get_bool(const std::string &name, bool &value)
+    bool get_bool(const std::string &name, bool &value) const
      {
       if (!m_valid) return false;
       const char *cname=name.c_str();
@@ -225,6 +264,15 @@ class mvm_fw_unit_test_config
 #endif
         return true;
        }
+      else
+       {
+        otherf_container::const_iterator oit;
+        otherf_container::const_iterator oend = other_confs.end();
+        for (oit = other_confs.begin(); oit != oend; ++oit)
+         {
+          if (oit->get_bool(name, value)) return true; 
+         }
+       }
       return false;
      }
 
@@ -234,7 +282,7 @@ class mvm_fw_unit_test_config
     const std::string &get_error_string() const { return m_error_string; }
 
     int load_command_timeline(mvm_fw_test_cmds_t &ctl,
-                              const std::string &name=MVM_FM_confattr_CmdTimeline);
+                              const std::string &name=MVM_FM_confattr_CmdTimeline) const;
 
     void start_time()
      {
@@ -273,6 +321,9 @@ class mvm_fw_unit_test_config
       return ret;
      }
 
+    const otherf_container &get_other_confs() const { return other_confs; }
+    void clear_other_confs () { other_confs.clear(); }
+
   private:
 
     std::string m_conf_file;
@@ -282,6 +333,7 @@ class mvm_fw_unit_test_config
     bool m_time_started;
     double m_time_scale;
     timespec m_start_time;
+    otherf_container other_confs;
 };
 
 extern quantity_timelines<double> FW_TEST_qtl_double;
