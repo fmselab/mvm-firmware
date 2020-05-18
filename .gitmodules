@@ -4,9 +4,6 @@
 [submodule "MVMFirmwareUnitTests/exprtk"]
 	path = MVMFirmwareUnitTests/exprtk
 	url = https://github.com/ArashPartow/exprtk
-[submodule "MVMFirmwareCpp"]
-	path = MVMFirmwareCpp
-	url = https://github.com/NuclearInstruments/MVMFirmwareCpp
 [submodule "MVMFirmwareUnitTests/yaml-cpp"]
 	path = MVMFirmwareUnitTests/yaml-cpp
 	url = https://github.com/jbeder/yaml-cpp.git
