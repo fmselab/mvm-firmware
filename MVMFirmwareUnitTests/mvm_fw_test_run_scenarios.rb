@@ -71,6 +71,8 @@ confs.each do |jsf|
   
   gh.reset()
 
+  STDERR.puts "DEBUG: About to run " + CSCheckExe + " " + jsf
+
   if (!system(CSCheckExe + " " + jsf))
     STDERR.puts "#{$0}: Error running #{CSCheckExe} on conf file #{jsf}." 
     retcode = retcode + 1
@@ -85,6 +87,7 @@ confs.each do |jsf|
     next
   end
    
+
   oh.digest_file(conf[Cfkey])
   if (conf.key?(Clkey)); oh.digest_file(conf[Clkey]) end
   

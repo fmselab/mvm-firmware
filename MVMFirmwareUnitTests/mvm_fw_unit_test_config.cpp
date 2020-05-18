@@ -31,7 +31,7 @@ std::ostream& operator<< (std::ostream &os, const system_error &serr)
 }
 
 bool
-mvm_fw_unit_test_config::load_config(const std::string &conf_file)
+mvm_fw_unit_test_config::load_config(const char *conf_file)
 {
   m_conf_file = conf_file;
   m_valid = false;
@@ -72,10 +72,10 @@ mvm_fw_unit_test_config::load_config(const std::string &conf_file)
   if (get_string("include", includef))
    {
     mvm_fw_unit_test_config newc(includef);
-    other_confs.insert(other_confs.end(), newc.get_other_confs().begin(),
-                                          newc.get_other_confs().end());
+    m_other_confs.insert(m_other_confs.end(),
+       newc.get_other_confs().begin(), newc.get_other_confs().end());
     newc.clear_other_confs();
-    other_confs.push_back(newc);
+    m_other_confs.push_back(newc);
    }
   return true;
 }
@@ -134,8 +134,8 @@ mvm_fw_unit_test_config::load_command_timeline(mvm_fw_test_cmds_t &ctl,
 #endif
 
   otherf_container::const_iterator oit;
-  otherf_container::const_iterator oend = other_confs.end();
-  for (oit = other_confs.begin(); oit != oend; ++oit)
+  otherf_container::const_iterator oend = m_other_confs.end();
+  for (oit = m_other_confs.begin(); oit != oend; ++oit)
    {
     oit->load_command_timeline(ctl, name);
    }

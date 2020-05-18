@@ -107,8 +107,8 @@ class mvm_fw_unit_test_config
       else
        {
         otherf_container::const_iterator oit;
-        otherf_container::const_iterator oend = other_confs.end();
-        for (oit = other_confs.begin(); oit != oend; ++oit)
+        otherf_container::const_iterator oend = m_other_confs.end();
+        for (oit = m_other_confs.begin(); oit != oend; ++oit)
          {
           if (oit->get_string(name, value)) return true; 
          }
@@ -139,8 +139,8 @@ class mvm_fw_unit_test_config
       else
        {
         otherf_container::const_iterator oit;
-        otherf_container::const_iterator oend = other_confs.end();
-        for (oit = other_confs.begin(); oit != oend; ++oit)
+        otherf_container::const_iterator oend = m_other_confs.end();
+        for (oit = m_other_confs.begin(); oit != oend; ++oit)
          {
           if (oit->get_number(name, value)) return true; 
          }
@@ -187,8 +187,8 @@ class mvm_fw_unit_test_config
       else
        {
         otherf_container::const_iterator oit;
-        otherf_container::const_iterator oend = other_confs.end();
-        for (oit = other_confs.begin(); oit != oend; ++oit)
+        otherf_container::const_iterator oend = m_other_confs.end();
+        for (oit = m_other_confs.begin(); oit != oend; ++oit)
          {
           if (oit->get_num_array(name, value, size)) return true; 
          }
@@ -236,8 +236,8 @@ class mvm_fw_unit_test_config
       else
        {
         otherf_container::const_iterator oit;
-        otherf_container::const_iterator oend = other_confs.end();
-        for (oit = other_confs.begin(); oit != oend; ++oit)
+        otherf_container::const_iterator oend = m_other_confs.end();
+        for (oit = m_other_confs.begin(); oit != oend; ++oit)
          {
           if (oit->get_ushort_array(name, value, size)) return true; 
          }
@@ -267,8 +267,8 @@ class mvm_fw_unit_test_config
       else
        {
         otherf_container::const_iterator oit;
-        otherf_container::const_iterator oend = other_confs.end();
-        for (oit = other_confs.begin(); oit != oend; ++oit)
+        otherf_container::const_iterator oend = m_other_confs.end();
+        for (oit = m_other_confs.begin(); oit != oend; ++oit)
          {
           if (oit->get_bool(name, value)) return true; 
          }
@@ -276,7 +276,11 @@ class mvm_fw_unit_test_config
       return false;
      }
 
-    bool load_config(const std::string &conf_file);
+    bool load_config(const char *conf_file);
+    bool load_config(const std::string &conf_file)
+     {
+      return load_config(conf_file.c_str());
+     }
     const mvm_fw_test_config_t &get_conf() const { return m_conf; }
 
     const std::string &get_error_string() const { return m_error_string; }
@@ -289,12 +293,12 @@ class mvm_fw_unit_test_config
                         const std::string &name=default_head_el) const
      {
       otherf_container::const_iterator oit;
-      otherf_container::const_iterator oend = other_confs.end();
-       for (oit = other_confs.begin(); oit != oend; ++oit)
+      otherf_container::const_iterator oend = m_other_confs.end();
+       for (oit = m_other_confs.begin(); oit != oend; ++oit)
         {
          oit->initialize_qtl(qtl, name);
         }
-       qtl.initialize(m_conf);
+       qtl.initialize(m_conf, name.c_str());
      }
 
     void start_time()
@@ -334,19 +338,21 @@ class mvm_fw_unit_test_config
       return ret;
      }
 
-    const otherf_container &get_other_confs() const { return other_confs; }
-    void clear_other_confs () { other_confs.clear(); }
+    const otherf_container &get_other_confs() const { return m_other_confs; }
+    void clear_other_confs () { m_other_confs.clear(); }
 
   private:
 
     std::string m_conf_file;
     std::string m_error_string;
     bool m_valid;
-    mvm_fw_test_config_t m_conf;
+    //WARNING: const methods to *read* the configuration will try to
+    //         change the YAML node state. Has to stay mutable.
+    mutable mvm_fw_test_config_t m_conf;
     bool m_time_started;
     double m_time_scale;
     timespec m_start_time;
-    otherf_container other_confs;
+    otherf_container m_other_confs;
 };
 
 extern quantity_timelines<double> FW_TEST_qtl_double;
