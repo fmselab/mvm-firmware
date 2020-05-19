@@ -92,6 +92,8 @@ mvm_fw_unit_test_config::load_command_timeline(mvm_fw_test_cmds_t &ctl,
   int ret = -1;
 
   const char *cname=name.c_str();
+  std::string incf;
+
 #ifdef JSON_INSTEAD_OF_YAML
   if (m_conf.HasMember(cname))
    {
@@ -102,6 +104,15 @@ mvm_fw_unit_test_config::load_command_timeline(mvm_fw_test_cmds_t &ctl,
      {
       const rapidjson::Value& v(a[i]);
       if (!(v.IsObject())) continue;
+      if (v.HasMember("include")) 
+       {
+        const rapidjson::Value& vinc(v["include"]);
+        if (vinc.IsString())
+         {
+          incf = vinc.GetString();
+         }
+        continue;
+       }
       if (!(v.HasMember("t"))) continue;
       if (!(v.HasMember("c"))) continue;
       const rapidjson::Value& vt(v["t"]);
@@ -124,6 +135,15 @@ mvm_fw_unit_test_config::load_command_timeline(mvm_fw_test_cmds_t &ctl,
      {
       YAML::Node v(a[i]);
       if (!(v.IsMap())) continue;
+      YAML::Node inc;
+      if (inc = v["include"])
+       {
+        if (inc.IsScalar()) 
+         {
+          incf = (inc.as<std::string>());
+         }
+        continue;
+       }
       YAML::Node vt;
       if (!(vt = v["t"])) continue;
       YAML::Node vc;
@@ -137,6 +157,17 @@ mvm_fw_unit_test_config::load_command_timeline(mvm_fw_test_cmds_t &ctl,
      }
    }
 #endif
+
+  if (incf.length() > 0)
+   {
+    if (mvm_fw_unit_test_not_absolute(incf))
+     {
+      // Relative paths are relative to the original config file directory.
+      incf = mvm_fw_unit_test_dirname(m_conf_file) + incf;
+     }
+    mvm_fw_unit_test_config newc(incf);
+    newc.load_command_timeline(ctl, name);
+   }
 
   otherf_container::const_iterator oit;
   otherf_container::const_iterator oend = m_other_confs.end();
