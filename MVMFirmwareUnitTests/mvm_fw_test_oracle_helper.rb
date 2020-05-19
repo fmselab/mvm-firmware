@@ -268,11 +268,16 @@ class Mvm_Fw_Test_Oracle_Helper
   attr_reader(:rhsh, :report)
   
   @config = nil
+  @confdir = nil
   @report = nil
+  Corck = "oracle_checks"
+  Cinc  = "include"
 
-  def initialize(conf)
+  def initialize(conf, confdir)
     @config = conf
+    @confdir = confdir
     @rhsh = {}
+    @iconf = {}
   end
   
   def digest_file(filename)
@@ -362,6 +367,23 @@ class Mvm_Fw_Test_Oracle_Helper
     return nil
   end
 
+  def key(k, conf = nil)
+    if (!conf); return key(k, @config) end
+    if (conf.key?(k))
+      return conf[k]
+    elsif (conf.key?(Cinc))
+      ifile = File.absolute_path(conf[Cinc], @confdir)
+      if (!(@iconf.key?(ifile))) 
+        cfile = File.read(ifile)
+        @iconf[ifile] = YAML.load(cfile)
+      end
+      if (@iconf[ifile])
+        return key(k, @iconf[ifile])
+      end
+    end
+    return nil
+  end
+
   def run_checks_in_config()
     ret = true
     if (!@config)
@@ -375,8 +397,42 @@ class Mvm_Fw_Test_Oracle_Helper
       @report << " - Both valves found CLOSED at time: " + ev.t_ms.to_s + " ms."
       ret = false
     end
-    if (tst = @config["oracle_checks"])
+    ock = @config[Corck]
+    ret = run_checks_in_hash(ock)
+    if (@config.key?(Cinc))
+      ifile = File.absolute_path(@config[Cinc], @confdir)
+      if (!(@iconf.key?(ifile))) 
+        cfile = File.read(ifile)
+        @iconf[ifile] = YAML.load(cfile)
+      end
+      iret = true
+      if (@iconf[ifile] && @iconf[ifile].key?(Corck))
+        iret = run_checks_in_hash(@iconf[ifile][Corck])
+      end  
+      if (!iret); ret = false end
+    end
+    if (!ret) 
+      @report << " - Test FAILED."
+    else
+      @report << " - All tests succeeded."
+    end
+  end
+
+  def run_checks_in_hash(tst)
+    ret = true
+    if (tst)
       tst.each do |e| 
+        if (e.key?(Cinc))
+          ifile = File.absolute_path(e[Cinc], @confdir)
+          cfile = File.read(ifile)
+          iconf = YAML.load(cfile)
+          iret = true
+          if (iconf && iconf.key?(Corck))
+            iret = run_checks_in_hash(iconf[Corck])
+          end  
+          if (!iret); ret = false end
+          next
+        end
         next if (!e.key?("event"))
         evs = e["event"].to_sym
         want_never = false
@@ -505,11 +561,6 @@ class Mvm_Fw_Test_Oracle_Helper
           end
         end
       end
-    end
-    if (!ret) 
-      @report << " - Test FAILED."
-    else
-      @report << " - All tests succeeded."
     end
     return ret
   end

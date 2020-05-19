@@ -23,20 +23,23 @@ require 'mvm_fw_test_oracle_helper'
 
 raise "Usage: #{$0} config (json|yml)" if(ARGV.length!=1)
 
-cfile = File.read(ARGV[0])
+rfile = ARGV[0]
+cfile = File.read(rfile)
 conf = YAML.load(cfile)
-oh = Mvm_Fw_Test_Oracle_Helper.new(conf);
+oh = Mvm_Fw_Test_Oracle_Helper.new(conf, File.dirname(rfile));
 
 fkey = "SerialTTY"
 lkey = "LogFile"
 ckey = "CheckRubyObj"
 
-if (!conf.key?(fkey))
+ff = oh.key(fkey)
+if (!ff)
   raise "#{$0}: #{fkey} not defined in config file #{ARGV[0]}"
 end
  
-oh.digest_file(conf[fkey])
-if (conf.key?(lkey)); oh.digest_file(conf[lkey]) end
+oh.digest_file(ff)
+lf = oh.key(lkey)
+if (lf); oh.digest_file(lf) end
 
 #pp oh.rhsh
 
@@ -48,10 +51,11 @@ if (!rchk); exit 99 end
 
 # More checks should be added here...
 
-if (conf.key?(ckey))
-  require conf[ckey]
-  eval "rchk = " + conf[ckey] + ".check(oh)"
-  eval "p " + conf[ckey] + ".report"
+lc = oh.key(ckey)
+if (lc)
+  require lc
+  eval "rchk = " + lc + ".check(oh)"
+  eval "p " + lc + ".report"
   if (!rchk); exit 98 end
 end
 
