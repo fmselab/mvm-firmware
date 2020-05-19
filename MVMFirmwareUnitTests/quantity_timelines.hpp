@@ -36,6 +36,28 @@
 typedef int64_t qtl_tick_t; 
 typedef int64_t qtl_ms_t; 
 
+inline std::string
+mvm_fw_unit_test_dirname(const std::string &path)
+{
+  std::string ret;
+
+  std::size_t ls = path.find_last_of("/\\");
+  if (ls != std::string::npos)
+   {
+    ret = path;
+    ret.erase(ls+1);
+   }
+  return ret;
+}
+
+inline bool
+mvm_fw_unit_test_not_absolute(const std::string &path)
+{
+  std::size_t fs = path.find_first_of("/\\");
+  if (fs == 0) return false;
+  return true;
+}
+
 template<typename TNUM>
 class qtl_config_blob: public exprtk::ifunction<TNUM>
 {
@@ -439,11 +461,13 @@ class quantity_timelines
                     const char *head_el=default_head_el);
 #ifdef JSON_INSTEAD_OF_YAML
     void initialize(const rapidjson::Document &d,
-                    const char *head_el=default_head_el);
 #else
-    void initialize(const YAML::Node &n,
-                    const char *head_el=default_head_el);
+    // WARNING: even if this method is read-only on the YAML node
+    //          declaring it 'const' will lead to state corruption.
+    void initialize(YAML::Node &n,
 #endif
+                    const char *head_el = default_head_el,
+                    const std::string &confdir = "");
 
     bool parse_ok() const { return m_parse_ok; }
     int  count() const { return m_count; }
@@ -495,7 +519,8 @@ quantity_timelines<TNUM>::initialize(const char *config_filename,
   if (d)
 #endif
    {
-    initialize(d, head_el);
+    initialize(d, head_el,
+               mvm_fw_unit_test_dirname(std::string(config_filename)));
    }
   else
    {
@@ -510,10 +535,11 @@ quantity_timelines<TNUM>::initialize(const char *config_filename,
 template<typename TNUM>
 void
 #ifdef JSON_INSTEAD_OF_YAML
-quantity_timelines<TNUM>::initialize(const rapidjson::Document &d, const char *head_el)
+quantity_timelines<TNUM>::initialize(const rapidjson::Document &d,
 #else
-quantity_timelines<TNUM>::initialize(const YAML::Node &n, const char *head_el)
+quantity_timelines<TNUM>::initialize(YAML::Node &n,
 #endif
+                            const char *head_el, const std::string &confdir)
 {
 #ifdef JSON_INSTEAD_OF_YAML
   if (d.HasMember(head_el))
@@ -556,7 +582,14 @@ quantity_timelines<TNUM>::initialize(const YAML::Node &n, const char *head_el)
         if (!m.HasMember("include")) continue;
         const rapidjson::Value& inam(m["include"]); 
         if (!(inam.IsString())) continue;
-        initialize(inam.GetString(), head_el);
+        std::string ifil(inam.GetString());
+        if (mvm_fw_unit_test_not_absolute(ifil))
+         {
+          // Relative path ? Read file relative to original config dir.
+          ifil = confdir + ifil;
+         }
+        std::string idir = mvm_fw_unit_test_dirname(ifil);
+        initialize(inam.GetString(), head_el, idir);
         continue;
        }
       if (!m.HasMember("start")) continue;

@@ -298,7 +298,8 @@ class mvm_fw_unit_test_config
         {
          oit->initialize_qtl(qtl, name);
         }
-       qtl.initialize(m_conf, name.c_str());
+       qtl.initialize(m_conf, name.c_str(),
+                      mvm_fw_unit_test_dirname(m_conf_file));
      }
 
     void start_time()

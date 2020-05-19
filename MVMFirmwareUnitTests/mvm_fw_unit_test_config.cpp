@@ -71,6 +71,11 @@ mvm_fw_unit_test_config::load_config(const char *conf_file)
   std::string includef;
   if (get_string("include", includef))
    {
+    if (mvm_fw_unit_test_not_absolute(includef))
+     {
+      // Relative paths are relative to the original config file directory.
+      includef = mvm_fw_unit_test_dirname(std::string(conf_file)) + includef;
+     }
     mvm_fw_unit_test_config newc(includef);
     m_other_confs.insert(m_other_confs.end(),
        newc.get_other_confs().begin(), newc.get_other_confs().end());
