@@ -5,6 +5,7 @@
 //
 // Revision history:
 // 27-Apr-2020 Initial version.
+// 20-May-2020 Added TCA multiplexer and 256-byte eeprom.
 //
 // Description:
 // Implementation of simulated I2C devices. As the time for development
@@ -587,6 +588,39 @@ mvm_fw_unit_test_TI_ADS1115::handle_command(uint8_t cmd,
   m_dbg.DbgPrint(DBG_CODE, DBG_VALUE, msg.str().c_str());
   return ret;
 };
+
+void
+mvm_fw_unit_test_1kbit_eeprom::m_init_mem()
+{
+  ::memset(&(m_mem[0]), 0, sizeof(m_mem));
+  if (!FW_TEST_main_config.get_num_array<uint32_t>(m_name + "_eeprom",
+                        reinterpret_cast<uint32_t *>(&(m_mem[0])),
+                        sizeof(m_mem)/sizeof(uint32_t)))
+   {
+    //TODO: Add default init values for named eeproms.  
+   }
+}
+
+int
+mvm_fw_unit_test_1kbit_eeprom::handle_command(uint8_t cmd,
+                 uint8_t *wbuffer, int wlength, uint8_t *rbuffer, int rlength)
+{
+  int ret = 0;
+  uint8_t addr = cmd; 
+  if (wlength > 0)
+   {
+    if ((addr + wlength) > sizeof(m_mem)) return I2C_DEVICE_MEMORY_OUT_OF_RANGE;
+    ::memcpy(m_mem+addr, wbuffer, wlength);
+    ret += wlength;
+   }
+  if (rlength > 0)
+   {
+    if ((addr + rlength) > sizeof(m_mem)) return I2C_DEVICE_MEMORY_OUT_OF_RANGE;
+    ::memcpy(rbuffer, m_mem+addr, rlength);
+    ret += rlength;
+   }
+  return ret;
+}
 
 void
 mvm_fw_unit_test_Supervisor::m_update()

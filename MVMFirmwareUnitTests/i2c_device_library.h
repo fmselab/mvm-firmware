@@ -5,6 +5,7 @@
 //
 // Revision history:
 // 27-Apr-2020 Initial version.
+// 20-May-2020 Added TCA multiplexer and 256-byte eeprom.
 //
 // Description:
 // Implementation of simulated I2C devices. As the time for development
@@ -206,6 +207,23 @@ mvm_fw_unit_test_Amphenol_NPAx00: public simulated_i2c_device
   private:
     double m_prange;
     double m_preading, m_treading;
+};
+
+class
+mvm_fw_unit_test_1kbit_eeprom: public simulated_i2c_device
+{
+  public:
+    mvm_fw_unit_test_1kbit_eeprom(const std::string &name, DebugIfaceClass &dbg):
+     simulated_i2c_device(name, dbg, "1keEPROM") { m_init_mem(); }
+    mvm_fw_unit_test_1kbit_eeprom(const char *name, DebugIfaceClass &dbg):
+     simulated_i2c_device(name, dbg, "1keEPROM") { m_init_mem(); }
+    ~mvm_fw_unit_test_1kbit_eeprom() {}
+
+    int handle_command(uint8_t cmd, uint8_t *wbuffer, int wlength,
+                                    uint8_t *rbuffer, int rlength);
+  private:
+    void m_init_mem();
+    uint8_t m_mem[256];
 };
 
 class
