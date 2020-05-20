@@ -1,5 +1,5 @@
 <H1>MVM FW Scenario test results</H1>
-<H2>as of: 19/05/2020 10:28</H2>
+<H2>as of: 20/05/2020 17:15</H2>
 <Table>
 <Tr><Td>Scenario Id</Td><Td>Description</Td><Td>Covered reqs</Td><Td>Coverage</Td><Td>Result</Td></Tr>
 <Tr><Td><B> NBC_002</B></Td><Td>Normal behavior in PSV controlled mode</Td><Td>PSV.1, PSV.2</Td><Td>1446/2243 (   64 &percnt;)</Td><Td><B><Font color="green">PASSED</Font></B></Td></Tr>
